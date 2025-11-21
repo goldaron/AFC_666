@@ -1,0 +1,26 @@
+.github/*
+
+# Kehitysympäristön ja editorin tiedostot ei kuulu peliin
+.venv/
+venv/
+env/
+.env
+.idea/
+.vscode/
+.DS_Store
+
+# Väliaikaistiedostot ja käännetty Python-roska pois reposta
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+*.log
+*.tmp
+
+# Muut satunnaiset exportit ja datadumppien kopiot pidetään paikallisina
+*.bak
+*.swp
+*.swo
+*.orig
+*.sql.dump
+*.sqlite
