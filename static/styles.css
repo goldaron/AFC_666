@@ -1,0 +1,1175 @@
+/* Air Freight Company 666 - Design Implementation */
+
+/* === PERUSASETUKSET === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: #0a0a0f;
+    color: #d1d5dc;
+    line-height: 1.5;
+    font-size: 16px;
+    min-height: 100vh;
+}
+
+/* === ALOITUSNÄYTTÖ / START SCREEN === */
+.start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+/* Tausta-efektit */
+.start-bg-container {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.start-bg-image {
+    position: absolute;
+    inset: 0;
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><rect fill="%230a0a0f"/></svg>');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.2;
+}
+
+.start-bg-gradient-vertical {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, #0a0a0f 0%, transparent 50%, #0a0a0f 100%);
+}
+
+.start-bg-gradient-horizontal {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, #0a0a0f 0%, transparent 50%, #0a0a0f 100%);
+}
+
+/* Cyan glows */
+.start-cyan-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(0, 212, 255, 0.15) 0%, transparent 70%);
+    filter: blur(100px);
+    z-index: 2;
+}
+
+.start-glow-left {
+    position: absolute;
+    top: 20%;
+    left: 10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(0, 212, 255, 0.08) 0%, transparent 70%);
+    filter: blur(80px);
+    z-index: 2;
+}
+
+.start-glow-right {
+    position: absolute;
+    bottom: 20%;
+    right: 10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(0, 212, 255, 0.08) 0%, transparent 70%);
+    filter: blur(80px);
+    z-index: 2;
+}
+
+/* Sisältö */
+.start-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
+    padding: 40px;
+}
+
+/* Logo ja otsikko */
+.start-logo-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.start-logo-icon {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    margin-bottom: 8px;
+}
+
+.start-logo-glow {
+    position: absolute;
+    inset: -20px;
+    background: radial-gradient(circle, rgba(0, 212, 255, 0.3) 0%, transparent 70%);
+    filter: blur(30px);
+}
+
+.start-logo-image {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.5));
+}
+
+.start-title {
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: #ffffff;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.start-title-underline {
+    width: 120px;
+    height: 2px;
+    background: linear-gradient(to right, transparent, #00d4ff, transparent);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+}
+
+.start-company-number {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.start-line {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0, 212, 255, 0.5));
+}
+
+.start-number-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.start-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #00d4ff;
+    box-shadow: 0 0 8px rgba(0, 212, 255, 0.8);
+}
+
+.start-number {
+    font-size: 48px;
+    font-weight: 700;
+    color: #00d4ff;
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+}
+
+.start-subtitle {
+    font-size: 14px;
+    font-weight: 400;
+    color: #9ca3af;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-top: 8px;
+}
+
+/* Menu-painikkeet */
+.start-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.start-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px 32px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.start-btn span {
+    font-size: 18px;
+}
+
+.start-btn-primary {
+    background: linear-gradient(135deg, #00d4ff 0%, #0088cc 100%);
+    color: #ffffff;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.start-btn-primary:hover {
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.start-btn-secondary {
+    background: transparent;
+    color: #00d4ff;
+    border: 1px solid #00d4ff;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+}
+
+.start-btn-secondary:hover {
+    background: rgba(0, 212, 255, 0.1);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+.start-btn-tertiary {
+    background: transparent;
+    color: #9ca3af;
+    border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
+.start-btn-tertiary:hover {
+    color: #d1d5dc;
+    border-color: rgba(156, 163, 175, 0.5);
+    background: rgba(156, 163, 175, 0.05);
+}
+
+/* Versio-info */
+.start-version {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #6b7280;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.start-version-dot {
+    color: #00d4ff;
+}
+
+/* Visibility control */
+.hidden {
+    display: none !important;
+}
+
+.game-container {
+    display: block;
+}
+
+.game-container.hidden {
+    display: none;
+}
+
+/* === YLÄPALKKI === */
+.game-header {
+    background: linear-gradient(to bottom, #030712, rgba(3, 7, 18, 0.8));
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 20px 111px;
+    position: relative;
+}
+
+.game-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 212, 255, 0.03) 50%, rgba(0, 0, 0, 0));
+    pointer-events: none;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.logo-icon {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
+}
+
+.logo-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.logo-text h1 {
+    font-size: 16px;
+    font-weight: 400;
+    color: #f9fafb;
+    letter-spacing: 0.03em;
+    line-height: 1.5;
+}
+
+.logo-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background: #00d4ff;
+    border-radius: 50%;
+    opacity: 0.5;
+}
+
+.company-number {
+    font-size: 16px;
+    color: #00d4ff;
+    letter-spacing: 0.08em;
+    opacity: 0.8;
+}
+
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 16px;
+    color: #6a7282;
+    letter-spacing: 0.03em;
+}
+
+.game-stats {
+    display: flex;
+    gap: 0;
+    background: rgba(16, 24, 40, 0.8);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.stat-item {
+    padding: 12px 16px;
+    border-right: 1px solid #1e2939;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 104px;
+}
+
+.stat-item:last-child {
+    border-right: none;
+}
+
+.stat-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    color: #6a7282;
+    letter-spacing: 0.03em;
+    font-weight: 400;
+}
+
+.stat-value {
+    font-size: 16px;
+    color: #f9fafb;
+    letter-spacing: -0.02em;
+    font-weight: 400;
+}
+
+.stat-value.money {
+    color: #05df72;
+}
+
+/* === NAVIGAATIO === */
+.main-nav {
+    background: rgba(3, 7, 18, 0.5);
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 0 111px;
+    display: flex;
+    gap: 0;
+}
+
+.nav-btn {
+    background: transparent;
+    border: none;
+    color: #6a7282;
+    padding: 16px 20px;
+    cursor: pointer;
+    font-size: 16px;
+    letter-spacing: 0.005em;
+    border-top: 2px solid transparent;
+    transition: all 0.2s ease;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.nav-btn:hover {
+    background: rgba(0, 212, 255, 0.05);
+    color: #d1d5dc;
+}
+
+.nav-btn.active {
+    background: rgba(0, 212, 255, 0.1);
+    color: #00d4ff;
+    border-top-color: #00d4ff;
+}
+
+.nav-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0), #00d4ff 50%, rgba(0, 0, 0, 0));
+}
+
+/* === ILMOITUSALUE === */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    max-width: 400px;
+    animation: slideIn 0.3s ease;
+}
+
+.notification.success {
+    background: #2ecc71;
+    color: white;
+}
+
+.notification.error {
+    background: #e74c3c;
+    color: white;
+}
+
+.notification.hidden {
+    display: none;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* === NÄKYMÄKONTAINERIT === */
+.view-container {
+    max-width: 1488px;
+    margin: 0 auto;
+    padding: 208px 111px 40px;
+}
+
+.view-container.hidden {
+    display: none;
+}
+
+.view-header {
+    margin-bottom: 24px;
+    position: relative;
+    padding-left: 16px;
+}
+
+.view-header::before {
+    content: '';
+    position: absolute;
+    left: -16px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0), #00d4ff 50%, rgba(0, 0, 0, 0));
+}
+
+.view-header h2 {
+    font-size: 20px;
+    font-weight: 500;
+    color: #f9fafb;
+    letter-spacing: 0.003em;
+    line-height: 1.5;
+    margin-bottom: 4px;
+}
+
+.view-header .subtitle {
+    font-size: 16px;
+    color: #6a7282;
+    letter-spacing: 0.005em;
+    font-weight: 400;
+}
+
+/* === KORTIT === */
+.section-card {
+    background: #0a0e14;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 14px;
+    padding: 1px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+}
+
+.section-card-header {
+    background: linear-gradient(to right, rgba(0, 212, 255, 0.1), rgba(0, 0, 0, 0));
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 14.5px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section-card h3 {
+    font-size: 16px;
+    color: #6a7282;
+    letter-spacing: 0.03em;
+    font-weight: 400;
+}
+
+.section-card-count {
+    font-size: 16px;
+    color: #00d4ff;
+    letter-spacing: 0.03em;
+}
+
+.section-card-body {
+    padding: 0;
+}
+
+/* Statistiikka-kortit (4 kpl rivissä) */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: #0a0e14;
+    border: 1px solid #1e2939;
+    border-radius: 14px;
+    padding: 21px;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 1px;
+    right: 0;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    filter: blur(24px);
+}
+
+.stat-card.cyan::before {
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.stat-card.green::before {
+    background: rgba(0, 201, 80, 0.05);
+}
+
+.stat-card.red::before {
+    background: rgba(251, 44, 54, 0.05);
+}
+
+.stat-card-content {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.stat-icon.cyan {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.stat-icon.green {
+    background: rgba(0, 201, 80, 0.1);
+    border: 1px solid rgba(0, 201, 80, 0.3);
+}
+
+.stat-icon.red {
+    background: rgba(251, 44, 54, 0.1);
+    border: 1px solid rgba(251, 44, 54, 0.3);
+}
+
+.stat-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.stat-text-label {
+    font-size: 16px;
+    color: #6a7282;
+    letter-spacing: 0.03em;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.stat-text-value {
+    font-size: 16px;
+    color: #f9fafb;
+    letter-spacing: -0.02em;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.stat-text-value.green {
+    color: #05df72;
+}
+
+.stat-text-value.red {
+    color: #ff6467;
+}
+
+/* === TAULUKKO (CONTRACTS) === */
+.contracts-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.contracts-table thead tr {
+    border-bottom: 1px solid rgba(30, 41, 57, 0.5);
+    height: 40px;
+}
+
+.contracts-table th {
+    text-align: left;
+    padding: 10.25px 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6a7282;
+    letter-spacing: 0.04em;
+}
+
+.contracts-table tbody tr {
+    border-bottom: 1px solid rgba(30, 41, 57, 0.3);
+    height: 49px;
+    transition: background 0.2s ease;
+}
+
+.contracts-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.contracts-table tbody tr:hover {
+    background: rgba(0, 212, 255, 0.03);
+}
+
+.contracts-table td {
+    padding: 15px 8px;
+    font-size: 14px;
+    color: #d1d5dc;
+    letter-spacing: -0.01em;
+}
+
+.contracts-table td.contract-id {
+    color: #6a7282;
+}
+
+.contracts-table td.reward {
+    color: #05df72;
+}
+
+.contracts-table td.penalty {
+    color: #ff6467;
+}
+
+.contracts-table td.muted {
+    color: #99a1af;
+}
+
+.deadline-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.deadline-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.difficulty-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    line-height: 1.33;
+}
+
+.difficulty-badge.easy {
+    background: rgba(0, 201, 80, 0.1);
+    border: 1px solid rgba(0, 201, 80, 0.5);
+    color: #05df72;
+}
+
+.difficulty-badge.medium {
+    background: rgba(240, 177, 0, 0.1);
+    border: 1px solid rgba(240, 177, 0, 0.5);
+    color: #fdc700;
+}
+
+.difficulty-badge.hard {
+    background: rgba(251, 44, 54, 0.1);
+    border: 1px solid rgba(251, 44, 54, 0.5);
+    color: #ff6467;
+}
+
+/* === PAINIKKEET === */
+.btn {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    color: #00d4ff;
+    padding: 5.5px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+}
+
+.btn:hover {
+    background: rgba(0, 212, 255, 0.15);
+    border-color: rgba(0, 212, 255, 0.7);
+}
+
+.btn:disabled {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #6a7282;
+    cursor: not-allowed;
+}
+
+.btn-danger {
+    background: rgba(251, 44, 54, 0.1);
+    border: 1px solid rgba(251, 44, 54, 0.5);
+    color: #ff6467;
+}
+
+.btn-danger:hover {
+    background: rgba(251, 44, 54, 0.15);
+    border-color: rgba(251, 44, 54, 0.7);
+}
+
+.btn-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* === VALINTALAATIKKO === */
+.filter-section {
+    background: #0a0e14;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 14px;
+    padding: 1px;
+    margin-bottom: 24px;
+    height: 159px;
+}
+
+.filter-header {
+    background: linear-gradient(to right, rgba(0, 212, 255, 0.1), rgba(0, 0, 0, 0));
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 14.5px 24px;
+}
+
+.filter-header h3 {
+    font-size: 16px;
+    color: #6a7282;
+    letter-spacing: 0.03em;
+    font-weight: 400;
+}
+
+.filter-body {
+    padding: 25px;
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.filter-row label {
+    font-size: 16px;
+    color: #6a7282;
+    letter-spacing: 0.03em;
+    font-weight: 400;
+}
+
+.filter-row select {
+    background: #101828;
+    border: 1px solid #1e2939;
+    border-radius: 8px;
+    color: #f9fafb;
+    padding: 8px 13px;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    min-width: 256px;
+    height: 36px;
+}
+
+.filter-row select:focus {
+    outline: none;
+    border-color: rgba(0, 212, 255, 0.5);
+}
+
+/* === VAROITUSKORTTI === */
+.warning-card {
+    background: #0a0e14;
+    border: 1px solid rgba(240, 177, 0, 0.2);
+    border-radius: 14px;
+    padding: 21px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.warning-icon {
+    width: 38px;
+    height: 38px;
+    background: rgba(240, 177, 0, 0.1);
+    border: 1px solid rgba(240, 177, 0, 0.3);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.warning-content {
+    flex: 1;
+}
+
+.warning-title {
+    font-size: 16px;
+    color: #f0b100;
+    letter-spacing: 0.03em;
+    margin-bottom: 4px;
+    font-weight: 400;
+}
+
+.warning-message {
+    font-size: 16px;
+    color: #99a1af;
+    letter-spacing: -0.02em;
+    line-height: 1.5;
+    font-weight: 400;
+}
+
+/* === VÄLILEHDET === */
+.market-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.tab-btn {
+    background: rgba(16, 24, 40, 0.8);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    color: #6a7282;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.tab-btn:hover {
+    background: rgba(0, 212, 255, 0.05);
+    color: #d1d5dc;
+}
+
+.tab-btn.active {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: rgba(0, 212, 255, 0.5);
+    color: #00d4ff;
+}
+
+.market-tab-content.hidden {
+    display: none;
+}
+
+/* === TILA-ILMAISIMET === */
+.loading, .info, .error-msg {
+    text-align: center;
+    padding: 40px 24px;
+    color: #6a7282;
+    font-size: 16px;
+    letter-spacing: 0.03em;
+}
+
+.error-msg {
+    color: #ff6467;
+}
+
+/* === ILMOITUSALUE === */
+.notification {
+    position: fixed;
+    top: 140px;
+    right: 677px;
+    width: 356px;
+    z-index: 1000;
+}
+
+.notification-card {
+    background: #1a1a1f;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    padding: 17px 40px 17px 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    animation: slideIn 0.3s ease;
+}
+
+.notification-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.notification-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #e5e7eb;
+    letter-spacing: -0.006em;
+    line-height: 1.5;
+}
+
+.notification-message {
+    font-size: 13px;
+    color: #e8e8e8;
+    letter-spacing: -0.006em;
+    line-height: 1.4;
+}
+
+.notification-icon-wrapper {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+}
+
+.notification.hidden {
+    display: none;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* === KULMAETIKETIT === */
+.corner-accent {
+    position: fixed;
+    width: 128px;
+    height: 128px;
+    border: 2px solid rgba(0, 212, 255, 0.3);
+    pointer-events: none;
+}
+
+.corner-accent.top-left {
+    top: 0;
+    left: 0;
+    border-right: none;
+    border-bottom: none;
+}
+
+.corner-accent.top-right {
+    top: 0;
+    right: 0;
+    border-left: none;
+    border-bottom: none;
+}
+
+.corner-accent.bottom-left {
+    bottom: 0;
+    left: 0;
+    border-right: none;
+    border-top: none;
+}
+
+.corner-accent.bottom-right {
+    bottom: 0;
+    right: 0;
+    border-left: none;
+    border-top: none;
+}
+
+/* === RESPONSIIVISUUS === */
+@media (max-width: 1400px) {
+    .view-container {
+        padding-left: 40px;
+        padding-right: 40px;
+    }
+    
+    .game-header {
+        padding-left: 40px;
+        padding-right: 40px;
+    }
+    
+    .main-nav {
+        padding-left: 40px;
+        padding-right: 40px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .game-stats {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .game-stats {
+        width: 100%;
+    }
+    
+    .stat-item {
+        min-width: auto;
+        flex: 1;
+    }
+    
+    .main-nav {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .contracts-table {
+        font-size: 12px;
+    }
+    
+    .contracts-table th,
+    .contracts-table td {
+        padding: 8px 4px;
+    }
+    
+    .view-container {
+        padding-top: 140px;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-header {
+        padding: 16px;
+    }
+    
+    .main-nav {
+        padding: 0 16px;
+    }
+    
+    .view-container {
+        padding: 120px 16px 20px;
+    }
+    
+    .section-card-header {
+        padding: 12px 16px;
+    }
+    
+    .filter-body {
+        padding: 16px;
+    }
+    
+    .filter-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .filter-row select {
+        width: 100%;
+    }
+}

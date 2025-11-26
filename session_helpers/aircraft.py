@@ -1,4 +1,18 @@
-"""Database helpers for aircraft state, upgrades, and ECO calculations."""
+"""
+aircraft.py - Lentokoneiden tietokanta-apurit
+==============================================
+Sisältää funktiot lentokoneiden:
+- Hakemiseen (model_info mukaan lukien)
+- ECO-päivitysten hallintaan ja laskentaan
+- Efektiivisen ECO-kertoimen laskemiseen
+
+ECO-päivitysjärjestelmä:
+- Jokainen päivitys nostaa tasoa +1
+- Kerroin paranee 5% per taso (1.05^level)
+- Min 0.50, Max 5.00
+- STARTER-koneet: kiinteä hinta + kasvu
+- Muut koneet: prosentti ostohinnasta + kasvu
+"""
 
 from decimal import Decimal, ROUND_HALF_UP
 from typing import List
@@ -17,7 +31,22 @@ from .common import _to_dec
 
 
 def fetch_player_aircrafts_with_model_info(save_id: int) -> List[dict]:
-    """Return all unsold aircraft for the save, hydrated with model metadata."""
+    """
+    Hakee pelaajan kaikki myymättömät lentokoneet mallin metatiedoilla.
+    
+    Palauttaa koneet yhdistettynä aircraft_models-tauluun, jotta saadaan
+    esim. model_name, category, eco_fee_multiplier mukaan.
+    
+    Args:
+        save_id: Tallennuksen ID
+    
+    Returns:
+        Lista dictionary-objekteja, joissa kentät:
+        - aircraft_id, registration, model_code
+        - model_name, category
+        - purchase_price_aircraft, purchase_price_model
+        - eco_fee_multiplier
+    """
     sql = """
         SELECT
             a.aircraft_id,
@@ -41,7 +70,19 @@ def fetch_player_aircrafts_with_model_info(save_id: int) -> List[dict]:
 
 
 def get_current_aircraft_upgrade_state(aircraft_id: int, upgrade_code: str = UPGRADE_CODE) -> dict:
-    """Return the latest upgrade level entry for the aircraft."""
+    """
+    Palauttaa koneen viimeisimmän päivitystason.
+    
+    Hakee aircraft_upgrades-taulusta suurimman tason annetulle koneelle
+    ja päivityskoodille (oletuksena ECO).
+    
+    Args:
+        aircraft_id: Koneen ID
+        upgrade_code: Päivitystyyppi (oletus 'ECO')
+    
+    Returns:
+        {"level": int} - Taso 0 jos ei päivityksiä
+    """
     sql = """
         SELECT level
         FROM aircraft_upgrades
@@ -62,7 +103,23 @@ def get_current_aircraft_upgrade_state(aircraft_id: int, upgrade_code: str = UPG
 
 
 def compute_effective_eco_multiplier(aircraft_id: int, base_eco_multiplier: float) -> float:
-    """Compute the effective ECO multiplier after taking installed upgrades into account."""
+    """
+    Laskee efektiivisen ECO-kertoimen ottaen huomioon asennetut päivitykset.
+    
+    Kaava:
+    - Peruskerroin * (1.05 ^ taso)
+    - Rajattu välille [0.50, 5.00]
+    
+    Args:
+        aircraft_id: Koneen ID
+        base_eco_multiplier: Mallin perus-ECO (aircraft_models.eco_fee_multiplier)
+    
+    Returns:
+        float: Efektiivinen ECO-kerroin
+    
+    Esimerkki:
+        Perus 1.0, taso 3 → 1.0 * 1.05^3 ≈ 1.1576 → 1.16
+    """
     state = get_current_aircraft_upgrade_state(aircraft_id)
     level = int(state["level"])
 
@@ -70,6 +127,7 @@ def compute_effective_eco_multiplier(aircraft_id: int, base_eco_multiplier: floa
     base_dec = Decimal(str(base_eco_multiplier))
     effective_multiplier = base_dec * (factor_per_level ** level)
 
+    # Rajat: min 0.50, max 5.00
     floor = Decimal("0.50")
     cap = Decimal("5.00")
     final_multiplier = max(floor, min(effective_multiplier, cap))
@@ -77,7 +135,24 @@ def compute_effective_eco_multiplier(aircraft_id: int, base_eco_multiplier: floa
 
 
 def calc_aircraft_upgrade_cost(aircraft_row: dict, next_level: int) -> Decimal:
-    """Calculate the price of the next ECO level for the given aircraft row."""
+    """
+    Laskee seuraavan ECO-päivitystason hinnan koneelle.
+    
+    Hinnoittelu riippuu kategoriasta:
+    - STARTER: kiinteä perushinta + eksponentiaalinen kasvu
+    - Muut: prosentti ostohinnasta + eksponentiaalinen kasvu
+    
+    Args:
+        aircraft_row: Koneen tiedot (category, purchase_price_*)
+        next_level: Seuraava taso (esim. 1, 2, 3...)
+    
+    Returns:
+        Decimal: Päivityksen hinta pyöristettynä sentteihin
+    
+    Käyttää upgrade_config.py -parametreja:
+    - STARTER_BASE_COST, STARTER_GROWTH
+    - NON_STARTER_BASE_PCT, NON_STARTER_MIN_BASE, NON_STARTER_GROWTH
+    """
     is_starter = (str(aircraft_row.get("category") or "").upper() == "STARTER")
     if is_starter:
         base = STARTER_BASE_COST
@@ -91,6 +166,7 @@ def calc_aircraft_upgrade_cost(aircraft_row: dict, next_level: int) -> Decimal:
         base = max(NON_STARTER_MIN_BASE, (_to_dec(purchase_price) * NON_STARTER_BASE_PCT))
         growth = NON_STARTER_GROWTH
 
+    # Hinta = perushinta * (kasvukerroin ^ (taso - 1))
     cost = (base * (growth ** (_to_dec(next_level) - _to_dec(1)))).quantize(
         Decimal("0.01"), rounding=ROUND_HALF_UP
     )
@@ -98,7 +174,20 @@ def calc_aircraft_upgrade_cost(aircraft_row: dict, next_level: int) -> Decimal:
 
 
 def apply_aircraft_upgrade(aircraft_id: int, installed_day: int) -> int:
-    """Insert a new upgrade history row and return the new level."""
+    """
+    Asentaa uuden päivityksen koneelle (lisää rivin aircraft_upgrades-tauluun).
+    
+    Nostaa päivitystasoa yhdellä ja tallentaa asennuspäivän.
+    
+    Args:
+        aircraft_id: Koneen ID
+        installed_day: Päivä jolloin päivitys asennettiin
+    
+    Returns:
+        int: Uusi päivitystaso
+    
+    Huom: Olettaa että raha on jo vähennetty ja transaktio hoidettu kutsujassa.
+    """
     state = get_current_aircraft_upgrade_state(aircraft_id)
     new_level = int(state["level"]) + 1
 
@@ -123,7 +212,23 @@ def apply_aircraft_upgrade(aircraft_id: int, installed_day: int) -> int:
 
 
 def get_effective_eco_for_aircraft(aircraft_id: int) -> float:
-    """Fetch base ECO multiplier for the model and apply upgrades to get the effective multiplier."""
+    """
+    Hakee koneen efektiivisen ECO-kertoimen (perus + päivitykset).
+    
+    Yhdistelmäfunktio joka:
+    1. Hakee mallin perus-ECO:n
+    2. Soveltaa päivitykset compute_effective_eco_multiplier():lla
+    
+    Args:
+        aircraft_id: Koneen ID
+    
+    Returns:
+        float: Efektiivinen ECO-kerroin
+    
+    Käyttö:
+    - Lentojen kustannuslaskennassa
+    - UI:ssa näytettäessä koneen nykyistä ECO-tasoa
+    """
     sql = """
         SELECT am.eco_fee_multiplier
         FROM aircraft a
@@ -135,6 +240,7 @@ def get_effective_eco_for_aircraft(aircraft_id: int) -> float:
         kursori.execute(sql, (aircraft_id,))
         row = kursori.fetchone()
 
+    # Haetaan perus-ECO
     if row is None:
         base_eco = 1.0
     elif isinstance(row, dict):
@@ -142,4 +248,5 @@ def get_effective_eco_for_aircraft(aircraft_id: int) -> float:
     else:
         base_eco = row[0] if row[0] is not None else 1.0
 
+    # Sovella päivitykset
     return compute_effective_eco_multiplier(aircraft_id, base_eco)

@@ -1,0 +1,10 @@
+# Air Freight Company 666 - Python Dependencies
+
+# Web framework
+Flask==3.0.0
+
+# Database driver (MariaDB/MySQL)
+mysql-connector-python==8.2.0
+
+# Alternatively, you can use:
+# PyMySQL==1.1.0
