@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Freight Company 666</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Kulmaetiketit (kaikilla näkymillä) -->
+    <div class="corner-accent top-left"></div>
+    <div class="corner-accent top-right"></div>
+    <div class="corner-accent bottom-left"></div>
+    <div class="corner-accent bottom-right"></div>
+
+    <!-- ALOITUSNÄYTTÖ / MAIN MENU -->
+    <section id="start-screen" class="start-screen">
+        <!-- Taustakuva ja efektit -->
+        <div class="start-bg-container">
+            <div class="start-bg-image"></div>
+            <div class="start-bg-gradient-vertical"></div>
+            <div class="start-bg-gradient-horizontal"></div>
+        </div>
+        <div class="start-cyan-glow"></div>
+        <div class="start-glow-left"></div>
+        <div class="start-glow-right"></div>
+
+        <!-- Sisältö -->
+        <div class="start-content">
+            <!-- Logo ja otsikko -->
+            <div class="start-logo-section">
+                <div class="start-logo-icon">
+                    <div class="start-logo-glow"></div>
+                    <img src="img/666_logo.svg" alt="AFC 666 Logo" class="start-logo-image">
+                </div>
+                <h1 class="start-title">LENTORAHTIYHTIÖ</h1>
+                <div class="start-title-underline"></div>
+                <div class="start-company-number">
+                    <div class="start-line"></div>
+                    <div class="start-number-container">
+                        <div class="start-dot"></div>
+                        <span class="start-number">666</span>
+                        <div class="start-dot"></div>
+                    </div>
+                    <div class="start-line"></div>
+                </div>
+                <p class="start-subtitle">Strateginen lentorahtisimulaatio</p>
+            </div>
+
+            <!-- Menu-painikkeet -->
+            <div class="start-menu">
+                <button class="start-btn start-btn-primary" onclick="startNewGame()">
+                    <span>▶</span> Aloita Uusi Peli
+                </button>
+                <button class="start-btn start-btn-secondary" onclick="loadGame()">
+                    <span>💾</span> Lataa Peli
+                </button>
+                <button class="start-btn start-btn-tertiary" onclick="showSettings()">
+                    <span>⚙️</span> Asetukset
+                </button>
+                <button class="start-btn start-btn-tertiary" onclick="exitGame()">
+                    <span>🚪</span> Poistu
+                </button>
+            </div>
+
+            <!-- Versio-info -->
+            <div class="start-version">
+                <span>🛈</span>
+                <span>VERSIO 1.0.0</span>
+                <span class="start-version-dot">•</span>
+                <span>BUILD 666</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- PELINÄYTTÖ / GAME CONTAINER -->
+    <div id="game-container" class="game-container hidden">
+    <!-- Yläpalkki -->
+    <header class="game-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="img/666_logo.svg" alt="AFC 666" class="logo-icon">
+                <div class="logo-text">
+                    <h1>LENTORAHTIYHTIÖ</h1>
+                    <div class="logo-subtitle">
+                        <div class="status-dot"></div>
+                        <span class="company-number">666</span>
+                        <span class="status-badge">● TOIMINNASSA</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="game-stats">
+                <div class="stat-item">
+                    <div class="stat-label">📅 PÄIVÄ</div>
+                    <div class="stat-value" id="current-day">1</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">👤 KOMENTAJA</div>
+                    <div class="stat-value" id="player-name">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">🏢 TUKIKOHTA</div>
+                    <div class="stat-value" id="home-base">-</div>
+                </div>
+            </div>
+
+            <div class="stat-item" style="background: transparent; border: 1px solid rgba(0, 201, 80, 0.3); border-radius: 14px; padding: 12px 20px;">
+                <div class="stat-label">💰 RAHA</div>
+                <div class="stat-value money" id="cash-amount">€0</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigointi -->
+    <nav class="main-nav">
+        <button onclick="showView('tasks')" class="nav-btn active" data-view="tasks">
+            ✈️ Sopimukset
+        </button>
+        <button onclick="showView('market')" class="nav-btn" data-view="market">
+            🛒 Kauppa
+        </button>
+    </nav>
+
+    <!-- Ilmoitusalue -->
+    <div id="notification" class="notification hidden">
+        <div class="notification-card">
+            <div class="notification-icon-wrapper">⚠️</div>
+            <div class="notification-content">
+                <div class="notification-title">ILMOITUS</div>
+                <div class="notification-message">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEHTÄVÄT / SOPIMUKSET -NÄKYMÄ -->
+    <section id="tasks-view" class="view-container">
+        <div class="view-header">
+            <h2>SOPIMUSMARKKINA</h2>
+            <div class="subtitle">// TEHTÄVÄBRIEFING-TERMINAALI</div>
+        </div>
+
+        <!-- Statistiikka-kortit -->
+        <div class="stats-grid">
+            <div class="stat-card cyan">
+                <div class="stat-card-content">
+                    <div class="stat-icon cyan">📋</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">SAATAVILLA</div>
+                        <div class="stat-text-value" id="available-count">8</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-card-content">
+                    <div class="stat-icon green">💰</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">KESKIM. PALKKIO</div>
+                        <div class="stat-text-value green" id="avg-reward">$182 500</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card cyan">
+                <div class="stat-card-content">
+                    <div class="stat-icon cyan">🛫</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">KESKIM. ETÄISYYS</div>
+                        <div class="stat-text-value" id="avg-distance">5 397 KM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-card-content">
+                    <div class="stat-icon red">⚠️</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">KIIREELLISET</div>
+                        <div class="stat-text-value red" id="urgent-count">2</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Suodattimet -->
+        <div class="filter-section">
+            <div class="filter-header">
+                <h3>SUODATA SOPIMUKSIA</h3>
+            </div>
+            <div class="filter-body">
+                <div class="filter-row">
+                    <label for="difficulty-filter">VAIKEUSTASO:</label>
+                    <select id="difficulty-filter">
+                        <option value="">KAIKKI TASOT</option>
+                        <option value="easy">● Helppo</option>
+                        <option value="medium">●● Keskitaso</option>
+                        <option value="hard">●●● Vaikea</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aktiiviset sopimukset -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h3>AKTIIVISET SOPIMUKSET</h3>
+                <span class="section-card-count" id="contracts-count">8 SAATAVILLA</span>
+            </div>
+            <div class="section-card-body">
+                <table class="contracts-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>LÄHTÖ</th>
+                            <th>KOHDE</th>
+                            <th>RAHTI</th>
+                            <th>ETÄISYYS</th>
+                            <th>PALKKIO</th>
+                            <th>SAKKO</th>
+                            <th>DEADLINE</th>
+                            <th>VAIKEUSTASO</th>
+                            <th>TOIMINNOT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="active-tasks-list">
+                        <tr>
+                            <td colspan="10" class="loading">Ladataan sopimuksia...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Varoitus -->
+        <div class="warning-card">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-content">
+                <div class="warning-title">TEHTÄVÄVAROITUS</div>
+                <div class="warning-message">Sopimusten määräaikojen laiminlyönti johtaa sakkoihin. Suunnittele reitit huolellisesti ja varmista, että koneet ovat kunnossa ennen lähtöä.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- KAUPPAPAIKKA-NÄKYMÄ -->
+    <section id="market-view" class="view-container hidden">
+        <div class="view-header">
+            <h2>LENTOKONEMARKKINA</h2>
+            <div class="subtitle">// HANKINTATERMINAALI</div>
+        </div>
+
+        <!-- Välilehdet -->
+        <div class="market-tabs">
+            <button onclick="showMarketTab('new')" class="tab-btn active" id="tab-new">
+                🏭 UUDET KONEET
+            </button>
+            <button onclick="showMarketTab('used')" class="tab-btn" id="tab-used">
+                💸 KÄYTETYT KONEET
+            </button>
+        </div>
+
+        <!-- Uudet koneet -->
+        <div id="market-new" class="market-tab-content">
+            <div class="section-card">
+                <div class="section-card-header">
+                    <h3>TEHDASUUSI LENTOKONEET</h3>
+                    <span class="section-card-count" id="new-aircraft-count">- SAATAVILLA</span>
+                </div>
+                <div class="section-card-body">
+                    <div id="new-aircraft-list">
+                        <p class="loading">Ladataan...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Käytetyt koneet -->
+        <div id="market-used" class="market-tab-content hidden">
+            <div class="section-card">
+                <div class="section-card-header">
+                    <h3>KÄYTETYT LENTOKONEET</h3>
+                    <span class="section-card-count" id="used-aircraft-count">- SAATAVILLA</span>
+                </div>
+                <div class="section-card-body">
+                    <div id="used-aircraft-list">
+                        <p class="loading">Ladataan...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    </div>
+    <!-- END GAME CONTAINER -->
+
+    <!-- JavaScript-moduulit -->
+    <script src="app.js"></script>
+    <script src="tasks.js"></script>
+    <script src="market.js"></script>
+</body>
+</html>

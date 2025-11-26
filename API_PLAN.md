@@ -14,6 +14,26 @@ Noudatamme klassista client-server-arkkitehtuuria.
 - **Flask-sovellus (Backend):** Käsittelee HTTP-pyynnöt, soveltaa pelilogiikkaa (`game_session.py` ja muut) ja kommunikoi MariaDB-tietokannan kanssa.
 - **Selain (Frontend):** Lähettää pyyntöjä Flask-sovellukselle ja esittää datan käyttäjälle. Käyttäjän toiminnot (napin painallukset yms.) kääntyvät API-kutsuiksi.
 
+### Frontend-toteutus: Single Page Application (SPA-lite)
+
+Toteutetaan frontend yhtenä staattisena HTML-sivuna, jota päivitetään JavaScriptillä ja API-kutsuilla.
+
+**Miksi SPA-lite:**
+- **Yksinkertaisuus:** Yksi `index.html` entry point; backend pysyy ohuena ja keskittyy JSON-vastauksiin.
+- **Deterministinen logiikka:** Kaikki tehtävä- ja tapahtumavirrat pysyvät `GameSession`-luokassa, välttäen monitahoista sivukohtaista tilanhallintaa.
+- **Nopea iteraatio:** Ei tarvetta useille Flask-templateille tai reitityksille; renderöidään vain JSONia.
+- **Tilan jatkuvuus:** Helppo ylläpitää yhtä "aktiivista tallennusta" ja client-side näkymätilaa.
+
+**Toteutus:**
+- Yksi `index.html` tiedosto, joka sisältää kaikki näkymät (Fleet, Tasks, Market, jne.)
+- Vanilla JavaScript (ei frameworkeja) käsittelee näkymien vaihdon ja API-kutsut
+- Yksinkertainen hash-pohjainen reititys (`#/fleet`, `#/tasks`) ilman kirjastoja
+- Kaikki data haetaan ja lähetetään `/api/*` endpointtien kautta `fetch()`-kutsuin
+
+**Huomioitavaa:**
+- Rahamäärät tulevat API:sta merkkijonoina (`_decimal_to_string`) – formatoi johdonmukaisesti UI:ssa
+- Kaikki pelaajalle näkyvä teksti pidetään suomenkielisenä
+
 ## 3. Rajapinnan Endpoints (REST API)
 
 Kaikki vastaukset ovat JSON-muodossa. Virhetilanteissa käytetään standardeja HTTP-statuskoodeja (4xx ja 5xx).

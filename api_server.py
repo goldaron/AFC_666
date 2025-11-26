@@ -5,12 +5,12 @@ import random
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 from game_session import GameSession
 from utils import get_connection
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 # Tämä kertoo minkä tallennuksen tietoja API lukee; oletuksena käytetään slot 1:tä.
 ACTIVE_SAVE_ID = int(os.environ.get("AFC_ACTIVE_SAVE_ID", 1))
 # Näin monta tarjousta pyydetään kerralla GameSessionilta.
@@ -307,6 +307,20 @@ def clubhouse_play():
             "todo": "TODO: Päivitä kassaa GameSessionin kautta",
         }
     )
+
+
+# ---------- Staattiset tiedostot (Frontend) ----------
+
+@app.route('/')
+def serve_index():
+    """Palauttaa pääsivun (index.html)"""
+    return send_from_directory(app.static_folder, 'index.html')
+
+
+@app.route('/<path:path>')
+def serve_static(path):
+    """Palauttaa staattiset tiedostot (CSS, JS)"""
+    return send_from_directory(app.static_folder, path)
 
 
 if __name__ == "__main__":
