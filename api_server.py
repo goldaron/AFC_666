@@ -308,6 +308,268 @@ def clubhouse_play():
         }
     )
 
+ @app.get("/api/aircrafts")
+def api_list_aircrafts():
+    """Omistettujen lentokoneiden lista (ACTIVE_SAVE_ID:stä)."""
+    try:
+        rows = fetch_player_aircrafts_with_model_info(ACTIVE_SAVE_ID) or []
+    except Exception:
+        app.logger.exception("fetch_player_aircrafts_with_model_info epäonnistui")
+        return jsonify({"virhe": "aircrafts fetch failed"}), 500
+
+    session = GameSession(save_id=ACTIVE_SAVE_ID)
+    ids = [int(r["aircraft_id"]) for r in rows]
+    try:
+        upgrade_map = session._fetch_upgrade_levels(ids) if ids else {}
+    except Exception:
+        upgrade_map = {}
+
+    out = []
+    for r in rows:
+        aid = int(r["aircraft_id"])
+        try:
+            eff_val = get_effective_eco_for_aircraft(aid)
+            eff = _decimal_to_string(Decimal(str(eff_val))) if eff_val is not None else None
+        except Exception:
+            eff = None
+        out.append(
+            {
+                "aircraft_id": aid,
+                "registration": r.get("registration"),
+                "model_code": r.get("model_code"),
+                "model_name": r.get("model_name"),
+                "current_airport_ident": r.get("current_airport_ident"),
+                "purchase_price": _decimal_to_string(r.get("purchase_price")),
+                "condition_percent": int(r.get("condition_percent") or 0),
+                "hours_flown": int(r.get("hours_flown") or 0),
+                "status": r.get("status"),
+                "acquired_day": int(r.get("acquired_day") or 0),
+                "eco_level": int(upgrade_map.get(aid, 0)),
+                "effective_eco": eff,
+            }
+        )
+    return jsonify({"save_id": ACTIVE_SAVE_ID, "aircraft": out})
+
+
+@app.get("/api/aircrafts/<int:aircraft_id>")
+def api_get_aircraft(aircraft_id: int):
+    """Tarkemmat tiedot yhdestä lentokoneesta."""
+    rows = fetch_player_aircrafts_with_model_info(ACTIVE_SAVE_ID) or []
+    row = next((r for r in rows if int(r["aircraft_id"]) == aircraft_id), None)
+    if not row:
+        return jsonify({"virhe": "aircraft not found"}), 404
+
+    state = get_current_aircraft_upgrade_state(aircraft_id) or {"level": 0}
+    cur_level = int(state.get("level") or 0)
+    next_level = cur_level + 1
+
+    try:
+        next_cost = calc_aircraft_upgrade_cost(row, next_level)
+    except Exception:
+        next_cost = None
+
+    try:
+        cur_eff_val = get_effective_eco_for_aircraft(aircraft_id)
+        cur_eff = _decimal_to_string(Decimal(str(cur_eff_val))) if cur_eff_val is not None else None
+    except Exception:
+        cur_eff = None
+
+    # Konservatiivinen arvio seuraavasta ECO-arvosta
+    next_eff = None
+    try:
+        if cur_eff is not None:
+            next_eff = _decimal_to_string(Decimal(cur_eff) * Decimal("1.05"))
+    except Exception:
+        next_eff = None
+
+    return jsonify(
+        {
+            "aircraft_id": aircraft_id,
+            "registration": row.get("registration"),
+            "model_code": row.get("model_code"),
+            "model_name": row.get("model_name"),
+            "current_airport_ident": row.get("current_airport_ident"),
+            "condition_percent": int(row.get("condition_percent") or 0),
+            "hours_flown": int(row.get("hours_flown") or 0),
+            "status": row.get("status"),
+            "acquired_day": int(row.get("acquired_day") or 0),
+            "eco": {
+                "current_level": cur_level,
+                "next_level": next_level,
+                "current_effective_eco": cur_eff,
+                "next_effective_eco_estimate": next_eff,
+                "next_upgrade_cost": _decimal_to_string(next_cost),
+            },
+        }
+    )
+
+
+@app.post("/api/aircrafts/<int:aircraft_id>/repair")
+def api_repair_aircraft(aircraft_id: int):
+    """Korjaa lentokoneen täydelliseksi (transaktiona GameSessionin kautta)."""
+    # Arvio kustannuksesta (parhaan yrityksen mukaan)
+    row = _fetch_one_dict(
+        "SELECT condition_percent FROM aircraft WHERE aircraft_id=%s AND save_id=%s",
+        (aircraft_id, ACTIVE_SAVE_ID),
+    )
+    if not row:
+        return jsonify({"virhe": "aircraft not found"}), 404
+    cond = int(row.get("condition_percent") or 0)
+    missing = max(0, 100 - cond)
+    est_cost = (Decimal(missing) * REPAIR_COST_PER_PERCENT).quantize(Decimal("0.01"))
+
+    session = GameSession(save_id=ACTIVE_SAVE_ID)
+    try:
+        ok = session._repair_aircraft_to_full_tx(aircraft_id)
+    except Exception as e:
+        app.logger.exception("repair failed")
+        return jsonify({"virhe": "repair_failed", "detail": str(e)}), 500
+
+    if not ok:
+        return jsonify({"virhe": "repair failed (insufficient funds / busy)"}), 409
+
+    return (
+        jsonify(
+            {
+                "status": "ok",
+                "aircraft_id": aircraft_id,
+                "cost_charged": _decimal_to_string(est_cost),
+                "remaining_cash": _decimal_to_string(session.cash),
+            }
+        ),
+        200,
+    )
+
+
+@app.post("/api/aircrafts/<int:aircraft_id>/upgrade")
+def api_upgrade_aircraft(aircraft_id: int):
+    """ECO-päivitys lentokoneelle."""
+    payload = request.get_json(silent=True) or {}
+    if not payload.get("confirm"):
+        return jsonify({"virhe": "confirm required"}), 400
+
+    rows = fetch_player_aircrafts_with_model_info(ACTIVE_SAVE_ID) or []
+    row = next((r for r in rows if int(r["aircraft_id"]) == aircraft_id), None)
+    if not row:
+        return jsonify({"virhe": "aircraft not found"}), 404
+
+    state = get_current_aircraft_upgrade_state(aircraft_id) or {"level": 0}
+    cur_level = int(state.get("level") or 0)
+    next_level = cur_level + 1
+
+    try:
+        cost = calc_aircraft_upgrade_cost(row, next_level)
+    except Exception as e:
+        app.logger.exception("calc cost failed")
+        return jsonify({"virhe": "cost_calculation_failed", "detail": str(e)}), 500
+
+    session = GameSession(save_id=ACTIVE_SAVE_ID)
+    if session.cash < Decimal(str(cost)):
+        return jsonify({"virhe": "insufficient_funds"}), 402
+
+    try:
+        apply_aircraft_upgrade(aircraft_id=aircraft_id, installed_day=session.current_day)
+        session._add_cash(-Decimal(str(cost)), context="AIRCRAFT_ECO_UPGRADE")
+    except Exception as e:
+        app.logger.exception("upgrade failed")
+        return jsonify({"virhe": "upgrade_failed", "detail": str(e)}), 500
+
+    return (
+        jsonify(
+            {
+                "status": "ok",
+                "aircraft_id": aircraft_id,
+                "new_level": next_level,
+                "cost": _decimal_to_string(cost),
+                "remaining_cash": _decimal_to_string(session.cash),
+            }
+        ),
+        200,
+    )
+
+
+@app.get("/api/bases")
+def api_list_bases():
+    """Lista pelaajan omistamista tukikohdista."""
+    try:
+        bases = fetch_owned_bases(ACTIVE_SAVE_ID) or []
+    except Exception:
+        app.logger.exception("fetch_owned_bases epäonnistui")
+        return jsonify({"virhe": "bases fetch failed"}), 500
+
+    base_ids = [int(b["base_id"]) for b in bases]
+    level_map = fetch_base_current_level_map(base_ids) if base_ids else {}
+
+    out = []
+    for b in bases:
+        out.append(
+            {
+                "base_id": int(b["base_id"]),
+                "base_ident": b.get("base_ident"),
+                "base_name": b.get("base_name"),
+                "acquired_day": int(b.get("acquired_day") or 0),
+                "purchase_cost": _decimal_to_string(b.get("purchase_cost")),
+                "current_level": level_map.get(int(b["base_id"]), "SMALL"),
+            }
+        )
+    return jsonify({"owned_bases": out})
+
+
+@app.post("/api/bases/<int:base_id>/upgrade")
+def api_upgrade_base(base_id: int):
+    """Tukikohdan päivitys seuraavalle tasolle."""
+    payload = request.get_json(silent=True) or {}
+    if not payload.get("confirm"):
+        return jsonify({"virhe": "confirm required"}), 400
+
+    bases = fetch_owned_bases(ACTIVE_SAVE_ID) or []
+    b = next((x for x in bases if int(x["base_id"]) == base_id), None)
+    if not b:
+        return jsonify({"virhe": "base not owned"}), 404
+
+    lvl_map = fetch_base_current_level_map([base_id]) or {}
+    current = lvl_map.get(base_id, "SMALL")
+    BASE_LEVELS = ["SMALL", "MEDIUM", "LARGE", "HUGE"]
+    BASE_UPGRADE_COST_PCTS = {
+        ("SMALL", "MEDIUM"): Decimal("0.50"),
+        ("MEDIUM", "LARGE"): Decimal("0.90"),
+        ("LARGE", "HUGE"): Decimal("1.50"),
+    }
+    try:
+        cur_idx = BASE_LEVELS.index(current)
+    except ValueError:
+        cur_idx = 0
+    if cur_idx >= len(BASE_LEVELS) - 1:
+        return jsonify({"virhe": "already_max"}), 400
+
+    nxt = BASE_LEVELS[cur_idx + 1]
+    pct = BASE_UPGRADE_COST_PCTS[(current, nxt)]
+    cost = (Decimal(str(b.get("purchase_cost") or "0")) * pct).quantize(Decimal("0.01"))
+
+    session = GameSession(save_id=ACTIVE_SAVE_ID)
+    if session.cash < cost:
+        return jsonify({"virhe": "insufficient_funds"}), 402
+
+    try:
+        insert_base_upgrade(base_id, nxt, cost, session.current_day)
+        session._add_cash(-cost, context="BASE_UPGRADE")
+    except Exception as e:
+        app.logger.exception("base upgrade failed")
+        return jsonify({"virhe": "upgrade_failed", "detail": str(e)}), 500
+
+    return (
+        jsonify(
+            {
+                "status": "ok",
+                "base_id": base_id,
+                "from": current,
+                "to": nxt,
+                "cost": _decimal_to_string(cost),
+                "remaining_cash": _decimal_to_string(session.cash),
+            }
+        ),
+        200,
+    )
 
 # ---------- Staattiset tiedostot (Frontend) ----------
 
