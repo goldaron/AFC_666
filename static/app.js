@@ -3,8 +3,8 @@
  * Vastaa näkymien vaihdosta, pelin tilan päivityksestä ja apufunktioista
  */
 
-// API:n base URL
-const API_BASE = 'http://localhost:5000';
+// API:n base URL - Käytetään suhteellista polkua CORS-ongelmien välttämiseksi
+const API_BASE = '';
 
 // Aktiivisen tallennuksen ID (oletuksena 1)
 let activeSaveId = 1;
@@ -150,6 +150,13 @@ function showView(viewName) {
             loadActiveTasks();
         } else if (viewName === 'market') {
             showMarketTab('new');
+        } else if (viewName === 'clubhouse') {
+            // Kerhohuoneen alustus (esim. edellisen pelin tuloksen tyhjennys)
+            const resultContainer = document.getElementById('coin-flip-result');
+            if (resultContainer) {
+                resultContainer.innerHTML = '';
+                resultContainer.classList.add('hidden');
+            }
         }
     }
 }
