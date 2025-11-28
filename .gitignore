@@ -24,3 +24,6 @@ __pycache__/
 *.orig
 *.sql.dump
 *.sqlite
+
+# Pidetään henkilökohtaiset asetukset ja avaimet poissa reposta
+utils.py
