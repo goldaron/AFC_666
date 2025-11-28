@@ -16,7 +16,18 @@ ACTIVE_SAVE_ID = int(os.environ.get("AFC_ACTIVE_SAVE_ID", 1))
 # Näin monta tarjousta pyydetään kerralla GameSessionilta.
 DEFAULT_TASK_OFFER_COUNT = 5
 
-
+#Lentokoneiden varten funktiot
+from session_helpers import (
+    fetch_player_aircrafts_with_model_info,
+    get_current_aircraft_upgrade_state,
+    calc_aircraft_upgrade_cost,
+    apply_aircraft_upgrade,
+    get_effective_eco_for_aircraft,
+    fetch_owned_bases,
+    fetch_base_current_level_map,
+    insert_base_upgrade,
+)
+from upgrade_config import REPAIR_COST_PER_PERCENT
 # ---------- Apufunktiot ----------
 
 def _decimal_to_string(value: Any) -> Optional[str]:
@@ -308,7 +319,8 @@ def clubhouse_play():
         }
     )
 
- @app.get("/api/aircrafts")
+# ---------- Reitit: Lentokoneet ja tukikohdat ----------
+@app.get("/api/aircrafts")
 def api_list_aircrafts():
     """Omistettujen lentokoneiden lista (ACTIVE_SAVE_ID:stä)."""
     try:
