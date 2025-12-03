@@ -1,5 +1,5 @@
 """Flask-pohjainen rajapinta"""
-
+import decimal
 import os
 import random
 from decimal import Decimal
@@ -85,7 +85,17 @@ def _serialize_offer(offer: Dict[str, Any]) -> Dict[str, Any]:
         "penalty": _decimal_to_string(offer.get("penalty")),
         "deadline": offer.get("deadline"),
     }
-
+def _serialize_event_row(row: Dict[str, Any]) -> Dict[str, Any]:
+    """muuttaa tapahtumarivin JSON-kelpoiseksi."""
+    return {
+        "eventId": row.get("eventId"),
+        "day": row.get("day"),
+        "name": row.get("name"),
+        "description": row.get("description"),
+        "rewardDelta": _decimal_to_string(row.get("reward")),
+        "damage": row.get("damage"),
+        "lostPackages": row.get("lost_packages"),
+    }
 
 def _fetch_plane(aircraft_id: int) -> Optional[Dict[str, Any]]:
     """Hakee koneen perustiedot tarjousten luontia varten."""
@@ -307,8 +317,102 @@ def clubhouse_play():
             "todo": "TODO: Päivitä kassaa GameSessionin kautta",
         }
     )
+@app.get("api/events")
+def events():
+    """Listaa kaikki tapahtumat aikajåärjestyksessä."""
+    try:
+        rows = _query_dicts(
+            """
+            SELECT event_id, day, name, description, reward_delta, damge, lost_packages
+            FROM events
+            WHERE save_id = %s
+            ORDER BY day DESC, event_id DESC
+            LIMIT 100
+            """,
+            (ACTIVE_SAVE_ID,),
+        )
+        return jsonify({"events": [_serialize_event_row(r) for r in rows]})
+    except Exception:
+        app.logger.exception("Tapahtumien haku epäonnistui")
+        return jsonify({"virhe": "Tapahtumien haku epäonnistui"}), 500
 
 
+@app.post("/api/game/fast-forward")
+def fast_forward():
+    try:
+        session = GameSession(save_id=ACTIVE_SAVE_ID)
+        summary = session.fast_forward(silent=True)
+        #käydään läpi laskut
+        bills_clean = []
+        for b in summary.get("bills", []):
+            bills_clean.append({
+                "amount": _decimal_to_string(b.get("amount")),
+                "status": b.get("status"),
+                "error" : b.get("error"),
+            })
+            #käydään läpi eventit
+        events_clean = []
+        for e in summary.get("events", []):
+            events_clean.append({
+                "name" : e.get("name"),
+                "description" : e.get("description"),
+                "reward_delta" : _decimal_to_string(e.get("reward_delta")),
+                "damage" : e.get("damage"),
+                "lost_packages" : e.get("lost_packages"),
+            })
+            #Vastaus
+        response = {
+            "status" : session.status,
+            "current_day" : summary["day"],
+            "arrivals_count" : summary["arrivals"],
+            "earned_total" : _decimal_to_string(summary["earned"]),
+            "events" : events_clean,
+            "bills_clean" : bills_clean,
+            "current_cash" : _decimal_to_string(session.cash),
+                   }
+        return jsonify(response)
+    except Exception as e:
+        app.logger.exception("Eteneminen ei onnistunut.")
+        return jsonify({"virhe": "Eteneminen ei onnistunut", "detail": str(e)}), 500
+
+@app.post("/api/game/advance-day")
+    #siirrytään seuraavaan päivään
+def advance_day():
+    try:
+        session = GameSession(save_id=ACTIVE_SAVE_ID)
+        summary = session.advance_to_next_day(silent=True)
+        #käydään läpi laskut
+        bills_clean = []
+        for b in summary.get("bills", []):
+            bills_clean.append({
+                "amount": _decimal_to_string(b.get("amount")),
+                "status": b.get("status"),
+                "error" : b.get("error"),
+            })
+            #käydään läpi eventit
+        events_clean = []
+        for e in summary.get("events", []):
+            events_clean.append({
+                "name" : e.get("name"),
+                "description" : e.get("description"),
+                "reward_delta" : _decimal_to_string(e.get("reward_delta")),
+                "damage" : e.get("damage"),
+                "lost_packages" : e.get("lost_packages"),
+            })
+            #Vastaus
+        response = {
+            "status" : session.status,
+            "current_day" : summary["day"],
+            "arrivals_count" : summary["arrivals"],
+            "earned_total" : _decimal_to_string(summary["earned"]),
+            "events" : events_clean,
+            "bills_clean" : bills_clean,
+            "current_cash" : _decimal_to_string(session.cash),
+                   }
+        return jsonify(response)
+    except Exception as e:
+        app.logger.exception("Eteneminen ei onnistunut.")
+        return jsonify({"virhe": "Eteneminen ei onnistunut", "detail": str(e)}), 500
 # ---------- Staattiset tiedostot (Frontend) ----------
 
 @app.route('/')
