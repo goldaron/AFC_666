@@ -119,6 +119,118 @@ def _fetch_plane(aircraft_id: int) -> Optional[Dict[str, Any]]:
         (ACTIVE_SAVE_ID, aircraft_id),
     )
 
+def _list_all_saves() -> List[Dict[str, Any]]:
+    """Hakee listan tallennetuista peleistä game_saves-taulusta."""
+    return _query_dicts(
+        """
+        SELECT save_id, player_name, current_day, cash, difficulty, status, created_at, updated_at
+        FROM game_saves
+        ORDER BY created_at DESC
+        """
+    )
+
+@app.get("/api/games")
+def list_games():
+    """Palauttaa listan tallennetuista peleistä JSON-muodossa."""
+    try:
+        saves = _list_all_saves()
+
+        for s in saves:
+            s["cash"] = _decimal_to_string(s.get("cash"))
+            s["created_at"] = str(s.get("created_at"))
+            s["updated_at"] = str(s.get("updated_at"))
+
+        return jsonify({"tallennukset":saves})
+    except Exception:
+        app.logger.exception("Tallennusten haku epäonnistui.")
+        return jsonify({"Virhe": "Tallennusten haku epäonnistui."}), 500
+
+# ---------- Reitit: Elinkaari ----------
+
+@app.post("/api/games")
+def create_game():
+    """Luo uuden tallennuksen ja palauttaa sen ID:n."""
+    payload = request.get_json(silent=True) or {}
+    player_name = payload.get("player_name")
+    rng_seed = payload.get("rng_seed")
+    difficulty = payload.get("difficulty", "NORMAL")
+
+    if not player_name:
+        return jsonify({"Virhe": "Pelaajan nimi on pakollinen."})
+
+    try:
+        session = GameSession.new_game(
+            name= player_name,
+            rng_seed= int(rng_seed) if rng_seed else None,
+            default_difficulty=difficulty
+        )
+        new_save_id = session.save_id
+
+        # Aseta uusi peli aktiiviseksi
+        global ACTIVE_SAVE_ID
+        ACTIVE_SAVE_ID = new_save_id
+
+        return jsonify({
+        "Viesti": "Uusi peli luotu ja asetettu aktiiviseksi",
+        "save_id": new_save_id,
+        "status": session.status,
+        "current_day": session.current_day,
+        "cash": session.cash,
+        }), 201
+
+    except Exception as e:
+        app.logger.exception("Pelin luonti epäonnistui")
+        return jsonify({"Virhe": f"Pelin luonti epäonnistui: str{e}"}), 500
+
+@app.post("/api/games/<int:save_id>/load")
+def load_game(save_id: int):
+    """Lataa tallennuksen ja asettaa sen aktiiviseksi"""
+    try:
+        # Tarkistetaan onko tallennus olemassa
+        session = GameSession.load(save_id)
+
+        global ACTIVE_SAVE_ID
+        ACTIVE_SAVE_ID = save_id
+
+        return jsonify({
+            "Viesti": f"Peli {save_id} ladattu onnistuneesti.",
+            "save_id": ACTIVE_SAVE_ID,
+            "player_name": session.player_name,
+            "current_day": session.current_day,
+            "cash": _decimal_to_string(session.cash),
+            "status": session.status,
+        })
+    except ValueError as e:
+        if "ei löytynyt" in str(e):
+            return jsonify({"virhe": f"Tallennusta {save_id} ei löytynyt"}), 404
+        app.logger.exception(f"Pelin lataus {save_id} epäonnistui")
+        return jsonify({"virhe": f"Pelin lataus epäonnistui: {str(e)}"}), 500
+    except Exception as e:
+        app.logger.exception(f"Pelin {save_id} lataus epäonnistui")
+        return jsonify({"virhe": f"Pelin lataus epäonnistui: {str(e)}"}), 500
+
+@app.get("/api/game")
+def get_active_game_info():
+    """Palauttaa aktiivisen pelin tietoja. Päivä, kassa, status"""
+    try:
+        session = GameSession.(save_id=ACTIVE_SAVE_ID)
+
+        return jsonify({
+            "save_id": ACTIVE_SAVE_ID,
+            "player_name": session.player_name,
+            "current_day": session.current_day,
+            "cash": _decimal_to_string(session.cash),
+            "status": session.status,
+            "difficulty": session.difficulty,
+        })
+    except ValueError as e:
+        if "ei löytynyt" in str(e):
+            return jsonify({"Virhe": f"Aktiivista tallennusta {ACTIVE_SAVE_ID} ei löytynyt. Luo uusi peli tai lataa toinen peli."}), 404
+        app.logger.exception("Aktiivisen pelin tietojen haku epäonnistui")
+        return jsonify({"Virhe": f"Aktiivisen pelin tietojen haku epäonnistui: {str(e)}"}), 500
+    except Exception as e:
+        app.logger.exception("Aktiivisen pelin tietojen haku epäonnistui")
+        return jsonify({"Virhe": f"Aktiivisen pelin tietojen haku epäonnistui: {str(e)}"}), 500
 
 # ---------- Reitit: Tehtävät ----------
 
