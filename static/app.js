@@ -121,7 +121,7 @@ function showNotification(message, type = 'success', title = '') {
 
 /**
  * Vaihtaa aktiivisen näkymän
- * @param {string} viewName - Näkymän nimi ('tasks', 'market')
+ * @param {string} viewName - Näkymän nimi ('tasks', 'market', 'clubhouse')
  */
 function showView(viewName) {
     // Piilota kaikki näkymät
@@ -148,15 +148,12 @@ function showView(viewName) {
         // Lataa näkymän data
         if (viewName === 'tasks') {
             loadActiveTasks();
+            loadAircraftListForTasks();
         } else if (viewName === 'market') {
             showMarketTab('new');
         } else if (viewName === 'clubhouse') {
-            // Kerhohuoneen alustus (esim. edellisen pelin tuloksen tyhjennys)
-            const resultContainer = document.getElementById('coin-flip-result');
-            if (resultContainer) {
-                resultContainer.innerHTML = '';
-                resultContainer.classList.add('hidden');
-            }
+            // Kerhohuone: päivitä cash-display
+            updateClubhouseCash();
         }
     }
 }

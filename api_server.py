@@ -407,10 +407,13 @@ def market_used():
             SELECT m.market_id,
                    m.model_code,
                    am.model_name,
+                   am.base_cargo_kg,
+                   am.cruise_speed_kts,
                    m.purchase_price,
                    m.condition_percent,
                    m.hours_flown,
-                   m.listed_day
+                   m.listed_day,
+                   (m.condition_percent > 0) as available
             FROM market_aircraft m
                      JOIN aircraft_models am ON am.model_code = m.model_code
             ORDER BY m.listed_day DESC, m.market_id DESC
@@ -935,7 +938,18 @@ def api_upgrade_base(base_id: int):
 @app.route('/')
 def serve_index():
     """Palauttaa pääsivun (index.html)"""
-    return send_from_directory(app.static_folder, 'index.html')
+    try:
+        return send_from_directory(app.static_folder, 'index.html')
+    except Exception as e:
+        app.logger.error(f"Error serving index.html: {e}")
+        # Varasuunnitelma: lue tiedosto suoraan
+        import os
+        if app.static_folder:
+            path = os.path.join(app.static_folder, 'index.html')
+            if os.path.exists(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    return f.read()
+        return "index.html not found", 404
 
 
 @app.route('/<path:path>')
@@ -943,7 +957,7 @@ def serve_static(path):
     """Palauttaa staattiset tiedostot (CSS, JS)"""
     return send_from_directory(app.static_folder, path)
 
-
 if __name__ == "__main__":
     # Kehityskäyttöön sopiva debug-palvelin.
-    app.run(debug=True)
+    # Huom: Portti 5000 on varattu AirTunesille macOS:lla, käytä 5001 sen sijaan
+    app.run(debug=True, port=5001)

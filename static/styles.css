@@ -505,7 +505,7 @@ body {
 .view-container {
     max-width: 1488px;
     margin: 0 auto;
-    padding: 208px 111px 40px;
+    padding: 40px 111px 40px;
 }
 
 .view-container.hidden {
@@ -513,7 +513,7 @@ body {
 }
 
 .view-header {
-    margin-bottom: 24px;
+    margin-bottom: 40px;
     position: relative;
     padding-left: 16px;
 }
@@ -526,22 +526,26 @@ body {
     bottom: 0;
     width: 4px;
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0), #00d4ff 50%, rgba(0, 0, 0, 0));
+    z-index: 1;
 }
 
 .view-header h2 {
     font-size: 20px;
     font-weight: 500;
-    color: #f9fafb;
-    letter-spacing: 0.003em;
+    color: #d1d5dc;
+    letter-spacing: 0.0508px;
     line-height: 1.5;
     margin-bottom: 4px;
+    margin: 0;
 }
 
 .view-header .subtitle {
     font-size: 16px;
     color: #6a7282;
-    letter-spacing: 0.005em;
+    letter-spacing: 0.0875px;
     font-weight: 400;
+    margin: 0;
+    line-height: 24px;
 }
 
 /* === KORTIT === */
@@ -587,6 +591,7 @@ body {
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin-bottom: 24px;
+    margin-top: 40px;
 }
 
 .stat-card {
@@ -723,22 +728,418 @@ body {
     font-size: 14px;
     color: #d1d5dc;
     letter-spacing: -0.01em;
+    vertical-align: middle;
 }
 
-.contracts-table td.contract-id {
+/* Kolumnien värit ja muotoilu */
+.col-id {
     color: #6a7282;
 }
 
-.contracts-table td.reward {
+.col-origin,
+.col-destination {
+    color: #d1d5dc;
+}
+
+.col-payload,
+.col-distance {
+    color: #99a1af;
+}
+
+.col-reward {
     color: #05df72;
 }
 
-.contracts-table td.penalty {
+.col-penalty {
     color: #ff6467;
 }
 
-.contracts-table td.muted {
+.col-difficulty {
+    text-align: left;
+}
+
+.col-actions {
+    text-align: left;
+}
+
+.deadline-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.deadline-icon {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+}
+
+.difficulty-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    line-height: 1.33;
+}
+
+.difficulty-badge.difficulty-easy {
+    background: rgba(0, 201, 80, 0.1);
+    border: 1px solid rgba(0, 201, 80, 0.5);
+    color: #05df72;
+}
+
+.difficulty-badge.difficulty-medium {
+    background: rgba(240, 177, 0, 0.1);
+    border: 1px solid rgba(240, 177, 0, 0.5);
+    color: #fdc700;
+}
+
+.difficulty-badge.difficulty-hard {
+    background: rgba(251, 44, 54, 0.1);
+    border: 1px solid rgba(251, 44, 54, 0.5);
+    color: #ff6467;
+}
+
+.btn-accept {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    color: #00d4ff;
+    padding: 5.5px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+}
+
+.btn-accept:hover {
+    background: rgba(0, 212, 255, 0.15);
+    border-color: rgba(0, 212, 255, 0.7);
+}
+
+.btn-accept:disabled {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #6a7282;
+    cursor: not-allowed;
+}
+
+/* === TARJOUSKORTIT === */
+.offer-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.offer-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.offer-controls label {
     color: #99a1af;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.offer-controls select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(30, 41, 57, 0.5);
+    color: #d1d5dc;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.offer-controls select:focus {
+    outline: none;
+    border-color: rgba(0, 212, 255, 0.5);
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.offers-container {
+    min-height: 60px;
+}
+
+.info,
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #6a7282;
+    font-style: italic;
+}
+
+.error-msg {
+    text-align: center;
+    padding: 20px;
+    color: #ff6467;
+}
+
+.offers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.offer-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(30, 41, 57, 0.5);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.offer-card:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(0, 212, 255, 0.3);
+}
+
+.offer-header {
+    border-bottom: 1px solid rgba(30, 41, 57, 0.3);
+    padding-bottom: 12px;
+}
+
+.offer-header h4 {
+    color: #00d4ff;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin: 0;
+}
+
+.offer-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.offer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.offer-row .label {
+    color: #99a1af;
+    font-weight: 500;
+}
+
+.offer-row .value {
+    color: #d1d5dc;
+    font-weight: 500;
+    text-align: right;
+}
+
+.offer-row.reward .value {
+    color: #05df72;
+    font-weight: 600;
+}
+
+.offer-row.penalty .value {
+    color: #ff6467;
+    font-weight: 600;
+}
+
+.offer-row.difficulty {
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid rgba(30, 41, 57, 0.2);
+}
+
+.offer-actions {
+    padding-top: 8px;
+    border-top: 1px solid rgba(30, 41, 57, 0.2);
+}
+
+.offer-actions .btn-accept {
+    width: 100%;
+    justify-content: center;
+    font-size: 13px;
+}
+
+/* === KERHOHUONE PELIT === */
+.game-intro {
+    margin-bottom: 20px;
+}
+
+.game-intro p {
+    color: #99a1af;
+    font-size: 14px;
+    font-style: italic;
+    margin: 0;
+}
+
+.game-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.bet-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.bet-input-group label {
+    color: #99a1af;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.input-field {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(30, 41, 57, 0.5);
+    color: #00d4ff;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: rgba(0, 212, 255, 0.7);
+    background: rgba(0, 212, 255, 0.05);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+}
+
+.game-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-game {
+    background: rgba(0, 212, 255, 0.08);
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    color: #00d4ff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.btn-game:hover {
+    background: rgba(0, 212, 255, 0.15);
+    border-color: rgba(0, 212, 255, 0.7);
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+}
+
+.btn-game:active {
+    transform: scale(0.98);
+}
+
+.btn-game:disabled {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #6a7282;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.btn-game-large {
+    min-width: 150px;
+    padding: 12px 24px;
+    font-size: 14px;
+}
+
+.slots-display {
+    text-align: center;
+    font-size: 3.5em;
+    letter-spacing: 16px;
+    margin: 20px 0;
+    font-weight: 600;
+    color: #00d4ff;
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.game-result {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(30, 41, 57, 0.5);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 12px;
+}
+
+.game-result-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.game-result-card h3 {
+    color: #00d4ff;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.02em;
+}
+
+.game-result-card p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.success-text {
+    color: #05df72;
+    font-weight: 600;
+}
+
+.error-text {
+    color: #ff6467;
+    font-weight: 600;
+}
+
+.loading {
+    color: #6a7282;
+    font-style: italic;
+}
+
+.error-msg {
+    color: #ff6467;
+    text-align: center;
+}
+
+.empty-state,
+.error-cell {
+    text-align: center;
+    padding: 30px !important;
+    color: #6a7282;
+}
+
+.error-cell {
+    color: #ff6467;
 }
 
 .deadline-cell {
@@ -929,41 +1330,603 @@ body {
 }
 
 /* === VÄLILEHDET === */
+/* === KAUPPA-NÄKYMÄ (Node 7:2463) === */
+.market-view {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #0a0a0f;
+}
+
+.market-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, #030712 0%, #0a0a0f 100%);
+    z-index: -2;
+}
+
+.market-main {
+    position: relative;
+    z-index: 1;
+    max-width: 1488px;
+    margin: 0 auto;
+    padding: 40px 111px 0;
+    width: 100%;
+    flex: 1;
+}
+
+.market-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    gap: 24px;
+}
+
+.market-title-block {
+    flex: 1;
+}
+
+.market-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 30px;
+    color: #d1d5dc;
+    margin: 0;
+    letter-spacing: 0.0508px;
+}
+
+.market-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+    color: #6a7282;
+    margin: 8px 0 0 0;
+    letter-spacing: 0.0875px;
+}
+
+.market-header-line {
+    position: absolute;
+    left: -127px;
+    top: 0;
+    width: 4px;
+    height: 62px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 212, 255, 0.6) 50%, rgba(0, 0, 0, 0) 100%);
+}
+
+/* Välilehdet */
 .market-tabs {
     display: flex;
     gap: 8px;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
+    background: rgba(16, 24, 40, 0.5);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 4px;
+    border-radius: 14px;
 }
 
-.tab-btn {
-    background: rgba(16, 24, 40, 0.8);
-    border: 1px solid rgba(0, 212, 255, 0.3);
-    color: #6a7282;
-    padding: 8px 16px;
+.market-tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #d1d5dc;
+    padding: 12px 16px;
     cursor: pointer;
     font-size: 14px;
-    letter-spacing: 0.04em;
-    border-radius: 8px;
-    transition: all 0.2s ease;
     font-weight: 500;
+    letter-spacing: 0.5496px;
+    border-radius: 14px;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
 }
 
-.tab-btn:hover {
+.market-tab-btn:hover {
     background: rgba(0, 212, 255, 0.05);
-    color: #d1d5dc;
 }
 
-.tab-btn.active {
+.market-tab-btn-active {
     background: rgba(0, 212, 255, 0.1);
-    border-color: rgba(0, 212, 255, 0.5);
+    border: 1px solid rgba(0, 212, 255, 0.5);
     color: #00d4ff;
+}
+
+.market-tab-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Koneiden ruudikko */
+.market-grid-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.market-tab-content {
+    width: 100%;
 }
 
 .market-tab-content.hidden {
     display: none;
 }
 
-/* === TILA-ILMAISIMET === */
+.market-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    padding-bottom: 40px;
+}
+
+.market-loading {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 24px;
+    color: #6a7282;
+    font-size: 16px;
+    letter-spacing: 0.03em;
+}
+
+/* Koneen kortti */
+.market-aircraft-card {
+    position: relative;
+    background: rgba(16, 24, 40, 0.5);
+    border: 1px solid #1e2939;
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+    transition: all 0.2s ease;
+}
+
+.market-aircraft-card:hover {
+    border-color: rgba(0, 212, 255, 0.4);
+    background: rgba(16, 24, 40, 0.7);
+}
+
+.market-aircraft-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 128px;
+    height: 128px;
+    background: rgba(0, 212, 255, 0.05);
+    border-radius: 50%;
+    filter: blur(40px);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.market-aircraft-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Koneen otsikko */
+.market-aircraft-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.market-aircraft-name {
+    flex: 1;
+}
+
+.market-aircraft-name h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 27px;
+    color: #d1d5dc;
+    margin: 0;
+    letter-spacing: -0.4395px;
+}
+
+.market-aircraft-price {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+    color: #00d4ff;
+    margin: 8px 0 0 0;
+    letter-spacing: -0.3125px;
+}
+
+.market-aircraft-icon {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+}
+
+/* Koneen tiedot */
+.market-aircraft-specs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    background: rgba(16, 24, 40, 0.5);
+    border: 1px solid #1e2939;
+    border-radius: 4px;
+    padding: 17px;
+}
+
+.market-spec-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.market-spec-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: #6a7282;
+    letter-spacing: 0.4875px;
+}
+
+.market-spec-label svg {
+    width: 12px;
+    height: 12px;
+}
+
+.market-spec-value {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: #d1d5dc;
+    letter-spacing: -0.3125px;
+}
+
+.market-spec-value.status-available {
+    color: #05df72;
+    letter-spacing: 0.4875px;
+}
+
+.market-spec-value.status-locked {
+    color: #4a5565;
+    letter-spacing: 0.4875px;
+}
+
+/* Ostonapit */
+.market-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #00d4ff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.5496px;
+}
+
+.market-button:hover:not(:disabled) {
+    background: rgba(0, 212, 255, 0.2);
+    border-color: rgba(0, 212, 255, 0.8);
+}
+
+.market-button:disabled {
+    background: #1e2939;
+    border-color: #364153;
+    color: #4a5565;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.market-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Lukitut koneet */
+.market-aircraft-card.locked {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.market-locked-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(30, 41, 57, 0.5);
+    border: 1px solid #364153;
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6a7282;
+}
+
+/* Kulmaetiketit */
+.market-corner {
+    position: fixed;
+    width: 128px;
+    height: 128px;
+    border: 2px solid rgba(0, 212, 255, 0.3);
+    z-index: -1;
+    pointer-events: none;
+}
+
+.market-corner-tl {
+    top: 0;
+    left: 0;
+    border-right: none;
+    border-bottom: none;
+}
+
+.market-corner-tr {
+    top: 0;
+    right: 0;
+    border-left: none;
+    border-bottom: none;
+}
+
+.market-corner-bl {
+    bottom: 0;
+    left: 0;
+    border-right: none;
+    border-top: none;
+}
+
+.market-corner-br {
+    bottom: 0;
+    right: 0;
+    border-left: none;
+    border-top: none;
+}
+
+/* === KÄYTETTYJEN KONEIDEN TAULUKKO === */
+
+/* Taulukon container */
+.market-table-container {
+    background: rgba(16, 24, 40, 0.4);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+/* Taulukon header-banneri */
+.market-table-header-banner {
+    background: linear-gradient(to right, rgba(0, 212, 255, 0.1), rgba(0, 0, 0, 0));
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 14.5px 24px;
+}
+
+.market-table-label {
+    font-size: 16px;
+    color: #6a7282;
+    letter-spacing: 0.4875px;
+    margin: 0;
+    font-weight: 400;
+}
+
+/* Varsinainen taulukko */
+.market-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+/* Taulukon otsikkorivin solut */
+.market-table thead th {
+    background: transparent;
+    border-bottom: 1px solid rgba(30, 41, 57, 0.5);
+    padding: 10.25px 8px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6a7282;
+    letter-spacing: 0.5496px;
+    line-height: 20px;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Taulukon rivit */
+.market-table tbody tr {
+    border-bottom: 1px solid rgba(30, 41, 57, 0.3);
+    transition: background 0.2s ease;
+    height: 49px;
+}
+
+.market-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.market-table tbody tr:hover {
+    background: rgba(0, 212, 255, 0.05);
+}
+
+/* Taulukon solut */
+.market-table-cell {
+    padding: 15px 8px;
+    font-size: 14px;
+    font-weight: 400;
+    font-family: 'Inter', sans-serif;
+    line-height: 20px;
+    letter-spacing: -0.1504px;
+}
+
+.market-table-id {
+    color: #6a7282;
+    width: 47.68px;
+}
+
+.market-table-model {
+    color: #d1d5dc;
+    width: 281.461px;
+}
+
+.market-table-price {
+    color: #00d4ff;
+    width: 147.133px;
+}
+
+.market-table-condition {
+    width: 171.805px;
+}
+
+.market-table-hours {
+    color: #99a1af;
+    width: 138.344px;
+}
+
+.market-table-age {
+    color: #99a1af;
+    width: 91.68px;
+}
+
+.market-table-notes {
+    color: #6a7282;
+    width: 464.375px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.market-table-actions {
+    width: 143.523px;
+}
+
+/* Kunnon indikaattori */
+.market-condition-bar-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.market-condition-bar-bg {
+    width: 64px;
+    height: 6px;
+    background: #1e2939;
+    border-radius: 3px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.market-condition-bar-fill {
+    height: 100%;
+    transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.market-condition-text {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.1504px;
+    min-width: 30px;
+}
+
+/* Ostonapit taulukossa */
+.market-buy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #00d4ff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.5496px;
+    font-family: 'Inter', sans-serif;
+}
+
+.market-buy-btn:hover {
+    background: rgba(0, 212, 255, 0.2);
+    border-color: rgba(0, 212, 255, 0.8);
+}
+
+.market-buy-btn:active {
+    transform: scale(0.98);
+}
+
+/* Tyhjän taulukon viesti */
+.market-table-loading {
+    text-align: center;
+    padding: 40px 24px;
+    color: #6a7282;
+    font-size: 16px;
+    letter-spacing: 0.03em;
+}
+
+/* Markkina-neuvonta banneri */
+.market-advisory-banner {
+    display: flex;
+    gap: 12px;
+    background: rgba(16, 24, 40, 0.8);
+    border: 1px solid rgba(240, 177, 0, 0.2);
+    border-radius: 14px;
+    padding: 21px;
+    margin-top: 24px;
+}
+
+.market-advisory-icon {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(240, 177, 0, 0.1);
+    border: 1px solid rgba(240, 177, 0, 0.3);
+    border-radius: 4px;
+    flex-shrink: 0;
+    font-size: 20px;
+}
+
+.market-advisory-content {
+    flex: 1;
+}
+
+.market-advisory-title {
+    font-size: 16px;
+    font-weight: 400;
+    color: #f0b100;
+    letter-spacing: 0.4875px;
+    margin: 0;
+    line-height: 24px;
+}
+
+.market-advisory-text {
+    font-size: 16px;
+    font-weight: 400;
+    color: #99a1af;
+    letter-spacing: -0.3125px;
+    margin: 4px 0 0 0;
+    line-height: 24px;
+}
+
+/* === TILA-ILMAISIMET ===
 .loading, .info, .error-msg {
     text-align: center;
     padding: 40px 24px;
@@ -1172,4 +2135,503 @@ body {
     .filter-row select {
         width: 100%;
     }
+}
+
+/* === KERHOHUONE 666 === */
+.kerhohuone-view {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    overflow: hidden;
+    z-index: 100;
+}
+
+.kerhohuone-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a0f0a 0%, #0f0a0a 50%, #0a0a0f 100%);
+    z-index: -1;
+}
+
+.kerhohuone-header {
+    position: relative;
+    padding: 24px 111px;
+    border-bottom: 1px solid rgba(123, 51, 6, 0.2);
+    background: linear-gradient(to right, rgba(0,0,0,0), rgba(217,119,6,0.05), rgba(0,0,0,0));
+    z-index: 10;
+}
+
+.kerhohuone-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1488px;
+    margin: 0 auto;
+}
+
+.kerhohuone-title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.kerhohuone-title {
+    font-size: 24px;
+    font-weight: 500;
+    color: #fe9a00;
+    letter-spacing: 2.47px;
+    text-transform: uppercase;
+    line-height: 36px;
+}
+
+.kerhohuone-subtitle {
+    font-size: 16px;
+    font-weight: 400;
+    color: #4a5565;
+    letter-spacing: 0.0875px;
+    line-height: 24px;
+}
+
+.kerhohuone-cash-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 24px;
+    border: 1px solid rgba(187, 77, 0, 0.3);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(225, 113, 0, 0.05), transparent);
+}
+
+.kerhohuone-cash-icon {
+    font-size: 20px;
+    opacity: 0.7;
+}
+
+.kerhohuone-cash-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.kerhohuone-cash-label {
+    font-size: 16px;
+    font-weight: 400;
+    color: #6a7282;
+    letter-spacing: 0.4875px;
+    text-transform: uppercase;
+}
+
+.kerhohuone-cash-value {
+    font-size: 16px;
+    font-weight: 400;
+    color: #ffb900;
+    letter-spacing: -0.3125px;
+}
+
+.kerhohuone-main {
+    position: relative;
+    max-width: 1488px;
+    margin: 0 auto;
+    padding: 40px 111px 0;
+    z-index: 5;
+}
+
+.kerhohuone-section-title {
+    font-size: 16px;
+    font-weight: 400;
+    color: rgba(254, 154, 0, 0.8);
+    letter-spacing: 4.4875px;
+    text-align: center;
+    text-transform: uppercase;
+    margin-bottom: 80px;
+    line-height: 24px;
+}
+
+.kerhohuone-games-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 48px;
+}
+
+.kerhohuone-game-card {
+    position: relative;
+    border: 1px solid rgba(187, 77, 0, 0.3);
+    border-radius: 14px;
+    padding: 32px;
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(20, 10, 5, 0.6), rgba(10, 5, 0, 0.4));
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    /* Poista painikkeen default styling */
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    padding: 32px;
+    border: 1px solid rgba(187, 77, 0, 0.3);
+}
+
+.kerhohuone-game-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    filter: blur(48px);
+    opacity: 0.1;
+    z-index: 0;
+}
+
+.kerhohuone-game-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.kerhohuone-card-coin {
+    border-color: rgba(187, 77, 0, 0.3);
+    background: linear-gradient(135deg, rgba(123, 51, 6, 0.15), rgba(80, 30, 0, 0.08));
+}
+
+.kerhohuone-card-coin::before {
+    background: rgba(225, 113, 0, 0.1);
+}
+
+.kerhohuone-card-coin .kerhohuone-card-title {
+    color: #ffb900;
+}
+
+.kerhohuone-card-dice {
+    border-color: rgba(193, 0, 7, 0.3);
+    background: linear-gradient(135deg, rgba(130, 24, 26, 0.15), rgba(80, 0, 0, 0.08));
+}
+
+.kerhohuone-card-dice::before {
+    background: rgba(231, 0, 11, 0.1);
+}
+
+.kerhohuone-card-dice .kerhohuone-card-title {
+    color: #ff6467;
+}
+
+.kerhohuone-card-slots {
+    border-color: rgba(130, 0, 219, 0.3);
+    background: linear-gradient(135deg, rgba(89, 22, 139, 0.15), rgba(50, 0, 100, 0.08));
+}
+
+.kerhohuone-card-slots::before {
+    background: rgba(152, 16, 250, 0.1);
+}
+
+.kerhohuone-card-slots .kerhohuone-card-title {
+    color: #c27aff;
+}
+
+.kerhohuone-card-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border: 2px solid rgba(255, 185, 0, 0.3);
+    border-radius: 50%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.kerhohuone-card-dice .kerhohuone-card-icon {
+    border-color: rgba(231, 0, 11, 0.3);
+}
+
+.kerhohuone-card-slots .kerhohuone-card-icon {
+    border-color: rgba(152, 16, 250, 0.3);
+}
+
+.kerhohuone-card-title {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0.0875px;
+    text-transform: uppercase;
+    margin: 16px 0 12px;
+    line-height: 24px;
+}
+
+.kerhohuone-card-subtitle {
+    font-size: 16px;
+    font-weight: 400;
+    color: #6a7282;
+    letter-spacing: -0.3125px;
+    margin-bottom: 8px;
+    line-height: 24px;
+}
+
+.kerhohuone-card-desc {
+    font-size: 16px;
+    font-weight: 400;
+    color: #4a5565;
+    letter-spacing: -0.3125px;
+    line-height: 24px;
+}
+
+/* Poista piilotettu painike */
+.kerhohuone-card-btn {
+    display: none !important;
+}
+
+.kerhohuone-button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 32px;
+}
+
+.kerhohuone-exit-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 32px;
+    border: 1px solid rgba(187, 77, 0, 0.3);
+    border-radius: 8px;
+    background: transparent;
+    color: #e17100;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.5496px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    line-height: 20px;
+}
+
+.kerhohuone-exit-btn:hover {
+    background: rgba(225, 113, 0, 0.08);
+    border-color: rgba(225, 113, 0, 0.5);
+}
+
+.kerhohuone-btn-icon {
+    font-size: 16px;
+}
+
+/* Nurkkakoristeleet */
+.kerhohuone-corner {
+    position: fixed;
+    width: 128px;
+    height: 128px;
+    border: 2px solid rgba(151, 60, 0, 0.3);
+    z-index: 2;
+}
+
+.kerhohuone-corner-tl {
+    top: 0;
+    left: 0;
+    border-right: none;
+    border-bottom: none;
+}
+
+.kerhohuone-corner-tr {
+    top: 0;
+    right: 0;
+    border-left: none;
+    border-bottom: none;
+}
+
+.kerhohuone-corner-bl {
+    bottom: 0;
+    left: 0;
+    border-right: none;
+    border-top: none;
+}
+
+.kerhohuone-corner-br {
+    bottom: 0;
+    right: 0;
+    border-left: none;
+    border-top: none;
+}
+
+/* Game Modal - piilossa oletuksena */
+.kerhohuone-game-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.kerhohuone-game-modal.hidden {
+    display: none;
+    z-index: -1;
+}
+
+.kerhohuone-game-modal-content {
+    background: linear-gradient(135deg, #1a0f0a, #0a0a0f);
+    border: 1px solid rgba(187, 77, 0, 0.3);
+    border-radius: 14px;
+    padding: 32px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.kerhohuone-game-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.kerhohuone-game-form h2 {
+    font-size: 20px;
+    font-weight: 500;
+    color: #ffb900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.kerhohuone-game-desc {
+    font-size: 14px;
+    color: #6a7282;
+    text-align: center;
+    line-height: 20px;
+}
+
+.kerhohuone-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.kerhohuone-form-group label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6a7282;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.kerhohuone-form-input {
+    padding: 10px 12px;
+    background: rgba(30, 41, 57, 0.5);
+    border: 1px solid rgba(187, 77, 0, 0.3);
+    border-radius: 6px;
+    color: #ffb900;
+    font-size: 16px;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.3s ease;
+}
+
+.kerhohuone-form-input:focus {
+    outline: none;
+    border-color: rgba(225, 113, 0, 0.6);
+    background: rgba(30, 41, 57, 0.8);
+    box-shadow: 0 0 8px rgba(225, 113, 0, 0.2);
+}
+
+.kerhohuone-form-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.kerhohuone-form-btn {
+    flex: 1;
+    padding: 12px 16px;
+    background: rgba(225, 113, 0, 0.1);
+    border: 1px solid rgba(225, 113, 0, 0.3);
+    border-radius: 6px;
+    color: #ffb900;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.kerhohuone-form-btn:hover {
+    background: rgba(225, 113, 0, 0.2);
+    border-color: rgba(225, 113, 0, 0.6);
+}
+
+.kerhohuone-form-btn:active {
+    transform: scale(0.98);
+}
+
+.kerhohuone-form-btn-large {
+    padding: 14px 20px;
+    font-size: 16px;
+}
+
+.kerhohuone-slots-display {
+    font-size: 3rem;
+    text-align: center;
+    color: #ffb900;
+    text-shadow: 0 0 20px rgba(255, 185, 0, 0.3);
+    margin: 12px 0;
+    letter-spacing: 20px;
+    font-weight: 600;
+}
+
+.kerhohuone-game-result {
+    margin-top: 12px;
+}
+
+.kerhohuone-game-result.hidden {
+    display: none;
+}
+
+.kerhohuone-game-result-card {
+    background: rgba(30, 41, 57, 0.6);
+    border: 1px solid rgba(187, 77, 0, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+
+.kerhohuone-game-result-card h3 {
+    font-size: 16px;
+    font-weight: 500;
+    color: #ffb900;
+    margin-bottom: 8px;
+}
+
+.kerhohuone-game-result-card p {
+    font-size: 14px;
+    color: #d1d5dc;
+    margin: 4px 0;
+}
+
+.kerhohuone-form-close {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid rgba(187, 77, 0, 0.3);
+    border-radius: 6px;
+    color: #d1d5dc;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 12px;
+}
+
+.kerhohuone-form-close:hover {
+    background: rgba(187, 77, 0, 0.1);
+    border-color: rgba(187, 77, 0, 0.5);
 }
