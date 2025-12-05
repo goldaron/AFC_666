@@ -213,7 +213,7 @@ def load_game(save_id: int):
 def get_active_game_info():
     """Palauttaa aktiivisen pelin tietoja. Päivä, kassa, status"""
     try:
-        session = GameSession.(save_id=ACTIVE_SAVE_ID)
+        session = GameSession(save_id=ACTIVE_SAVE_ID)
 
         return jsonify({
             "save_id": ACTIVE_SAVE_ID,
