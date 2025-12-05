@@ -21,6 +21,12 @@ async function startNewGame() {
     try {
         // Tässä voidaan myöhemmin lisätä API-kutsu uuden pelin luomiseen
         // const newGame = await apiCall('/api/game/new', { method: 'POST' });
+        const response = await fetch('/api/games',{
+          method: 'POST',
+        });
+        if (!response.ok) {
+          throw Error('Uuden pelin luonti epäonnistui.');
+        }
         
         showGameScreen();
         showNotification('Uusi peli aloitettu!', 'success', 'TERVETULOA');
