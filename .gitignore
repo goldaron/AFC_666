@@ -32,3 +32,4 @@ utils.py
 test_minimal.py
 test_server.py
 /.playwright-mcp
+/.serena
