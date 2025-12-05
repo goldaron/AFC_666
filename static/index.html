@@ -81,7 +81,7 @@
     <!-- Yläpalkki -->
     <header class="game-header">
         <div class="header-content">
-            <div class="logo-section">
+            <div class="logo-section" onclick="showView('clubhouse')" style="cursor: pointer;">
                 <img src="img/666_logo.svg" alt="AFC 666" class="logo-icon">
                 <div class="logo-text">
                     <h1>LENTORAHTIYHTIÖ</h1>
@@ -201,6 +201,27 @@
             </div>
         </div>
 
+        <!-- Uuden sopimuksen hyväksyntä -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h3>🆕 OTA UUSI SOPIMUS</h3>
+                <span class="section-card-count">TARJOUKSET</span>
+            </div>
+            <div class="section-card-body">
+                <div class="offer-selection">
+                    <div class="offer-controls">
+                        <label for="task-aircraft-select">Valitse kone:</label>
+                        <select id="task-aircraft-select" onchange="loadTaskOffersForAircraft()">
+                            <option value="">-- Valitse kone --</option>
+                        </select>
+                    </div>
+                    <div id="task-offers-list" class="offers-container">
+                        <p class="info">Valitse ensin kone yllä olevasta listasta.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Aktiiviset sopimukset -->
         <div class="section-card">
             <div class="section-card-header">
@@ -243,49 +264,163 @@
     </section>
 
     <!-- KAUPPAPAIKKA-NÄKYMÄ -->
-    <section id="market-view" class="view-container hidden">
-        <div class="view-header">
-            <h2>LENTOKONEMARKKINA</h2>
-            <div class="subtitle">// HANKINTATERMINAALI</div>
-        </div>
+    <!-- KAUPPA-NÄKYMÄ -->
+    <section id="market-view" class="view-container hidden market-view">
+        <!-- Tausta-gradientti -->
+        <div class="market-bg"></div>
 
-        <!-- Välilehdet -->
-        <div class="market-tabs">
-            <button onclick="showMarketTab('new')" class="tab-btn active" id="tab-new">
-                🏭 UUDET KONEET
-            </button>
-            <button onclick="showMarketTab('used')" class="tab-btn" id="tab-used">
-                💸 KÄYTETYT KONEET
-            </button>
-        </div>
+        <!-- Kulmaetiketit -->
+        <div class="market-corner market-corner-tl"></div>
+        <div class="market-corner market-corner-tr"></div>
+        <div class="market-corner market-corner-bl"></div>
+        <div class="market-corner market-corner-br"></div>
 
-        <!-- Uudet koneet -->
-        <div id="market-new" class="market-tab-content">
-            <div class="section-card">
-                <div class="section-card-header">
-                    <h3>TEHDASUUSI LENTOKONEET</h3>
-                    <span class="section-card-count" id="new-aircraft-count">- SAATAVILLA</span>
+        <!-- Sisältö -->
+        <div class="market-main">
+            <!-- Otsikko -->
+            <div class="market-header">
+                <div class="market-title-block">
+                    <h2 class="market-title">LENTOKONEMARKKINA</h2>
+                    <p class="market-subtitle">// HANKINTATERMINAALI</p>
                 </div>
-                <div class="section-card-body">
-                    <div id="new-aircraft-list">
-                        <p class="loading">Ladataan...</p>
+                <div class="market-header-line"></div>
+            </div>
+
+            <!-- Välilehdet -->
+            <div class="market-tabs">
+                <button onclick="showMarketTab('new')" class="market-tab-btn market-tab-btn-active" id="tab-new">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="4" width="12" height="2" rx="1"/><rect x="2" y="8" width="12" height="2" rx="1"/><rect x="2" y="12" width="12" height="2" rx="1"/></svg>
+                    <span>UUDET KONEET</span>
+                </button>
+                <button onclick="showMarketTab('used')" class="market-tab-btn" id="tab-used">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6"/></svg>
+                    <span>KÄYTETYT KONEET</span>
+                </button>
+            </div>
+
+            <!-- Koneiden ruudikko -->
+            <div class="market-grid-wrapper">
+                <!-- Uudet koneet -->
+                <div id="market-new" class="market-tab-content">
+                    <div class="market-grid" id="new-aircraft-list">
+                        <p class="market-loading">Ladataan...</p>
+                    </div>
+                </div>
+
+                <!-- Käytetyt koneet (taulu-muoto) -->
+                <div id="market-used" class="market-tab-content hidden">
+                    <div class="market-table-container">
+                        <!-- Otsikkobanneri -->
+                        <div class="market-table-header-banner">
+                            <p class="market-table-label">AVAILABLE LISTINGS</p>
+                        </div>
+                        
+                        <!-- Varsinainen taulukko -->
+                        <table class="market-table" id="used-aircraft-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>MODEL</th>
+                                    <th>PRICE</th>
+                                    <th>CONDITION</th>
+                                    <th>HOURS</th>
+                                    <th>AGE</th>
+                                    <th>NOTES</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="used-aircraft-list">
+                                <tr><td colspan="8" class="market-table-loading">Ladataan...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Markkina-neuvonta banneri -->
+                    <div class="market-advisory-banner">
+                        <div class="market-advisory-icon">⚠️</div>
+                        <div class="market-advisory-content">
+                            <p class="market-advisory-title">MARKET ADVISORY</p>
+                            <p class="market-advisory-text">Used aircraft offer significant value but may require maintenance. Always verify condition percentage and service history before purchasing.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- KERHOHUONE-NÄKYMÄ -->
+    <section id="clubhouse-view" class="view-container hidden kerhohuone-view">
+        <!-- Tausta-gradientti -->
+        <div class="kerhohuone-bg"></div>
+        
+        <!-- Header -->
+        <div class="kerhohuone-header">
+            <div class="kerhohuone-header-content">
+                <div class="kerhohuone-title-block">
+                    <h1 class="kerhohuone-title">KERHOHUONE 666</h1>
+                    <p class="kerhohuone-subtitle">// MEMBERS ONLY</p>
+                </div>
+                <div class="kerhohuone-cash-card">
+                    <div class="kerhohuone-cash-icon">💵</div>
+                    <div class="kerhohuone-cash-content">
+                        <div class="kerhohuone-cash-label">CASH</div>
+                        <div class="kerhohuone-cash-value" id="clubhouse-cash-display">€0</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Käytetyt koneet -->
-        <div id="market-used" class="market-tab-content hidden">
-            <div class="section-card">
-                <div class="section-card-header">
-                    <h3>KÄYTETYT LENTOKONEET</h3>
-                    <span class="section-card-count" id="used-aircraft-count">- SAATAVILLA</span>
-                </div>
-                <div class="section-card-body">
-                    <div id="used-aircraft-list">
-                        <p class="loading">Ladataan...</p>
-                    </div>
-                </div>
+        <!-- Main Content -->
+        <div class="kerhohuone-main">
+            <!-- Otsikko -->
+            <div class="kerhohuone-section-title">KERHOHUONE 666</div>
+
+            <!-- 3 Pelikorttia Grid -->
+            <div class="kerhohuone-games-grid">
+                <!-- KRUUNA VAI KLAAVA -->
+                <button class="kerhohuone-game-card kerhohuone-card-coin" onclick="showCoinFlipGame()">
+                    <div class="kerhohuone-card-icon">🪙</div>
+                    <div class="kerhohuone-card-title">KRUUNA VAI KLAAVA</div>
+                    <div class="kerhohuone-card-subtitle">Coin Flip</div>
+                    <div class="kerhohuone-card-desc">2x payout</div>
+                </button>
+
+                <!-- SUUREMPI VAI PIENEMPI -->
+                <button class="kerhohuone-game-card kerhohuone-card-dice" onclick="showHighLowGame()">
+                    <div class="kerhohuone-card-icon">🎲</div>
+                    <div class="kerhohuone-card-title">SUUREMPI VAI PIENEMPI</div>
+                    <div class="kerhohuone-card-subtitle">High/Low Dice</div>
+                    <div class="kerhohuone-card-desc">Compare two dice</div>
+                </button>
+
+                <!-- YKSIKÄTINEN ROSVO -->
+                <button class="kerhohuone-game-card kerhohuone-card-slots" onclick="showSlotsGame()">
+                    <div class="kerhohuone-card-icon">🎰</div>
+                    <div class="kerhohuone-card-title">YKSIKÄTINEN ROSVO</div>
+                    <div class="kerhohuone-card-subtitle">Slot Machine</div>
+                    <div class="kerhohuone-card-desc">Up to 10x payout</div>
+                </button>
+            </div>
+
+            <!-- Exit Button -->
+            <div class="kerhohuone-button-container">
+                <button class="kerhohuone-exit-btn" onclick="showView('tasks')">
+                    <span class="kerhohuone-btn-icon">⏎</span>
+                    <span>POISTU TAKAISIN TOIMISTOLLE</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Nurkkakoristeleet -->
+        <div class="kerhohuone-corner kerhohuone-corner-tl"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-tr"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-bl"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-br"></div>
+
+        <!-- Pelin modal (näkyy kun pelaaja klikkaa peliä) -->
+        <div id="game-modal" class="kerhohuone-game-modal hidden">
+            <div class="kerhohuone-game-modal-content">
+                <!-- Tämä täytetään JavaScriptillä -->
             </div>
         </div>
     </section>
@@ -296,5 +431,6 @@
     <script src="app.js"></script>
     <script src="tasks.js"></script>
     <script src="market.js"></script>
+    <script src="clubhouse.js"></script>
 </body>
 </html>
