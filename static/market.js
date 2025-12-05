@@ -1,7 +1,26 @@
 /**
- * market.js - Kauppapaikan hallinta (Developer 4)
- * Vastaa uusien ja käytettyjen koneiden listaamisesta sekä ostamisesta
- * Päivitetty Figman designin (Node 7:2463) mukaisesti
+ * market.js - Kauppapaikan hallinta (Developer 4 / Kehittäjä 4)
+ * 
+ * Vastaa seuraavista toiminnoista:
+ * - Uusien koneiden näyttö (suodatettu tukikohdan tason mukaan)
+ * - Käytettyjen koneiden markkinapaikan näyttö
+ * - Koneiden ostaminen (uusi tai käytetty)
+ * - Koneiden spesifikaatioiden esittäminen
+ * 
+ * Endpointit:
+ * - GET /api/market/new → listaa uudet konemallit (tukikohdan taso rajaa saatavuuden)
+ * - GET /api/market/used → listaa käytettyjen koneiden markkinat
+ * - POST /api/market/buy → osta kone (uusi tai käytetty)
+ * 
+ * Suodatus logiikka:
+ * Uudet koneet suodatetaan pelaajan tukikohdan tason perusteella:
+ * - SMALL-taso → SMALL-kategorian koneet
+ * - MEDIUM-taso → SMALL + MEDIUM-kategorian koneet
+ * - LARGE-taso → SMALL + MEDIUM + LARGE-kategorian koneet
+ * - HUGE-taso → kaikki kategoriat
+ * 
+ * Tämä toteutetaan API-puolella GameSession._fetch_aircraft_models_by_base_progress()-metodilla,
+ * joten frontend saa jo suodatetut koneet.
  */
 
 /**
@@ -33,6 +52,7 @@ function showMarketTab(tabName) {
 
 /**
  * Lataa uudet koneet tehtaalta
+ * Noudattaa pelaajan tukikohdan tasoa (SMALL, MEDIUM, LARGE, HUGE)
  */
 async function loadNewAircraft() {
     const listContainer = document.getElementById('new-aircraft-list');
@@ -42,7 +62,14 @@ async function loadNewAircraft() {
         const data = await apiCall('/api/market/new');
         
         if (!data.uudet_koneet || data.uudet_koneet.length === 0) {
-            listContainer.innerHTML = '<p class="market-loading">Ei uusia koneita myynnissä.</p>';
+            listContainer.innerHTML = `
+                <div class="market-loading-message">
+                    <p>❌ Ei uusia koneita saatavilla</p>
+                    <p style="font-size: 0.9em; margin-top: 10px; color: #999;">
+                        💡 Vihje: Päivitä tukikohta saadaksesi lisää koneiden malleja kauppaan!
+                    </p>
+                </div>
+            `;
             return;
         }
         
@@ -62,6 +89,13 @@ async function loadNewAircraft() {
 
 /**
  * Luo HTML-elementin uudelle koneelle (Figman mukaan)
+ * 
+ * Tämä funktio rakentaa kortin uudelle koneelle, joka näytetään markkinapaikalla.
+ * Kortti sisältää koneen nimen, hinnan, lastauskapasiteetin, kantaman ja nopeuden.
+ * 
+ * Huom: API suodattaa koneet automaattisesti pelaajan tukikohdan tason (SMALL..HUGE) mukaan.
+ * Näkyvillä ovat vain ne koneet, joiden kategoria vastaa tukikohdan maksimi-tasoon.
+ * 
  * @param {Object} aircraft - Koneen tiedot API:sta
  * @returns {HTMLElement} Koneen HTML-elementti
  */
@@ -69,7 +103,8 @@ function createNewAircraftElement(aircraft) {
     const div = document.createElement('div');
     div.className = 'market-aircraft-card';
     
-    const maxRangeKm = aircraft.max_range_km || Math.round(aircraft.cruise_speed_kts * 8);
+    // Käytetään API:sta saatua kantama-tietoa tai kalkuloidaan se nopeuden perusteella
+    const maxRangeKm = aircraft.range_km || aircraft.max_range_km || Math.round(aircraft.cruise_speed_kts * 8);
     
     div.innerHTML = `
         <!-- Otsikko ja hinta -->
@@ -86,7 +121,7 @@ function createNewAircraftElement(aircraft) {
             <div class="market-spec-item">
                 <div class="market-spec-label">
                     <svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="6" width="12" height="8" rx="1"/></svg>
-                    <span>RAHTI</span>
+                    <span>LASTAUS</span>
                 </div>
                 <div class="market-spec-value">${aircraft.base_cargo_kg} kg</div>
             </div>
@@ -105,7 +140,7 @@ function createNewAircraftElement(aircraft) {
                 <div class="market-spec-value">${aircraft.cruise_speed_kts} km/h</div>
             </div>
             <div class="market-spec-item">
-                <div class="market-spec-label">TILA</div>
+                <div class="market-spec-label">SAATAVUUS</div>
                 <div class="market-spec-value status-available">SAATAVILLA</div>
             </div>
         </div>
@@ -131,7 +166,12 @@ async function buyNewAircraftEvent(button) {
 
 /**
  * Ostaa uuden koneen tehtaalta
- * @param {Object} aircraft - Ostettavan koneen tiedot
+ * 
+ * Lähettää POST-pyynnön API:lle uuden koneen ostamiseksi. API tarkistaa
+ * pelaajan saldon ja suorittaa oston transaktiona. Koneen ostolle asetetaan
+ * pelaajan pääkenttä oletusarvoisesti.
+ * 
+ * @param {Object} aircraft - Ostettavan koneen tiedot (model_code, purchase_price jne.)
  */
 async function buyNewAircraft(aircraft) {
     try {
@@ -158,7 +198,14 @@ async function buyNewAircraft(aircraft) {
 }
 
 /**
- * Lataa käytetyt koneet markkinapaikalta (Figman lista-tyylisesti)
+ * Lataa käytetyt koneet markkinapaikalta
+ * 
+ * Hakkee aktiiviset ilmoitukset market_aircraft-taulusta ja näyttää ne
+ * taulukkomuodossa. Käytetyt koneet ovat vanhempia ja halvempia kuin uudet,
+ * mutta niillä on käyttöikää ja potentiaalisia ongelmia (kunto %-yksikköinä).
+ * 
+ * Huom: Markkinat päivittyvät joka kerta kun pelaaja avaa markkinanäkymän.
+ * Yli 10 päivää vanhat ilmoitukset poistetaan ja uusia lisätään automaattisesti.
  */
 async function loadUsedAircraft() {
     const listContainer = document.getElementById('used-aircraft-list');
@@ -187,7 +234,18 @@ async function loadUsedAircraft() {
 }
 
 /**
- * Luo HTML-rivin käytetylle koneelle (taulukkomuoto Figman mallin mukaan)
+ * Luo HTML-rivin käytetylle koneelle
+ * 
+ * Rakentaa taulukon rivin käytetylle koneelle, joka näyttää:
+ * - Market ID (ilmoitustunnus)
+ * - Koneen mallinimi
+ * - Hinta (väri-koodattu käytetyn hinnan mukaan)
+ * - Kunto % (väri-koodattu: punainen <65%, keltainen <75%, vihreä)
+ * - Lennon tunnit
+ * - Ikä vuosina
+ * - Myyjän huomiot
+ * - Osta-painike
+ * 
  * @param {Object} aircraft - Koneen tiedot API:sta
  * @returns {HTMLTableRowElement} Rivin HTML-elementti
  */
@@ -209,7 +267,7 @@ function createUsedAircraftRow(aircraft) {
     // Lasketaan ikä vuosina (yleinen päivämäärä vai aircraft_age_days?)
     const ageYears = aircraft.age_years || Math.floor((aircraft.aircraft_age_days || 0) / 365);
     const hoursFlown = aircraft.hours_flown || aircraft.total_flight_hours || aircraft.hours || 0;
-    const notes = aircraft.notes || aircraft.description || 'Good condition';
+    const notes = aircraft.notes || aircraft.description || 'Hyvä kunto';
     
     tr.innerHTML = `
         <td class="market-table-cell market-table-id">${aircraft.market_id || 'U-?'}</td>
@@ -223,13 +281,13 @@ function createUsedAircraftRow(aircraft) {
                 <span class="market-condition-text" style="color: ${conditionColor};">${conditionPercent}%</span>
             </div>
         </td>
-        <td class="market-table-cell market-table-hours">${formatNumberWithSeparators(hoursFlown)} HRS</td>
-        <td class="market-table-cell market-table-age">${ageYears} YRS</td>
+        <td class="market-table-cell market-table-hours">${formatNumberWithSeparators(hoursFlown)} TUN</td>
+        <td class="market-table-cell market-table-age">${ageYears} V</td>
         <td class="market-table-cell market-table-notes">${notes}</td>
         <td class="market-table-cell market-table-actions">
             <button class="market-buy-btn" onclick="buyUsedAircraftEvent(this)" data-aircraft='${JSON.stringify(aircraft).replace(/'/g, "&apos;")}'>
                 <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 1c-1.1 0-2 .9-2 2v2H3c-.55 0-1 .45-1 1v8c0 .55.45 1 1 1h10c.55 0 1-.45 1-1v-8c0-.55-.45-1-1-1h-3V3c0-1.1-.9-2-2-2zm0 1c.55 0 1 .45 1 1v2H7V3c0-.55.45-1 1-1z"/></svg>
-                <span>BUY</span>
+                <span>OSTA</span>
             </button>
         </td>
     `;
@@ -248,7 +306,12 @@ async function buyUsedAircraftEvent(button) {
 
 /**
  * Ostaa käytetyn koneen markkinapaikalta
- * @param {Object} aircraft - Ostettavan koneen tiedot
+ * 
+ * Lähettää POST-pyynnön API:lle käytetyn koneen ostamiseksi. API tarkistaa
+ * pelaajan saldon ja suorittaa oston transaktiona. Koneen ostolle asetetaan
+ * pelaajan pääkenttä oletusarvoisesti.
+ * 
+ * @param {Object} aircraft - Ostettavan koneen tiedot (market_id, purchase_price jne.)
  */
 async function buyUsedAircraft(aircraft) {
     try {

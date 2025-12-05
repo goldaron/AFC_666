@@ -63,10 +63,19 @@ def fetch_player_aircrafts_with_model_info(save_id: int) -> List[dict]:
           AND (a.sold_day IS NULL OR a.sold_day = 0)
         ORDER BY a.aircraft_id
     """
-    with get_connection() as yhteys:
+    yhteys = get_connection()
+    kursori = None
+    try:
         kursori = yhteys.cursor(dictionary=True)
         kursori.execute(sql, (save_id,))
         return kursori.fetchall() or []
+    finally:
+        if kursori is not None:
+            try:
+                kursori.close()
+            except Exception:
+                pass
+        yhteys.close()
 
 
 def get_current_aircraft_upgrade_state(aircraft_id: int, upgrade_code: str = UPGRADE_CODE) -> dict:

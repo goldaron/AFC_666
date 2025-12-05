@@ -7,6 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet kartalibrary -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -122,6 +126,9 @@
         </button>
         <button onclick="showView('market')" class="nav-btn" data-view="market">
             🛒 Kauppa
+        </button>
+        <button onclick="showView('map')" class="nav-btn" data-view="map">
+            🗺️ Kartta
         </button>
     </nav>
 
@@ -278,12 +285,9 @@
         <!-- Sisältö -->
         <div class="market-main">
             <!-- Otsikko -->
-            <div class="market-header">
-                <div class="market-title-block">
-                    <h2 class="market-title">LENTOKONEMARKKINA</h2>
-                    <p class="market-subtitle">// HANKINTATERMINAALI</p>
-                </div>
-                <div class="market-header-line"></div>
+            <div class="view-header">
+                <h2>LENTOKONEMARKKINA</h2>
+                <div class="subtitle">// HANKINTATERMINAALI</div>
             </div>
 
             <!-- Välilehdet -->
@@ -424,13 +428,71 @@
             </div>
         </div>
     </section>
+
+    <!-- KARTTANÄKYMÄ / MAP VIEW -->
+    <section id="map-view" class="view-container hidden">
+        <div style="padding: 24px; width: 100%;">
+            <!-- Otsikko -->
+            <div class="map-view-header" style="margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 4px;">
+                    <div style="width: 4px; height: 62px; background: linear-gradient(to bottom, transparent, #00d4ff, transparent); opacity: 0.5;"></div>
+                    <div>
+                        <h2 class="map-view-title">MAAILMAN KARTTA</h2>
+                        <p class="map-view-subtitle">// GLOBAALIT OPERAATIOT</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="map-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #888888; border-radius: 50%; width: 12px; height: 12px;"></div>
+                    <span>LÄHTÖPISTE</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00d4ff; border-radius: 50%; width: 12px; height: 12px; box-shadow: 0 0 4px #00d4ff;"></div>
+                    <span>MÄÄRÄPISTE</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="border: 2px dashed #00d4ff; width: 16px; height: 2px;"></div>
+                    <span>LENTORATA</span>
+                </div>
+                <div class="legend-item">
+                    <div style="font-size: 18px;">✈️</div>
+                    <span>LENTOKONEEN PAIKKA</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff6467; border-radius: 50%; width: 12px; height: 12px; box-shadow: 0 0 4px #ff6467;"></div>
+                    <span>LENTO-EVENT</span>
+                </div>
+            </div>
+
+            <!-- Karttataso -->
+            <div id="map-container" style="border-radius: 14px; margin-bottom: 24px;"></div>
+
+            <!-- Aktiivisten lentojen otsikko ja lista -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <p style="color: #6a7282; font-size: 14px; text-transform: uppercase; letter-spacing: 0.4875px; font-weight: 500;">AKTIIVISET LENNOT</p>
+                <p id="flights-count" style="color: #00d4ff; font-size: 14px; text-transform: uppercase; letter-spacing: 0.4875px; font-weight: 500;">0 LENTÄÄ</p>
+            </div>
+
+            <!-- Lentojen lista -->
+            <div id="active-flights-list" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Täytetään JavaScriptillä -->
+            </div>
+        </div>
+    </section>
+
     </div>
     <!-- END GAME CONTAINER -->
 
     <!-- JavaScript-moduulit -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="app.js"></script>
     <script src="tasks.js"></script>
     <script src="market.js"></script>
     <script src="clubhouse.js"></script>
+    <script src="map.js"></script>
 </body>
 </html>
+

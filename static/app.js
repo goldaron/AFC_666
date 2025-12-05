@@ -154,6 +154,9 @@ function showView(viewName) {
         } else if (viewName === 'clubhouse') {
             // Kerhohuone: päivitä cash-display
             updateClubhouseCash();
+        } else if (viewName === 'map') {
+            // Kartta: alusta kartta ja lataa lennon tiedot
+            loadMapView();
         }
     }
 }
