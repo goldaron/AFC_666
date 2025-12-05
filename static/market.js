@@ -1,5 +1,5 @@
 /**
- * market.js - Kauppapaikan hallinta (Developer 4 / Kehittäjä 4)
+ * market.js - Kauppapaikan hallinta 
  * 
  * Vastaa seuraavista toiminnoista:
  * - Uusien koneiden näyttö (suodatettu tukikohdan tason mukaan)
@@ -88,7 +88,7 @@ async function loadNewAircraft() {
 }
 
 /**
- * Luo HTML-elementin uudelle koneelle (Figman mukaan)
+ * Luo HTML-elementin uudelle koneelle
  * 
  * Tämä funktio rakentaa kortin uudelle koneelle, joka näytetään markkinapaikalla.
  * Kortti sisältää koneen nimen, hinnan, lastauskapasiteetin, kantaman ja nopeuden.
@@ -103,7 +103,7 @@ function createNewAircraftElement(aircraft) {
     const div = document.createElement('div');
     div.className = 'market-aircraft-card';
     
-    // Käytetään API:sta saatua kantama-tietoa tai kalkuloidaan se nopeuden perusteella
+    // Käytetään API:sta saatua kantama-tietoa tai lasketaan se nopeuden perusteella
     const maxRangeKm = aircraft.range_km || aircraft.max_range_km || Math.round(aircraft.cruise_speed_kts * 8);
     
     div.innerHTML = `
