@@ -3,8 +3,8 @@
  * Vastaa näkymien vaihdosta, pelin tilan päivityksestä ja apufunktioista
  */
 
-// API:n base URL
-const API_BASE = 'http://localhost:5000';
+// API:n base URL - Käytetään suhteellista polkua CORS-ongelmien välttämiseksi
+const API_BASE = '';
 
 // Aktiivisen tallennuksen ID (oletuksena 1)
 let activeSaveId = 1;
@@ -121,7 +121,7 @@ function showNotification(message, type = 'success', title = '') {
 
 /**
  * Vaihtaa aktiivisen näkymän
- * @param {string} viewName - Näkymän nimi ('tasks', 'market')
+ * @param {string} viewName - Näkymän nimi ('tasks', 'market', 'clubhouse')
  */
 function showView(viewName) {
     // Piilota kaikki näkymät
@@ -148,8 +148,15 @@ function showView(viewName) {
         // Lataa näkymän data
         if (viewName === 'tasks') {
             loadActiveTasks();
+            loadAircraftListForTasks();
         } else if (viewName === 'market') {
             showMarketTab('new');
+        } else if (viewName === 'clubhouse') {
+            // Kerhohuone: päivitä cash-display
+            updateClubhouseCash();
+        } else if (viewName === 'map') {
+            // Kartta: alusta kartta ja lataa lennon tiedot
+            loadMapView();
         }
     }
 }
