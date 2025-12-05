@@ -1,6 +1,22 @@
 /**
- * clubhouse.js - Kerhohuoneen hallinta (Developer 4)
- * Vastaa minipelien (Coin Flip, High/Low, Slots) pelaamisesta
+ * clubhouse.js - Kerhohuoneen hallinta (Developer 4 / Kehittäjä 4)
+ * 
+ * Vastaa kerhohuoneen (salaisen minipelien paikka) käyttöliittymästä:
+ * - Minipelien näyttö ja pelaamisesta hallinta
+ * - Panoksen validointi ja voitto/tappio-käsittely
+ * - Kassanäytön päivitys pelin jälkeen
+ * 
+ * Minipelit:
+ * 1. Coin Flip (Kruuna vai Klaava) - 50/50 peli kolikolla
+ * 2. High/Low (Suurempi vai Pienempi) - Noppapeli
+ * 3. Slots (Yksikätinen Rosvo) - Kiekko-peli
+ * 
+ * Endpointit:
+ * - GET /api/clubhouse → hae saatavilla olevat pelit
+ * - POST /api/clubhouse → pelaa peliä ja päivitä kassaa
+ * 
+ * HUOM: Minipelit päivittävät pelaajan kassaa suoraan. Kaikki pelit
+ * ovat todella satunnaisia (ei seed-pohjaisuutta).
  */
 
 /**
@@ -22,6 +38,13 @@ async function updateClubhouseCash() {
 
 /**
  * Näytä Kruuna vai Klaava -peli modaalissa
+ * 
+ * Luo ja näyttää pelilomakkeen, jossa pelaaja voi:
+ * - Syöttää panoksen (euroja)
+ * - Valita kruunan tai klaavan
+ * 
+ * Pelin tulokset näytetään modaalissa voitto/tappio-viestin kera.
+ * Modaali voidaan sulkea painikkeella tai X-painikkeella.
  */
 function showCoinFlipGame() {
     const modal = document.getElementById('game-modal');
@@ -53,6 +76,13 @@ function showCoinFlipGame() {
 
 /**
  * Näytä Suurempi vai Pienempi -peli modaalissa
+ * 
+ * Luo ja näyttää noppapelidlomakkeen, jossa pelaaja voi:
+ * - Syöttää panoksen (euroja)
+ * - Valita onko toinen noppa suurempi vai pienempi kuin ensimmäinen
+ * 
+ * Pelin logiikka: kahta noppaa heitetään, pelaaja arvaa kummassa on suurempi/pienempi arvo.
+ * Tulokset näytetään modaalissa voitto/tappio-viestin kera.
  */
 function showHighLowGame() {
     const modal = document.getElementById('game-modal');
@@ -84,6 +114,15 @@ function showHighLowGame() {
 
 /**
  * Näytä Yksikätinen Rosvo -peli modaalissa
+ * 
+ * Luo ja näyttää kolikkopelin (slots) lomakkeen, jossa pelaaja voi:
+ * - Syöttää panoksen (euroja)
+ * - Pyöräyttää kolikkoja
+ * 
+ * Pelin logiikka: kolme kiekkoa pyörivät, ja jos samat symbolit osuvat,
+ * pelaaja voittaa. Parhaat voitot: 💰💰💰 (50x), 💎💎💎 (20x), jne.
+ * 
+ * Tulokset näytetään modaalissa voitto/tappio-viestin kera.
  */
 function showSlotsGame() {
     const modal = document.getElementById('game-modal');
@@ -116,6 +155,9 @@ function showSlotsGame() {
 
 /**
  * Sulje pelin modaali
+ * 
+ * Yksinkertainen apufunktio, joka piilottaa modaalin. Kutsutaan
+ * kaikkien pelien sulkemisesta.
  */
 function closeGameModal() {
     const modal = document.getElementById('game-modal');
@@ -128,6 +170,10 @@ function closeSlotsGame() { closeGameModal(); }
 
 /**
  * Pelaa kolikonheittoa
+ * 
+ * Validoi panoksen, lähettää pyynnön API:lle ja näyttää tulokset.
+ * Kolikko heitetään API:ssa ja tulos heitetään modaalissa.
+ * 
  * @param {string} choice - Valinta: 'heads' (kruuna) tai 'tails' (klaava)
  */
 async function playCoinFlip(choice) {

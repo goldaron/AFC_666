@@ -1,7 +1,19 @@
 /**
- * tasks.js - Tehtävien hallinta
- * Vastaa tehtävätarjousten hakemisesta, aktiivisten tehtävien listaamisesta
- * ja uusien tehtävien hyväksymisestä
+ * tasks.js - Tehtävien hallinta (Developer 4 / Kehittäjä 4)
+ * 
+ * Vastaa seuraavista toiminnoista:
+ * - Aktiivisten sopimusten listaus ja päivitys
+ * - Uusien lentotehtävien tarjousten haku koneelle
+ * - Sopimuksen hyväksyminen ja aloittaminen
+ * - Sopimuksien edistymisen seuraaminen (deadline, saapuminen)
+ * 
+ * Endpointit:
+ * - GET /api/tasks → listaa aktiiviset sopimukset
+ * - GET /api/aircrafts/{id}/task-offers → generoi tarjouksia koneelle
+ * - POST /api/tasks → hyväksy uusi sopimus
+ * 
+ * Kommentointi: Kaikki funktiot on dokumentoitu, ja keskeinen logiikka
+ * on selitetty inline-kommenteilla.
  */
 
 /**
@@ -139,7 +151,12 @@ function formatNumber(num) {
 
 /**
  * Lataa koneiden listan tarjousten valintaa varten
- * Näytetään vain IDLE-tilassa olevat koneet
+ * 
+ * Hakee kaikki pelaajan koneet API:sta ja näyttää vain IDLE-tilassa olevia koneita.
+ * IDLE-kone on vapaa ja voi aloittaa uuden tehtävän. BUSY-koneet ovat jo lennolla.
+ * 
+ * Kutsutaan kun tehtävä-näkymä alustetaan tai päivitetään.
+ * Näytetään koneen rekisteri, malli ja nykyinen sijainti.
  */
 async function loadAircraftListForTasks() {
     const select = document.getElementById('task-aircraft-select');
@@ -183,7 +200,12 @@ async function loadAircraftListForTasks() {
 
 /**
  * Lataa tehtävätarjoukset valitulle koneelle
- * Kutsutaan kun käyttäjä valitsee koneen dropdown-listasta
+ * 
+ * Kutsutaan kun käyttäjä valitsee koneen dropdown-listasta.
+ * Hakkee API:sta 5 satunnaista tehtävätarjousta, jotka ovat sovelias kyseiselle koneelle.
+ * Tarjousten hinta ja vaikeusaste lasketaan koneen kunnon ja muiden tekijöiden perusteella.
+ * 
+ * Näyttää tarjoukset taulukossa, josta käyttäjä voi valita yhden ja hyväksyä sen.
  */
 async function loadTaskOffersForAircraft() {
     const select = document.getElementById('task-aircraft-select');

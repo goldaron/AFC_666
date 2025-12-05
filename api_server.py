@@ -121,11 +121,50 @@ def _fetch_plane(aircraft_id: int) -> Optional[Dict[str, Any]]:
     )
 
 
+# ============================================================================
+# TEHTÄVÄT JA KAUPANKÄYNTI
+# ============================================================================
+# Tämä sektio vastaa lentokoneiden lentosopimusten (contracts) ja kaupankäynnin
+# hallinnasta. Sovellus käyttää GameSession-logiikan metodeja, ei duplikoi sääntöjä.
+#
+# ENDPOINTIT:
+# - GET /api/tasks              → Listaa aktiiviset sopimukset
+# - GET /api/aircrafts/{id}/task-offers → Generoi tarjouksia koneelle
+# - POST /api/tasks             → Hyväksy uusi sopimus
+# - GET /api/market/new         → Listaa uudet konemallit (tukikohdan taso rajaa)
+# - GET /api/market/used        → Listaa käytettyjen koneiden markkinat
+# - POST /api/market/buy        → Osta kone (uusi tai käytetty)
+# - GET/POST /api/clubhouse     → Kerhohuoneen minipelit
+# ============================================================================
+
 # ---------- Reitit: Tehtävät ----------
 
 @app.get("/api/tasks")
 def list_tasks():
-    """Palauttaa aktiiviset sopimukset JSONina."""
+    """
+    Listaa aktiiviset sopimukset (ACCEPTED, IN_PROGRESS).
+    
+    Tämä rajapinta hakee kaikki aktiiviset lentosopimusrivit tietokannasta.
+    Yhdistetään aircraft- ja flights-tauluihin, jotta saadaan koneen rekisteri
+    ja lennon saapumispäivä sekä muut lennon yksityiskohdat.
+    
+    Vastaus JSON-muodossa:
+    {
+        "tehtavat": [
+            {
+                "contractId": 1,
+                "aircraft": "OH-ABC",
+                "destination": "EGLL",
+                "payloadKg": 1000,
+                "reward": "5000.00",
+                "penalty": "500.00",
+                "deadlineDay": 15,
+                "status": "ACCEPTED",
+                "flight": {"arrivalDay": 12, "delayMinutes": 0, "status": "IN_FLIGHT"}
+            }
+        ]
+    }
+    """
     # Näytetään vain aktiiviset sopimukset, koska vanhoista ei ole hyötyä UI:lle.
     try:
         rows = _query_dicts(
@@ -158,7 +197,21 @@ def list_tasks():
 
 @app.get("/api/aircrafts/<int:aircraft_id>/task-offers")
 def task_offers(aircraft_id: int):
-    """Generoi tarjouksia käyttämällä GameSession-logiikkaa."""
+    """
+    Generoi satunnaisia lentotehtävätarjouksia tietylle koneelle.
+    
+    Käyttää GameSession-luokan _random_task_offers_for_plane()-metodia, joka
+    soveltaa pelilogiikkaa: tehtävän pituus, palkkio ja rangaistus lasketaan
+    koneen kunnon, etäisyyden ja vaikeusasteen perusteella.
+    
+    Vastaus JSON-muodossa:
+    {
+        "aircraft": {"aircraft_id": 5, "registration": "OH-ABC", ...},
+        "offers": [
+            {"dest_ident": "EGLL", "dest_name": "London", "payload_kg": 1000, ...}
+        ]
+    }
+    """
     plane = _fetch_plane(aircraft_id)
     if not plane:
         return jsonify({"virhe": "Koneen haku epäonnistui"}), 404
@@ -207,28 +260,53 @@ def accept_task_stub():
 
 
 # ---------- Reitit: Kauppapaikka ----------
+# [KEHITTÄJÄ 4]
+# Kauppapaikka-endpointit hallitsevat koneiden ostamista uusien ja käytettyjen
+# markkinoilta. Uudet koneet suodatetaan pelaajan tukikohdan tason (SMALL..HUGE)
+# perusteella, mikä soveltaa GameSession-metodia _fetch_aircraft_models_by_base_progress().
+# Käytetyt koneet tulevat market_aircraft-taulusta ja päivittyvät joka kerta
+# kun pelaaja avaa markkinat (vanhat koneet poistetaan automaattisesti).
 
 @app.get("/api/market/new")
 def market_new():
-    """Listaa uudet konemallit perusmuodossa."""
+    """
+    [KEHITTÄJÄ 4] Listaa myynnissä olevat uudet konemallit.
+    
+    Suodatetaan pelaajan korkeimman tukikohdan tason mukaan. GameSession-luokan
+    _fetch_aircraft_models_by_base_progress()-metodi hakee kaikki konemallit, joiden
+    kategoria on <= pelaajan tukikohdan maksimitaso.
+    
+    Esim:
+    - Tukikohta SMALL-tasolla → näkyy SMALL-kategorian koneet
+    - Tukikohta MEDIUM-tasolla → näkyy SMALL + MEDIUM-kategorian koneet
+    - Tukikohta LARGE-tasolla → näkyy SMALL + MEDIUM + LARGE-kategorian koneet
+    - Tukikohta HUGE-tasolla → näkyy kaikki kategoriat
+    
+    Vastaus JSON-muodossa:
+    { "uudet_koneet": [{ "model_code": "C-172", "manufacturer": "Cessna", ... }] }
+    """
     try:
-        rows = _query_dicts(
-            """
-            SELECT model_code,
-                   manufacturer,
-                   model_name,
-                   purchase_price,
-                   base_cargo_kg,
-                   cruise_speed_kts,
-                   eco_fee_multiplier
-            FROM aircraft_models
-            ORDER BY purchase_price ASC
-            LIMIT 25
-            """,
-        )
+        # Ladataan aktiivisen pelaajan sessio
+        session = GameSession.load(ACTIVE_SAVE_ID)
+        
+        # Käytetään GameSessionin omaa metodia, joka suodattaa koneet tukikohdan tason mukaan
+        rows = session._fetch_aircraft_models_by_base_progress()
+        
+        # Lisätään oleellisia kenttiä (API-vaatimukset)
+        result_rows = []
         for row in rows:
-            row["purchase_price"] = _decimal_to_string(row.get("purchase_price"))
-        return jsonify({"uudet_koneet": rows})
+            result_rows.append({
+                "model_code": row.get("model_code"),
+                "manufacturer": row.get("manufacturer"),
+                "model_name": row.get("model_name"),
+                "purchase_price": _decimal_to_string(row.get("purchase_price")),
+                "base_cargo_kg": row.get("base_cargo_kg"),
+                "cruise_speed_kts": row.get("cruise_speed_kts"),
+                "range_km": row.get("range_km"),
+                "category": row.get("category"),
+            })
+        
+        return jsonify({"uudet_koneet": result_rows})
     except Exception:
         app.logger.exception("Uusien koneiden haku epäonnistui")
         return jsonify({"virhe": "Uusien koneiden haku epäonnistui"}), 500
@@ -236,7 +314,19 @@ def market_new():
 
 @app.get("/api/market/used")
 def market_used():
-    """Listaa käytetyt markkinakoneet."""
+    """
+    [KEHITTÄJÄ 4] Listaa käytettyjen koneiden markkinapaikan.
+    
+    Hakee kaikki aktiiviset ilmoitukset market_aircraft-taulusta ja yhdistää
+    aircraft_models-tauluun konemallin tietojen (mallin nimi, kapasiteetti jne.) saamiseksi.
+    Koneet lajitellaan listäyspäivän ja tunuksen mukaan (uusimmat ensin).
+    
+    Huom: GameSession._refresh_market_aircraft() poistaa yli 10 päivää vanhat
+    ilmoitukset ja lisää uusia jokaisen markkinakäynnin.
+    
+    Vastaus JSON-muodossa:
+    { "kaytetyt_koneet": [{ "market_id": 1, "model_code": "DC-3", "condition_percent": 85, ... }] }
+    """
     try:
         rows = _query_dicts(
             """
@@ -249,6 +339,7 @@ def market_used():
                    m.listed_day
             FROM market_aircraft m
                      JOIN aircraft_models am ON am.model_code = m.model_code
+            WHERE am.category != 'STARTER'
             ORDER BY m.listed_day DESC, m.market_id DESC
             LIMIT 25
             """,
@@ -286,10 +377,25 @@ def market_buy_stub():
 
 
 # ---------- Reitit: Kerhohuone ----------
+# [KEHITTÄJÄ 4]
+# Kerhohuone on salainen minipelien paikka, jossa pelaaja voi vetää pukuja pelikassallaan.
+# Minipelit: Coin Flip (kruuna/klaava), High/Low (noppapeli) ja Slots (yksikätinen rosvo).
+# Kaikki pelit päivittävät GameSessionin kassaa (_add_cash-metodin kautta).
 
 @app.get("/api/clubhouse")
 def clubhouse_info():
-    """Palauttaa minipelien perustiedot."""
+    """
+    [KEHITTÄJÄ 4] Palauttaa saatavilla olevat minipelit.
+    
+    Vastaus JSON-muodossa:
+    {
+        "pelit": [
+            {"nimi": "coin_flip", "kuvaus": "Tupla tai kuitti kolikolla"},
+            {"nimi": "high_low", "kuvaus": "Arvaa nopan tulos"},
+            {"nimi": "slots", "kuvaus": "Yksikätinen rosvo"}
+        ]
+    }
+    """
     games = [
         {"nimi": "coin_flip", "kuvaus": "Tupla tai kuitti kolikolla"},
         {"nimi": "fuel_quiz", "kuvaus": "Arvaa paljonko tankki vetää"},
@@ -299,7 +405,22 @@ def clubhouse_info():
 
 @app.post("/api/clubhouse")
 def clubhouse_play():
-    """Simppeli coin flip -stub, joka palauttaa suomenkielisen vastauksen."""
+    """
+    Pelaa minipeliä (coin_flip, high_low, slots) ja päivitä kassaa.
+    
+    Tämä rajapinta käsittelee kerhohuoneen minipelien pelaamisesta. Se vastaanottaa
+    pelin tyypin (coin_flip, high_low, slots), panoksen ja valinnat, simuloi peliä,
+    ja päivittää pelaajan kassaa voittojen tai tappioiden mukaan.
+    
+    HUOM: RNG nollataan järjestelmän ajalla, koska minipelit eivät saisi olla
+    determinististisiä (toisin kuin lentotehtävät jotka käyttävät seed-arvoa).
+    
+    Pyyntö JSON-muodossa:
+    { "game": "coin_flip", "bet": 1000, "choice": "heads" }
+    
+    Vastaus JSON-muodossa:
+    { "game": "coin_flip", "flip": "heads", "voitto": true, "viesti": "Voitit 1000 euroa!" }
+    """
     payload = request.get_json(silent=True) or {}
     peli = payload.get("game")
     if peli != "coin_flip":
@@ -583,6 +704,146 @@ def api_upgrade_base(base_id: int):
         ),
         200,
     )
+
+
+# ---------- Reitit: Kartta-näkymä ----------
+
+@app.get("/api/map-data")
+def get_map_data():
+    """
+    Hakee kartta-näkymää varten kaikki oleelliset tiedot:
+    - Aktiiviset sopimukset ja niiden pohjat
+    - Lentokoneiden sijainnit (lähtö ja määrä)
+    - Lentokenttien koordinaatit
+    - Edistymisprosentti kunkin lennon osalta
+    """
+    session = GameSession(ACTIVE_SAVE_ID)
+    
+    yhteys = get_connection()
+    kursori = None
+    try:
+        kursori = yhteys.cursor(dictionary=True)
+        
+        # Haetaan kaikki aktiiviset sopimukset (hyväksytyt tai käynnissä)
+        cond_sql = """
+            SELECT 
+                c.contractId,
+                f.dep_day as start_day,
+                c.deadline_day,
+                c.reward,
+                c.status,
+                a.current_airport_ident as origin_ident,
+                o1.latitude_deg as origin_lat,
+                o1.longitude_deg as origin_lon,
+                o1.name as origin_name,
+                c.ident as dest_ident,
+                o2.latitude_deg as dest_lat,
+                o2.longitude_deg as dest_lon,
+                o2.name as dest_name,
+                a.registration,
+                f.arrival_day,
+                f.schedule_delay_min,
+                c.event_id
+            FROM contracts c
+            JOIN aircraft a ON c.aircraft_id = a.aircraft_id
+            JOIN airport o1 ON a.current_airport_ident = o1.ident
+            JOIN airport o2 ON c.ident = o2.ident
+            JOIN flights f ON c.contractId = f.contract_id
+            WHERE c.status IN ('ACCEPTED', 'IN_PROGRESS')
+            ORDER BY c.contractId
+        """
+        kursori.execute(cond_sql)
+        contracts = kursori.fetchall() or []
+        
+        # Haetaan kaikki lentokentät koordinaatteineen (kartanäytölle)
+        airport_sql = """
+            SELECT ident, name, latitude_deg, longitude_deg
+            FROM airport
+            ORDER BY ident
+        """
+        kursori.execute(airport_sql)
+        all_airports = kursori.fetchall() or []
+        
+        # Rakennetaan vastaus
+        map_contracts = []
+        seen_airports = set()
+        
+        current_day = session.current_day or 1
+        
+        for contract in contracts:
+            origin_id = contract.get("origin_ident")
+            dest_id = contract.get("dest_ident")
+            
+            # Merkitään lentokentät nähtyiksi
+            seen_airports.add(origin_id)
+            seen_airports.add(dest_id)
+            
+            # Lasketaan edistymisprosentti
+            start_day = contract.get("pay_day", current_day)
+            end_day = contract.get("arrival_day", contract.get("deadline_day", current_day + 1))
+            progress_pct = 0
+            if end_day > start_day:
+                progress_pct = min(100, max(0, int(100.0 * (current_day - start_day) / (end_day - start_day))))
+            
+            map_contracts.append({
+                "contractId": contract.get("contract_id"),
+                "aircraft": contract.get("registration"),
+                "originIdent": origin_id,
+                "originLat": float(contract.get("origin_lat", 0)),
+                "originLon": float(contract.get("origin_lon", 0)),
+                "originName": contract.get("origin_name", ""),
+                "destIdent": dest_id,
+                "destLat": float(contract.get("dest_lat", 0)),
+                "destLon": float(contract.get("dest_lon", 0)),
+                "destName": contract.get("dest_name", ""),
+                "status": contract.get("status", "IN_PROGRESS"),
+                "startDay": start_day,
+                "currentDay": current_day,
+                "estimatedDay": end_day,
+                "progressPercent": progress_pct,
+                "reward": _decimal_to_string(contract.get("reward")),
+            })
+        
+        # Haetaan omien kantojen ICAO-koodit ja pääkotisatama
+        bases_sql = "SELECT base_ident, is_headquarters FROM owned_bases WHERE save_id = %s"
+        kursori.execute(bases_sql, (ACTIVE_SAVE_ID,))
+        owned_bases_rows = kursori.fetchall() or []
+        owned_bases = set(row.get("base_ident") for row in owned_bases_rows)
+        headquarters_ident = None
+        for row in owned_bases_rows:
+            if row.get("is_headquarters"):
+                headquarters_ident = row.get("base_ident")
+                break
+        
+        # Rakennetaan lentokenttälista
+        all_airports_list = []
+        for airport in all_airports:
+            ident = airport.get("ident")
+            all_airports_list.append({
+                "ident": ident,
+                "name": airport.get("name", ""),
+                "latitude_deg": float(airport.get("latitude_deg", 0)),
+                "longitude_deg": float(airport.get("longitude_deg", 0)),
+            })
+        
+        return jsonify({
+            "currentDay": current_day,
+            "activeContracts": map_contracts,
+            "airports": all_airports_list,
+            "headquartersIdent": headquarters_ident,
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"virhe": f"Kartatietojen haku epäonnistui: {str(e)}"}), 500
+    finally:
+        if kursori is not None:
+            try:
+                kursori.close()
+            except Exception:
+                pass
+        yhteys.close()
+
+
 
 # ---------- Staattiset tiedostot (Frontend) ----------
 
