@@ -413,6 +413,8 @@ def market_used():
                    m.condition_percent,
                    m.hours_flown,
                    m.listed_day,
+                   m.manufactured_day,
+                   m.market_notes,
                    (m.condition_percent > 0) as available
             FROM market_aircraft m
                      JOIN aircraft_models am ON am.model_code = m.model_code
@@ -422,6 +424,13 @@ def market_used():
         )
         for row in rows:
             row["purchase_price"] = _decimal_to_string(row.get("purchase_price"))
+            # Laske ikä vuosina (oletus: nykyinen peli-päivä on 1, valmistuspäivä siitä taaksepäin)
+            # Yleensä manufactured_day on negatiivinen luku tai 0
+            manufactured_day = row.get("manufactured_day") or 0
+            current_day = 1  # Oletuksena peli alkaa päivällä 1
+            age_days = max(0, current_day - manufactured_day)
+            row["age_years"] = max(1, age_days // 365) if age_days < 365 else age_days // 365
+            row["notes"] = row.get("market_notes") or "Regular condition"
         return jsonify({"kaytetyt_koneet": rows})
     except Exception:
         app.logger.exception("Käytettyjen koneiden haku epäonnistui")
@@ -709,7 +718,7 @@ def api_list_aircrafts():
                 "effective_eco": eff,
             }
         )
-    return jsonify({"save_id": ACTIVE_SAVE_ID, "aircraft": out})
+    return jsonify({"save_id": ACTIVE_SAVE_ID, "aircrafts": out})
 
 
 @app.get("/api/aircrafts/<int:aircraft_id>")
