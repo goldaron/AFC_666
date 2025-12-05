@@ -1,15 +1,13 @@
+
 """Flask-pohjainen rajapinta"""
 
 import os
-import math
 import random
-from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from event_system import get_event_for_day
 from game_session import GameSession
 from utils import get_connection
 
@@ -31,7 +29,6 @@ from session_helpers import (
     insert_base_upgrade,
 )
 from upgrade_config import REPAIR_COST_PER_PERCENT
-
 # ---------- Apufunktiot ----------
 
 def _decimal_to_string(value: Any) -> Optional[str]:
@@ -124,30 +121,6 @@ def _fetch_plane(aircraft_id: int) -> Optional[Dict[str, Any]]:
     )
 
 
-# ---------- Reitit: Yleiset ----------
-
-@app.get("/api/game")
-def get_game_status():
-    """Palauttaa pelin yleistilanteen yläpalkkia varten."""
-    try:
-        session = GameSession(save_id=ACTIVE_SAVE_ID)
-        
-        # Haetaan kotitukikohta
-        primary_base = session._get_primary_base()
-        home_base_ident = primary_base["base_ident"] if primary_base else "-"
-
-        return jsonify({
-            "playerName": session.player_name,
-            "cash": _decimal_to_string(session.cash),
-            "day": session.current_day,
-            "homeBase": home_base_ident,
-            "status": session.status
-        })
-    except Exception:
-        app.logger.exception("Pelin tilan haku epäonnistui")
-        return jsonify({"virhe": "Pelin tilan haku epäonnistui"}), 500
-
-
 # ---------- Reitit: Tehtävät ----------
 
 @app.get("/api/tasks")
@@ -211,163 +184,26 @@ def task_offers(aircraft_id: int):
 
 
 @app.post("/api/tasks")
-def accept_task():
-    """Hyväksyy tehtävän ja kirjaa sen tietokantaan.
-    
-    Tämä rajapinta käsittelee uuden lentotehtävän hyväksymisen. Se vastaanottaa
-    tiedot koneesta ja tarjouksesta, luo niistä uuden sopimuksen ja lennon
-    tietokantaan, ja asettaa koneen BUSY-tilaan. Lentotehtävän kestoa
-    mukautetaan mahdollisten päiväkohtaisten satunnaistapahtumien mukaan.
-    Kaikki tietokantatoiminnot suoritetaan transaktion sisällä atomisuuden
-    varmistamiseksi.
-    """
+def accept_task_stub():
+    """Hyväksyy tehtävän stub-muodossa ja palauttaa TODO-viestin."""
     payload = request.get_json(silent=True) or {}
     aircraft_id = payload.get("aircraft_id")
     offer = payload.get("offer") or {}
-
-    # Tarkistetaan, että pakolliset tiedot (koneen ID ja tarjouskohde) ovat mukana pyynnössä.
     if not aircraft_id:
         return jsonify({"virhe": "aircraft_id on pakollinen"}), 400
     if not offer.get("dest_ident"):
         return jsonify({"virhe": "Tarjouksen kohde on pakollinen"}), 400
 
-    # Purketaan tarjousdatasta tarvittavat arvot. Käytetään try-except-lohkoa
-    # virheellisen tai puuttuvan datan varalta.
-    try:
-        dest_ident = offer["dest_ident"]
-        payload_kg = int(offer["payload_kg"])
-        reward = Decimal(str(offer["reward"]))
-        penalty = Decimal(str(offer["penalty"]))
-        deadline = int(offer["deadline"])
-        total_days = int(offer["total_days"])
-        distance_km = float(offer["distance_km"])
-        trips = int(offer["trips"])
-    except (ValueError, KeyError) as e:
-        # Palautetaan virhe, jos tarjousdata on puutteellista tai vääränmuotoista.
-        return jsonify({"virhe": f"Virheellinen tarjousdata: {e}"}), 400
-
-    # Luodaan GameSession-olio käsillä olevaa tallennusta varten.
-    session = GameSession(save_id=ACTIVE_SAVE_ID)
-    
-    # Haetaan koneen tiedot ja tarkistetaan, että se on olemassa ja IDLE-tilassa.
-    # Vain IDLE-koneen voi lähettää uudelle tehtävälle.
-    plane = _fetch_plane(aircraft_id)
-    if not plane:
-        return jsonify({"virhe": "Konetta ei löytynyt"}), 404
-    if plane["status"] != "IDLE":
-        return jsonify({"virhe": f"Koneen tila on {plane['status']}, ei voi aloittaa tehtävää"}), 409
-
-    # Lasketaan lennon todellinen kesto ja saapumispäivä huomioiden mahdolliset satunnaiset tapahtumat.
-    now_day = session.current_day
-    base_total_days = total_days
-    flight_days = base_total_days
-    duration_factor = 1.0 # Oletuskerroin, jos tapahtumaa ei ole tai se ei vaikuta kestoon.
-    departure_event_id = None
-    
-    # Jos tallennuksella on RNG-siemen asetettuna, haetaan päiväkohtainen lentotapahtuma.
-    if session.rng_seed is not None:
-        event_candidate = get_event_for_day(session.rng_seed, now_day, "flight", play_sound=False)
-        if event_candidate is not None:
-            departure_event_id = event_candidate.event_id
-            try:
-                raw_factor = float(event_candidate.days if event_candidate.days is not None else 1.0)
-            except (TypeError, ValueError):
-                raw_factor = 1.0
-            if raw_factor <= 0: # Varmistetaan, ettei kerroin ole nolla tai negatiivinen.
-                raw_factor = 1.0
-            duration_factor = raw_factor
-            
-            # Mukautetaan lennon kestoa tapahtuman vaikutuksen mukaan. Pyöristys ylös tai alas
-            # riippuen siitä, nopeuttaako vai hidastaako tapahtuma lentoa.
-            if raw_factor < 1.0:
-                flight_days = max(1, math.floor(base_total_days * raw_factor))
-            elif raw_factor > 1.0:
-                flight_days = math.ceil(base_total_days * raw_factor)
-
-    arr_day = now_day + flight_days
-    delay_minutes = int((flight_days - base_total_days) * 24 * 60) # Lasketaan viivästys minuuteissa.
-    total_dist_all_trips = distance_km * trips # Kokonaismatka useamman reissun tapauksessa.
-
-    # Avataan tietokantayhteys ja aloitetaan transaktio, jotta kaikki operaatiot ovat atomisia.
-    yhteys = get_connection()
-    try:
-        yhteys.start_transaction()
-        kursori = yhteys.cursor()
-
-        # 1. Lisätään uusi sopimus 'contracts'-tauluun.
-        kursori.execute(
-            """
-            INSERT INTO contracts (payload_kg, reward, penalty, priority,
-                                   created_day, deadline_day, accepted_day, completed_day,
-                                   status, lost_packages, damaged_packages,
-                                   save_id, aircraft_id, ident, event_id)
-            VALUES (%s, %s, %s, %s,
-                    %s, %s, %s, %s,
-                    %s, %s, %s,
-                    %s, %s, %s, %s)
-            """,
-            (
-                payload_kg, reward, penalty, "NORMAL",
-                now_day, deadline, now_day, None,
-                "IN_PROGRESS", 0, 0,
-                session.save_id, aircraft_id, dest_ident, departure_event_id # event_id talteen, jos tapahtuma oli.
-            ),
-        )
-        contract_id = kursori.lastrowid # Haetaan juuri luodun sopimuksen ID.
-
-        # 2. Lisätään uusi lento 'flights'-tauluun, linkitettynä edellä luotuun sopimukseen.
-        kursori.execute(
-            """
-            INSERT INTO flights (created_day, dep_day, arrival_day, status, distance_km, schedule_delay_min,
-                                 emission_kg_co2, eco_fee, dep_ident, arr_ident, aircraft_id, save_id,
-                                 contract_id)
-            VALUES (%s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s, %s, %s)
-            """,
-            (
-                now_day, now_day, arr_day, "ENROUTE", total_dist_all_trips, delay_minutes,
-                0.0, Decimal("0.00"), plane["current_airport_ident"], dest_ident,
-                aircraft_id, session.save_id, contract_id
-            ),
-        )
-
-        # 3. Päivitetään lentokoneen tila 'BUSY'-tilaan, jotta se on varattu tälle lennolle.
-        kursori.execute(
-            "UPDATE aircraft SET status = 'BUSY' WHERE aircraft_id = %s",
-            (aircraft_id,)
-        )
-
-        # 4. Kirjataan tapahtuma 'save_event_log'-tauluun. Käytetään suoraa SQL-INSERTiä,
-        # jotta lokimerkintä pysyy samassa transaktiossa ja on atominen muiden muutosten kanssa.
-        log_payload = f"contract_id={contract_id}; dest={dest_ident}; payload={payload_kg}; eta_day={arr_day}"
-        kursori.execute(
-            "INSERT INTO save_event_log (save_id, event_day, event_type, payload, created_at) VALUES (%s, %s, %s, %s, %s)",
-            (session.save_id, now_day, "CONTRACT_STARTED", log_payload, datetime.utcnow())
-        )
-
-        yhteys.commit() # Vahvistetaan kaikki transaktiossa tehdyt muutokset tietokantaan.
-        
-        # Palautetaan onnistunut vastaus JSON-muodossa, sisältäen keskeiset tiedot.
-        return jsonify({
-            "status": "ok",
-            "contract_id": contract_id,
-            "aircraft_id": aircraft_id,
-            "destination": dest_ident,
-            "arrival_day": arr_day,
-            "reward": _decimal_to_string(reward) # Muunnetaan Decimal merkkijonoksi JSONia varten.
-        }), 201
-
-    except Exception as e:
-        yhteys.rollback() # Perutaan kaikki transaktiossa tehdyt muutokset, jos virhe ilmenee.
-        app.logger.exception("Tehtävän luonti epäonnistui")
-        return jsonify({"virhe": "Tehtävän luonti epäonnistui", "detail": str(e)}), 500
-    finally:
-        # Suljetaan tietokantayhteys ja kursori aina lopuksi resurssien vapauttamiseksi.
-        try:
-            kursori.close()
-            yhteys.close()
-        except Exception:
-            pass
+    # TODO: Toteuta oikea sopimuksen luonnin tietokantapolku
+    response = {
+        "viesti": "Tehtävä otettiin vastaan stub-tilassa",
+        "aircraft_id": aircraft_id,
+        "kohde": offer.get("dest_ident"),
+        "payload_kg": offer.get("payload_kg"),
+        "reward": offer.get("reward"),
+        "todo": "TODO: Kirjaa sopimus ja lento tietokantaan",
+    }
+    return jsonify(response), 201
 
 
 # ---------- Reitit: Kauppapaikka ----------
@@ -407,15 +243,10 @@ def market_used():
             SELECT m.market_id,
                    m.model_code,
                    am.model_name,
-                   am.base_cargo_kg,
-                   am.cruise_speed_kts,
                    m.purchase_price,
                    m.condition_percent,
                    m.hours_flown,
-                   m.listed_day,
-                   m.manufactured_day,
-                   m.market_notes,
-                   (m.condition_percent > 0) as available
+                   m.listed_day
             FROM market_aircraft m
                      JOIN aircraft_models am ON am.model_code = m.model_code
             ORDER BY m.listed_day DESC, m.market_id DESC
@@ -424,13 +255,6 @@ def market_used():
         )
         for row in rows:
             row["purchase_price"] = _decimal_to_string(row.get("purchase_price"))
-            # Laske ikä vuosina (oletus: nykyinen peli-päivä on 1, valmistuspäivä siitä taaksepäin)
-            # Yleensä manufactured_day on negatiivinen luku tai 0
-            manufactured_day = row.get("manufactured_day") or 0
-            current_day = 1  # Oletuksena peli alkaa päivällä 1
-            age_days = max(0, current_day - manufactured_day)
-            row["age_years"] = max(1, age_days // 365) if age_days < 365 else age_days // 365
-            row["notes"] = row.get("market_notes") or "Regular condition"
         return jsonify({"kaytetyt_koneet": rows})
     except Exception:
         app.logger.exception("Käytettyjen koneiden haku epäonnistui")
@@ -438,90 +262,27 @@ def market_used():
 
 
 @app.post("/api/market/buy")
-def market_buy():
-    """Ostaa koneen (uusi tai käytetty).
-    
-    Tämä rajapinta käsittelee lentokoneiden ostoa joko uudelta tai käytetyltä
-    markkinoilta. Se tarkistaa ostotyypin ('new' tai 'used'), hakee tarvittavat
-    tiedot koneesta ja kutsuu GameSession-luokan osto-transaktiometodeja.
-    Koneen osto päivittää pelaajan kassaa ja lisää koneen laivastoon.
-    """
+def market_buy_stub():
+    """Stub ostolle: tarkistaa syötteen ja palauttaa vahvistuksen."""
     payload = request.get_json(silent=True) or {}
     purchase_type = (payload.get("type") or "").lower()
-    
-    # Tarkistetaan, että ostotyyppi on kelvollinen.
     if purchase_type not in {"new", "used"}:
         return jsonify({"virhe": "type tulee olla 'new' tai 'used'"}), 400
 
-    # Luodaan GameSession-olio käsillä olevaa tallennusta varten.
-    session = GameSession(save_id=ACTIVE_SAVE_ID)
-    
-    # Määrätään koneen sijoituspaikka. Oletuksena pääkenttä, mutta voidaan antaa myös payloadissa.
-    target_ident = payload.get("airport_ident") or session._get_primary_base_ident() or "EFHK"
-    # Haetaan tukikohdan ID ICAO-tunnuksen perusteella; tarvitaan tietokantaviitteeksi.
-    target_base_id = session._get_base_id_by_ident(target_ident)
+    if purchase_type == "new" and not payload.get("model_code"):
+        return jsonify({"virhe": "model_code puuttuu"}), 400
+    if purchase_type == "used" and not payload.get("market_id"):
+        return jsonify({"virhe": "market_id puuttuu"}), 400
 
-    # --- UUDEN KONEEN OSTAMINEN ---
-    if purchase_type == "new":
-        model_code = payload.get("model_code")
-        if not model_code:
-            return jsonify({"virhe": "model_code puuttuu"}), 400
-        
-        # Haetaan konemallin tiedot tietokannasta, erityisesti hinta.
-        model = _fetch_one_dict("SELECT * FROM aircraft_models WHERE model_code=%s", (model_code,))
-        if not model:
-            return jsonify({"virhe": "Tuntematon konemalli"}), 404
-        
-        price = Decimal(str(model["purchase_price"]))
-        # Jos rekisteriä ei anneta, generoidaan se.
-        registration = payload.get("registration") or session._generate_registration()
-        nickname = payload.get("nickname")
-
-        # Tarkistetaan, onko pelaajalla tarpeeksi rahaa.
-        if session.cash < price:
-             return jsonify({"virhe": "Rahat eivät riitä", "needed": _decimal_to_string(price), "has": _decimal_to_string(session.cash)}), 402
-
-        # Kutsutaan GameSessionin transaktiometodia uuden koneen ostamiseen.
-        # Tämä hoitaa rahaliikenteen ja koneen lisäämisen laivastoon atomisesti.
-        success = session._purchase_aircraft_tx(
-            model_code=model_code,
-            current_airport_ident=target_ident,
-            registration=registration,
-            nickname=nickname,
-            purchase_price=price,
-            base_id=target_base_id
-        )
-        
-        if success:
-            return jsonify({"status": "ok", "registration": registration, "price": _decimal_to_string(price)}), 200
-        else:
-            # Jos osto epäonnistuu, se johtuu yleensä tietokantavirheestä tai samanaikaisesta kassamuutoksesta.
-            return jsonify({"virhe": "Osto epäonnistui (tietokantavirhe tai saldo muuttui)"}), 500
-
-    # --- KÄYTETYN KONEEN OSTAMINEN ---
-    elif purchase_type == "used":
-        market_id = payload.get("market_id")
-        if not market_id:
-             return jsonify({"virhe": "market_id puuttuu"}), 400
-        
-        # Haetaan käytetyn markkinakoneen tiedot tietokannasta.
-        market_plane = _fetch_one_dict("SELECT * FROM market_aircraft WHERE market_id=%s", (market_id,))
-        if not market_plane:
-             # Jos konetta ei löydy, se on todennäköisesti myyty jo.
-             return jsonify({"virhe": "Kone ei ole enää myynnissä"}), 404
-
-        # Kutsutaan GameSessionin transaktiometodia käytetyn koneen ostamiseen.
-        # Metodi hoitaa itse rahatarkistuksen, koneen siirron ja markkinalistauksen poiston.
-        success = session._purchase_market_aircraft_tx(market_plane)
-        
-        if success:
-             return jsonify({"status": "ok", "market_id": market_id}), 200
-        else:
-             # Epäonnistuminen voi johtua riittämättömästä saldosta tai siitä, että toinen käyttäjä
-             # osti koneen juuri.
-             return jsonify({"virhe": "Osto epäonnistui (rahat eivät riitä tai joku muu ehti ensin)"}), 409
-
-    return jsonify({"virhe": "Tuntematon virhe"}), 500
+    # TODO: Kirjaa maksu, luo kone pelaajalle ja poista merkintä markkinasta
+    response = {
+        "viesti": "Osto kirjattiin stubina",
+        "type": purchase_type,
+        "model_code": payload.get("model_code"),
+        "market_id": payload.get("market_id"),
+        "todo": "TODO: Lisää oikea tietokantakäsittely",
+    }
+    return jsonify(response), 202
 
 
 # ---------- Reitit: Kerhohuone ----------
@@ -538,144 +299,26 @@ def clubhouse_info():
 
 @app.post("/api/clubhouse")
 def clubhouse_play():
-    """Pelaa minipeliä (coin_flip, high_low, slots) ja päivitä kassa."""
+    """Simppeli coin flip -stub, joka palauttaa suomenkielisen vastauksen."""
     payload = request.get_json(silent=True) or {}
     peli = payload.get("game")
-    
-    valid_games = {"coin_flip", "high_low", "slots"}
-    if peli not in valid_games:
-        return jsonify({"virhe": f"Peliä ei tueta. Vaihtoehdot: {', '.join(valid_games)}"}), 400
+    if peli != "coin_flip":
+        return jsonify({"virhe": "Tällä hetkellä vain coin_flip on tuettu"}), 400
 
-    # 1. Panoksen validointi
-    try:
-        bet = Decimal(str(payload.get("bet") or 0))
-    except Exception:
-        return jsonify({"virhe": "Virheellinen panos"}), 400
-
-    if bet <= 0:
-        return jsonify({"virhe": "Panoksen pitää olla positiivinen"}), 400
-
-    session = GameSession(save_id=ACTIVE_SAVE_ID)
-    
-    # KERHOHUONE-FIX: 
-    # GameSession nollaa satunnaislukugeneraattorin (RNG) aina samaksi, jos tallennuksessa on seed.
-    # Minipelien halutaan kuitenkin olevan satunnaisia joka kerta.
-    # Nollataan RNG käyttämään järjestelmän aikaa.
-    random.seed()
-
-    if session.cash < bet:
-        return jsonify({"virhe": "Rahat eivät riitä"}), 402
-
-    response_data = {}
-    
-    # --- COIN FLIP ---
-    if peli == "coin_flip":
-        choice = (payload.get("choice") or "heads").lower()
-        flip = random.choice(["heads", "tails"])
-        win = choice == flip
-        
-        amount_change = bet if win else -bet
-        context = "CLUB_COIN_WIN" if win else "CLUB_COIN_LOSS"
-        
-        session._add_cash(amount_change, context=context)
-        
-        message = f"Voitit {bet} euroa!" if win else f"Hävisit {bet} euroa."
-        response_data = {
-            "game": "coin_flip",
+    choice = (payload.get("choice") or "heads").lower()
+    bet = int(payload.get("bet") or 0)
+    flip = random.choice(["heads", "tails"])
+    win = choice == flip
+    # TODO: Sido kassamuutos oikeaan tallennukseen
+    message = f"Voitit {bet} euroa" if win else f"Hävisit {bet} euroa"
+    return jsonify(
+        {
             "flip": flip,
             "voitto": win,
-            "viesti": message
+            "viesti": message,
+            "todo": "TODO: Päivitä kassaa GameSessionin kautta",
         }
-
-    # --- HIGH / LOW (Noppapeli) ---
-    elif peli == "high_low":
-        # Logiikka: Arvotaan noppa 1 ja noppa 2. Pelaaja arvaa onko n2 suurempi vai pienempi kuin n1.
-        # Huom: Web-versiossa tämä on "sokea" arvaus verrattuna CLI-versioon, jossa näkee ekan nopan.
-        # Jotta peli olisi reilumpi webissä, palautamme nopat ja tuloksen kerralla.
-        
-        valinta = (payload.get("choice") or "high").lower() # 'high' (suurempi) tai 'low' (pienempi)
-        # Mapping frontin termeistä backendin logiikkaan (s=suurempi, p=pienempi)
-        logic_choice = "s" if valinta in ["high", "higher", "s"] else "p"
-        
-        noppa1 = random.randint(1, 6)
-        noppa2 = random.randint(1, 6)
-        
-        # Logiikka game_session.py:stä
-        tulos_oikein = (logic_choice == "s" and noppa2 > noppa1) or \
-                       (logic_choice == "p" and noppa2 < noppa1)
-        
-        is_push = (noppa1 == noppa2)
-        
-        if is_push:
-            # Tasapeli: Talo voittaa
-            session._add_cash(-bet, context="CLUB_HILO_PUSH")
-            message = f"Tasapeli ({noppa1}-{noppa2})! Talo voittaa."
-            win = False
-        elif tulos_oikein:
-            session._add_cash(bet, context="CLUB_HILO_WIN")
-            message = f"Oikein ({noppa1} vs {noppa2})! Voitit {bet} euroa."
-            win = True
-        else:
-            session._add_cash(-bet, context="CLUB_HILO_LOSS")
-            message = f"Väärin ({noppa1} vs {noppa2}). Hävisit {bet} euroa."
-            win = False
-            
-        response_data = {
-            "game": "high_low",
-            "dice1": noppa1,
-            "dice2": noppa2,
-            "voitto": win,
-            "push": is_push,
-            "viesti": message
-        }
-
-    # --- SLOTS (Yksikätinen rosvo) ---
-    elif peli == "slots":
-        # Veloitetaan panos heti
-        session._add_cash(-bet, context="CLUB_SLOT_BET")
-        
-        symbols = ['🍒', '🍋', '🔔', '💎', '💰']
-        weights = [40, 30, 20, 9, 1]
-        reels = random.choices(symbols, weights=weights, k=3)
-        
-        win_multiplier = Decimal("0")
-        
-        # Voittologiikka game_session.py:stä
-        if reels[0] == '💰' and reels[1] == '💰' and reels[2] == '💰':
-            win_multiplier = Decimal("50")
-        elif reels[0] == '💎' and reels[1] == '💎' and reels[2] == '💎':
-            win_multiplier = Decimal("20")
-        elif reels[0] == '🔔' and reels[1] == '🔔' and reels[2] == '🔔':
-            win_multiplier = Decimal("10")
-        elif reels[0] == '🍋' and reels[1] == '🍋' and reels[2] == '🍋':
-            win_multiplier = Decimal("5")
-        elif reels[0] == '🍒' and reels[1] == '🍒' and reels[2] == '🍒':
-            win_multiplier = Decimal("3")
-        elif reels[0] == '🍒' and reels[1] == '🍒':
-            win_multiplier = Decimal("2")
-            
-        win_amount = bet * win_multiplier
-        
-        if win_amount > 0:
-            session._add_cash(win_amount, context="CLUB_SLOT_WIN")
-            message = f"Voitto! {reels[0]} {reels[1]} {reels[2]} -> {win_amount} €"
-            win = True
-        else:
-            message = f"Ei voittoa. {reels[0]} {reels[1]} {reels[2]}"
-            win = False
-            
-        response_data = {
-            "game": "slots",
-            "reels": reels,
-            "voitto": win,
-            "win_amount": _decimal_to_string(win_amount),
-            "viesti": message
-        }
-
-    # Lisätään vastauspakettiin aina päivitetty saldo
-    response_data["balance"] = _decimal_to_string(session.cash)
-    
-    return jsonify(response_data)
+    )
 
 # ---------- Reitit: Lentokoneet ja tukikohdat ----------
 @app.get("/api/aircrafts")
@@ -718,7 +361,7 @@ def api_list_aircrafts():
                 "effective_eco": eff,
             }
         )
-    return jsonify({"save_id": ACTIVE_SAVE_ID, "aircrafts": out})
+    return jsonify({"save_id": ACTIVE_SAVE_ID, "aircraft": out})
 
 
 @app.get("/api/aircrafts/<int:aircraft_id>")
@@ -941,24 +584,12 @@ def api_upgrade_base(base_id: int):
         200,
     )
 
-
 # ---------- Staattiset tiedostot (Frontend) ----------
 
 @app.route('/')
 def serve_index():
     """Palauttaa pääsivun (index.html)"""
-    try:
-        return send_from_directory(app.static_folder, 'index.html')
-    except Exception as e:
-        app.logger.error(f"Error serving index.html: {e}")
-        # Varasuunnitelma: lue tiedosto suoraan
-        import os
-        if app.static_folder:
-            path = os.path.join(app.static_folder, 'index.html')
-            if os.path.exists(path):
-                with open(path, 'r', encoding='utf-8') as f:
-                    return f.read()
-        return "index.html not found", 404
+    return send_from_directory(app.static_folder, 'index.html')
 
 
 @app.route('/<path:path>')
@@ -966,7 +597,7 @@ def serve_static(path):
     """Palauttaa staattiset tiedostot (CSS, JS)"""
     return send_from_directory(app.static_folder, path)
 
+
 if __name__ == "__main__":
     # Kehityskäyttöön sopiva debug-palvelin.
-    # Huom: Portti 5000 on varattu AirTunesille macOS:lla, käytä 5001 sen sijaan
-    app.run(debug=True, port=5001)
+    app.run(debug=True)
