@@ -168,11 +168,11 @@ async function updateGameStats() {
         
         const data = await response.json();
         
-        // Päivitä yläpalkin tiedot
-        document.getElementById('player-name').textContent = data.playerName || '-';
-        document.getElementById('current-day').textContent = data.day || '1';
+        // Päivitä yläpalkin tiedot (käytä snake_case avaimia)
+        document.getElementById('player-name').textContent = data.player_name || '-';
+        document.getElementById('current-day').textContent = data.current_day || '1';
         document.getElementById('cash-amount').textContent = `€${formatMoney(data.cash)}`;
-        document.getElementById('home-base').textContent = data.homeBase || '-';
+        document.getElementById('home-base').textContent = data.home_base || '-';
         
     } catch (error) {
         console.error('Virhe pelin tilan haussa:', error);
