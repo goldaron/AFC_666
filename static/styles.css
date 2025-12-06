@@ -2973,3 +2973,146 @@ body {
     justify-content: center;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
+/* === FLEET ROSTER / LAIVASTO === */
+.fleet-table .sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+    position: relative;
+}
+
+.fleet-table .sortable:hover {
+    color: #00d4ff;
+}
+
+.fleet-table .sort-arrows {
+    margin-left: 4px;
+    opacity: 0.5;
+    font-size: 12px;
+}
+
+.fleet-table .sortable.sorted-asc .sort-arrows::after {
+    content: ' ▲';
+    color: #00d4ff;
+    opacity: 1;
+}
+
+.fleet-table .sortable.sorted-desc .sort-arrows::after {
+    content: ' ▼';
+    color: #00d4ff;
+    opacity: 1;
+}
+
+/* Condition Progress Bar */
+.condition-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.condition-bar {
+    width: 80px;
+    height: 8px;
+    background: rgba(30, 41, 57, 0.5);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.condition-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.condition-fill.high {
+    background: #05df72;
+    box-shadow: 0 0 8px rgba(5, 223, 114, 0.5);
+}
+
+.condition-fill.medium {
+    background: #fdc700;
+    box-shadow: 0 0 8px rgba(253, 199, 0, 0.5);
+}
+
+.condition-fill.low {
+    background: #ff6467;
+    box-shadow: 0 0 8px rgba(255, 100, 103, 0.5);
+}
+
+.condition-text {
+    font-size: 14px;
+    color: #d1d5dc;
+    min-width: 40px;
+}
+
+/* Aircraft Status Badges */
+.status-idle {
+    display: inline-block;
+    background: rgba(5, 223, 114, 0.1);
+    border: 1px solid rgba(5, 223, 114, 0.5);
+    color: #05df72;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+.status-in-flight {
+    display: inline-block;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    color: #00d4ff;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+.status-rtb {
+    display: inline-block;
+    background: rgba(253, 199, 0, 0.1);
+    border: 1px solid rgba(253, 199, 0, 0.5);
+    color: #fdc700;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+/* Column-specific styles */
+.eco-level {
+    color: #05df72;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.multiplier-cell {
+    color: #fdc700;
+    font-weight: 500;
+}
+
+.btn-manage {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    color: #00d4ff;
+    padding: 6px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-manage:hover {
+    background: rgba(0, 212, 255, 0.2);
+    border-color: rgba(0, 212, 255, 0.8);
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+    transform: translateY(-1px);
+}
