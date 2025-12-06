@@ -26,7 +26,9 @@ from session_helpers import (
     fetch_owned_bases,
     fetch_base_current_level_map,
     insert_base_upgrade,
+    get_base_capacity_info,  # ADD THIS
 )
+
 from upgrade_config import REPAIR_COST_PER_PERCENT
 # ---------- Apufunktiot ----------
 
@@ -214,6 +216,19 @@ def get_active_game_info():
     """Palauttaa aktiivisen pelin tietoja. Päivä, kassa, status"""
     try:
         session = GameSession(save_id=ACTIVE_SAVE_ID)
+        
+        # Fetch headquarters base
+        bases = fetch_owned_bases(ACTIVE_SAVE_ID)
+        home_base = None
+        if bases:
+            # Get headquarters from database
+            sql = "SELECT base_ident FROM owned_bases WHERE save_id = %s AND is_headquarters = 1 LIMIT 1"
+            hq = _fetch_one_dict(sql, (ACTIVE_SAVE_ID,))
+            if hq:
+                home_base = hq.get("base_ident")
+            else:
+                # Fallback to first base
+                home_base = bases[0].get("base_ident")
 
         return jsonify({
             "save_id": ACTIVE_SAVE_ID,
@@ -222,10 +237,11 @@ def get_active_game_info():
             "cash": _decimal_to_string(session.cash),
             "status": session.status,
             "difficulty": session.difficulty,
+            "home_base": home_base,
         })
     except ValueError as e:
         if "ei löytynyt" in str(e):
-            return jsonify({"Virhe": f"Aktiivista tallennusta {ACTIVE_SAVE_ID} ei löytynyt. Luo uusi peli tai lataa toinen peli."}), 404
+            return jsonify({"virhe": f"Tallennus {ACTIVE_SAVE_ID} ei löytynyt"}), 404
         app.logger.exception("Aktiivisen pelin tietojen haku epäonnistui")
         return jsonify({"Virhe": f"Aktiivisen pelin tietojen haku epäonnistui: {str(e)}"}), 500
     except Exception as e:
@@ -858,6 +874,154 @@ def api_upgrade_base(base_id: int):
         ),
         200,
     )
+
+
+@app.get("/api/bases/capacity")
+def api_bases_capacity():
+    """Palauttaa tukikohtien kapasiteettitiedot."""
+    try:
+        capacity_info = get_base_capacity_info(ACTIVE_SAVE_ID)
+        return jsonify({"bases_capacity": capacity_info})
+    except Exception as e:
+        app.logger.exception("Kapasiteettitietojen haku epäonnistui")
+        return jsonify({"virhe": "capacity fetch failed", "detail": str(e)}), 500
+
+
+@app.get("/api/bases/available")
+def api_available_bases():
+    """Palauttaa listan ostettavissa olevista tukikohdista."""
+    try:
+        # Get already owned base idents
+        owned = fetch_owned_bases(ACTIVE_SAVE_ID) or []
+        owned_idents = set(b.get("base_ident") for b in owned)
+        
+        # Fetch large airports that can be bases (excluding already owned)
+        # Only large_airport and medium_airport types are suitable for bases
+        sql = """
+            SELECT 
+                ident,
+                name,
+                iso_country,
+                municipality,
+                type,
+                latitude_deg,
+                longitude_deg
+            FROM airport
+            WHERE type IN ('large_airport', 'medium_airport')
+            AND ident NOT IN ({})
+            ORDER BY iso_country, name
+            LIMIT 100
+        """.format(','.join(['%s'] * len(owned_idents)) if owned_idents else "'__none__'")
+        
+        rows = _query_dicts(sql, tuple(owned_idents) if owned_idents else ())
+        
+        # Calculate base price based on airport type and location
+        result = []
+        for row in rows:
+            airport_type = row.get("type", "medium_airport")
+            # Large airports cost more
+            base_price = 150000 if airport_type == "large_airport" else 75000
+            
+            # Add some variation based on country (major hubs cost more)
+            country = row.get("iso_country", "")
+            if country in ("US", "GB", "DE", "FR", "JP"):
+                base_price *= 1.5
+            elif country in ("FI", "SE", "NO", "DK"):
+                base_price *= 1.2
+            
+            result.append({
+                "ident": row.get("ident"),
+                "name": row.get("name"),
+                "country": country,
+                "municipality": row.get("municipality"),
+                "type": airport_type,
+                "purchase_price": _decimal_to_string(Decimal(str(base_price))),
+                "max_capacity": 2,  # All new bases start at SMALL level
+                "latitude": row.get("latitude_deg"),
+                "longitude": row.get("longitude_deg"),
+            })
+        
+        return jsonify({"available_bases": result})
+    except Exception as e:
+        app.logger.exception("Ostettavien tukikohtien haku epäonnistui")
+        return jsonify({"virhe": "available bases fetch failed", "detail": str(e)}), 500
+
+
+@app.post("/api/bases/buy")
+def api_buy_base():
+    """Osta uusi tukikohta."""
+    payload = request.get_json(silent=True) or {}
+    ident = payload.get("ident")
+    
+    if not ident:
+        return jsonify({"virhe": "ident required"}), 400
+    
+    try:
+        # Check if already owned
+        owned = fetch_owned_bases(ACTIVE_SAVE_ID) or []
+        owned_idents = set(b.get("base_ident") for b in owned)
+        if ident in owned_idents:
+            return jsonify({"virhe": "already_owned"}), 409
+        
+        # Get airport info
+        airport = _fetch_one_dict(
+            "SELECT ident, name, iso_country, type FROM airport WHERE ident = %s",
+            (ident,)
+        )
+        if not airport:
+            return jsonify({"virhe": "airport_not_found"}), 404
+        
+        # Calculate price
+        airport_type = airport.get("type", "medium_airport")
+        base_price = Decimal("150000") if airport_type == "large_airport" else Decimal("75000")
+        country = airport.get("iso_country", "")
+        if country in ("US", "GB", "DE", "FR", "JP"):
+            base_price *= Decimal("1.5")
+        elif country in ("FI", "SE", "NO", "DK"):
+            base_price *= Decimal("1.2")
+        
+        # Check funds
+        session = GameSession(save_id=ACTIVE_SAVE_ID)
+        if session.cash < base_price:
+            return jsonify({"virhe": "insufficient_funds"}), 402
+        
+        # Insert new base
+        from datetime import datetime
+        now = datetime.utcnow()
+        yhteys = get_connection()
+        kursori = None
+        try:
+            kursori = yhteys.cursor()
+            kursori.execute(
+                """
+                INSERT INTO owned_bases 
+                (save_id, base_ident, base_name, acquired_day, purchase_cost, is_headquarters, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (ACTIVE_SAVE_ID, ident, airport.get("name"), session.current_day, float(base_price), False, now, now)
+            )
+            new_base_id = kursori.lastrowid
+            yhteys.commit()
+        finally:
+            if kursori:
+                kursori.close()
+            yhteys.close()
+        
+        # Charge the player
+        session._add_cash(-base_price, context="BASE_PURCHASE")
+        
+        return jsonify({
+            "status": "ok",
+            "base_id": new_base_id,
+            "base_ident": ident,
+            "base_name": airport.get("name"),
+            "purchase_cost": _decimal_to_string(base_price),
+            "remaining_cash": _decimal_to_string(session.cash),
+        }), 201
+        
+    except Exception as e:
+        app.logger.exception("Base purchase failed")
+        return jsonify({"virhe": "purchase_failed", "detail": str(e)}), 500
 
 
 # ---------- Reitit: Kartta-näkymä ----------
