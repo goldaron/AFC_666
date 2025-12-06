@@ -1,4 +1,5 @@
 .github/*
+GEMINI.md
 
 # Kehitysympäristön ja editorin tiedostot ei kuulu peliin
 .venv/
@@ -27,3 +28,8 @@ __pycache__/
 
 # Pidetään henkilökohtaiset asetukset ja avaimet poissa reposta
 utils.py
+.playwright-mcp/page-2025-12-03T11-53-06-508Z.png
+test_minimal.py
+test_server.py
+/.playwright-mcp
+/.serena

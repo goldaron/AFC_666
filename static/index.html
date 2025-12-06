@@ -7,6 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet kartalibrary -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -81,7 +85,7 @@
     <!-- Yläpalkki -->
     <header class="game-header">
         <div class="header-content">
-            <div class="logo-section">
+            <div class="logo-section" onclick="showView('clubhouse')" style="cursor: pointer;">
                 <img src="img/666_logo.svg" alt="AFC 666" class="logo-icon">
                 <div class="logo-text">
                     <h1>LENTORAHTIYHTIÖ</h1>
@@ -122,6 +126,9 @@
         </button>
         <button onclick="showView('market')" class="nav-btn" data-view="market">
             🛒 Kauppa
+        </button>
+        <button onclick="showView('map')" class="nav-btn" data-view="map">
+            🗺️ Kartta
         </button>
     </nav>
 
@@ -201,6 +208,27 @@
             </div>
         </div>
 
+        <!-- Uuden sopimuksen hyväksyntä -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h3>🆕 OTA UUSI SOPIMUS</h3>
+                <span class="section-card-count">TARJOUKSET</span>
+            </div>
+            <div class="section-card-body">
+                <div class="offer-selection">
+                    <div class="offer-controls">
+                        <label for="task-aircraft-select">Valitse kone:</label>
+                        <select id="task-aircraft-select" onchange="loadTaskOffersForAircraft()">
+                            <option value="">-- Valitse kone --</option>
+                        </select>
+                    </div>
+                    <div id="task-offers-list" class="offers-container">
+                        <p class="info">Valitse ensin kone yllä olevasta listasta.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Aktiiviset sopimukset -->
         <div class="section-card">
             <div class="section-card-header">
@@ -243,58 +271,228 @@
     </section>
 
     <!-- KAUPPAPAIKKA-NÄKYMÄ -->
-    <section id="market-view" class="view-container hidden">
-        <div class="view-header">
-            <h2>LENTOKONEMARKKINA</h2>
-            <div class="subtitle">// HANKINTATERMINAALI</div>
-        </div>
+    <!-- KAUPPA-NÄKYMÄ -->
+    <section id="market-view" class="view-container hidden market-view">
+        <!-- Tausta-gradientti -->
+        <div class="market-bg"></div>
 
-        <!-- Välilehdet -->
-        <div class="market-tabs">
-            <button onclick="showMarketTab('new')" class="tab-btn active" id="tab-new">
-                🏭 UUDET KONEET
-            </button>
-            <button onclick="showMarketTab('used')" class="tab-btn" id="tab-used">
-                💸 KÄYTETYT KONEET
-            </button>
-        </div>
+        <!-- Kulmaetiketit -->
+        <div class="market-corner market-corner-tl"></div>
+        <div class="market-corner market-corner-tr"></div>
+        <div class="market-corner market-corner-bl"></div>
+        <div class="market-corner market-corner-br"></div>
 
-        <!-- Uudet koneet -->
-        <div id="market-new" class="market-tab-content">
-            <div class="section-card">
-                <div class="section-card-header">
-                    <h3>TEHDASUUSI LENTOKONEET</h3>
-                    <span class="section-card-count" id="new-aircraft-count">- SAATAVILLA</span>
-                </div>
-                <div class="section-card-body">
-                    <div id="new-aircraft-list">
-                        <p class="loading">Ladataan...</p>
+        <!-- Sisältö -->
+        <div class="market-main">
+            <!-- Otsikko -->
+            <div class="view-header">
+                <h2>LENTOKONEMARKKINA</h2>
+                <div class="subtitle">// HANKINTATERMINAALI</div>
+            </div>
+
+            <!-- Välilehdet -->
+            <div class="market-tabs">
+                <button onclick="showMarketTab('new')" class="market-tab-btn market-tab-btn-active" id="tab-new">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="4" width="12" height="2" rx="1"/><rect x="2" y="8" width="12" height="2" rx="1"/><rect x="2" y="12" width="12" height="2" rx="1"/></svg>
+                    <span>UUDET KONEET</span>
+                </button>
+                <button onclick="showMarketTab('used')" class="market-tab-btn" id="tab-used">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6"/></svg>
+                    <span>KÄYTETYT KONEET</span>
+                </button>
+            </div>
+
+            <!-- Koneiden ruudikko -->
+            <div class="market-grid-wrapper">
+                <!-- Uudet koneet -->
+                <div id="market-new" class="market-tab-content">
+                    <div class="market-grid" id="new-aircraft-list">
+                        <p class="market-loading">Ladataan...</p>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Käytetyt koneet -->
-        <div id="market-used" class="market-tab-content hidden">
-            <div class="section-card">
-                <div class="section-card-header">
-                    <h3>KÄYTETYT LENTOKONEET</h3>
-                    <span class="section-card-count" id="used-aircraft-count">- SAATAVILLA</span>
-                </div>
-                <div class="section-card-body">
-                    <div id="used-aircraft-list">
-                        <p class="loading">Ladataan...</p>
+                <!-- Käytetyt koneet (taulu-muoto) -->
+                <div id="market-used" class="market-tab-content hidden">
+                    <div class="market-table-container">
+                        <!-- Otsikkobanneri -->
+                        <div class="market-table-header-banner">
+                            <p class="market-table-label">AVAILABLE LISTINGS</p>
+                        </div>
+                        
+                        <!-- Varsinainen taulukko -->
+                        <table class="market-table" id="used-aircraft-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>MODEL</th>
+                                    <th>PRICE</th>
+                                    <th>CONDITION</th>
+                                    <th>HOURS</th>
+                                    <th>AGE</th>
+                                    <th>NOTES</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="used-aircraft-list">
+                                <tr><td colspan="8" class="market-table-loading">Ladataan...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Markkina-neuvonta banneri -->
+                    <div class="market-advisory-banner">
+                        <div class="market-advisory-icon">⚠️</div>
+                        <div class="market-advisory-content">
+                            <p class="market-advisory-title">MARKET ADVISORY</p>
+                            <p class="market-advisory-text">Used aircraft offer significant value but may require maintenance. Always verify condition percentage and service history before purchasing.</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+
+    <!-- KERHOHUONE-NÄKYMÄ -->
+    <section id="clubhouse-view" class="view-container hidden kerhohuone-view">
+        <!-- Tausta-gradientti -->
+        <div class="kerhohuone-bg"></div>
+        
+        <!-- Header -->
+        <div class="kerhohuone-header">
+            <div class="kerhohuone-header-content">
+                <div class="kerhohuone-title-block">
+                    <h1 class="kerhohuone-title">KERHOHUONE 666</h1>
+                    <p class="kerhohuone-subtitle">// MEMBERS ONLY</p>
+                </div>
+                <div class="kerhohuone-cash-card">
+                    <div class="kerhohuone-cash-icon">💵</div>
+                    <div class="kerhohuone-cash-content">
+                        <div class="kerhohuone-cash-label">CASH</div>
+                        <div class="kerhohuone-cash-value" id="clubhouse-cash-display">€0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="kerhohuone-main">
+            <!-- Otsikko -->
+            <div class="kerhohuone-section-title">KERHOHUONE 666</div>
+
+            <!-- 3 Pelikorttia Grid -->
+            <div class="kerhohuone-games-grid">
+                <!-- KRUUNA VAI KLAAVA -->
+                <button class="kerhohuone-game-card kerhohuone-card-coin" onclick="showCoinFlipGame()">
+                    <div class="kerhohuone-card-icon">🪙</div>
+                    <div class="kerhohuone-card-title">KRUUNA VAI KLAAVA</div>
+                    <div class="kerhohuone-card-subtitle">Coin Flip</div>
+                    <div class="kerhohuone-card-desc">2x payout</div>
+                </button>
+
+                <!-- SUUREMPI VAI PIENEMPI -->
+                <button class="kerhohuone-game-card kerhohuone-card-dice" onclick="showHighLowGame()">
+                    <div class="kerhohuone-card-icon">🎲</div>
+                    <div class="kerhohuone-card-title">SUUREMPI VAI PIENEMPI</div>
+                    <div class="kerhohuone-card-subtitle">High/Low Dice</div>
+                    <div class="kerhohuone-card-desc">Compare two dice</div>
+                </button>
+
+                <!-- YKSIKÄTINEN ROSVO -->
+                <button class="kerhohuone-game-card kerhohuone-card-slots" onclick="showSlotsGame()">
+                    <div class="kerhohuone-card-icon">🎰</div>
+                    <div class="kerhohuone-card-title">YKSIKÄTINEN ROSVO</div>
+                    <div class="kerhohuone-card-subtitle">Slot Machine</div>
+                    <div class="kerhohuone-card-desc">Up to 10x payout</div>
+                </button>
+            </div>
+
+            <!-- Exit Button -->
+            <div class="kerhohuone-button-container">
+                <button class="kerhohuone-exit-btn" onclick="showView('tasks')">
+                    <span class="kerhohuone-btn-icon">⏎</span>
+                    <span>POISTU TAKAISIN TOIMISTOLLE</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Nurkkakoristeleet -->
+        <div class="kerhohuone-corner kerhohuone-corner-tl"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-tr"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-bl"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-br"></div>
+
+        <!-- Pelin modal (näkyy kun pelaaja klikkaa peliä) -->
+        <div id="game-modal" class="kerhohuone-game-modal hidden">
+            <div class="kerhohuone-game-modal-content">
+                <!-- Tämä täytetään JavaScriptillä -->
+            </div>
+        </div>
+    </section>
+
+    <!-- KARTTANÄKYMÄ / MAP VIEW -->
+    <section id="map-view" class="view-container hidden">
+        <div style="padding: 24px; width: 100%;">
+            <!-- Otsikko -->
+            <div class="map-view-header" style="margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 4px;">
+                    <div style="width: 4px; height: 62px; background: linear-gradient(to bottom, transparent, #00d4ff, transparent); opacity: 0.5;"></div>
+                    <div>
+                        <h2 class="map-view-title">MAAILMAN KARTTA</h2>
+                        <p class="map-view-subtitle">// GLOBAALIT OPERAATIOT</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="map-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #888888; border-radius: 50%; width: 12px; height: 12px;"></div>
+                    <span>LÄHTÖPISTE</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00d4ff; border-radius: 50%; width: 12px; height: 12px; box-shadow: 0 0 4px #00d4ff;"></div>
+                    <span>MÄÄRÄPISTE</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="border: 2px dashed #00d4ff; width: 16px; height: 2px;"></div>
+                    <span>LENTORATA</span>
+                </div>
+                <div class="legend-item">
+                    <div style="font-size: 18px;">✈️</div>
+                    <span>LENTOKONEEN PAIKKA</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff6467; border-radius: 50%; width: 12px; height: 12px; box-shadow: 0 0 4px #ff6467;"></div>
+                    <span>LENTO-EVENT</span>
+                </div>
+            </div>
+
+            <!-- Karttataso -->
+            <div id="map-container" style="border-radius: 14px; margin-bottom: 24px;"></div>
+
+            <!-- Aktiivisten lentojen otsikko ja lista -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <p style="color: #6a7282; font-size: 14px; text-transform: uppercase; letter-spacing: 0.4875px; font-weight: 500;">AKTIIVISET LENNOT</p>
+                <p id="flights-count" style="color: #00d4ff; font-size: 14px; text-transform: uppercase; letter-spacing: 0.4875px; font-weight: 500;">0 LENTÄÄ</p>
+            </div>
+
+            <!-- Lentojen lista -->
+            <div id="active-flights-list" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Täytetään JavaScriptillä -->
+            </div>
+        </div>
+    </section>
+
     </div>
     <!-- END GAME CONTAINER -->
 
     <!-- JavaScript-moduulit -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="app.js"></script>
     <script src="tasks.js"></script>
     <script src="market.js"></script>
+    <script src="clubhouse.js"></script>
+    <script src="map.js"></script>
 </body>
 </html>
+
