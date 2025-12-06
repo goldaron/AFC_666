@@ -127,6 +127,9 @@
         <button onclick="showView('tasks')" class="nav-btn active" data-view="tasks">
             📋 Sopimukset
         </button>
+        <button onclick="showView('tukikohdat')" class="nav-btn" data-view="tukikohdat">
+            🏢 Tukikohdat
+        </button>
         <button onclick="showView('market')" class="nav-btn" data-view="market">
             🛒 Kauppa
         </button>
@@ -598,6 +601,56 @@
         </div>
     </section>
 
+    <!-- TUKIKOHDAT / BASES VIEW -->
+    <section id="tukikohdat-view" class="view-container hidden">
+        <div class="view-header">
+            <h2>BASE OPERATIONS</h2>
+            <div class="subtitle">// FACILITY MANAGEMENT TERMINAL</div>
+        </div>
+
+        <!-- Expand Network Section -->
+        <div class="expand-network-section">
+            <div class="expand-network-icon">🏢</div>
+            <div class="expand-network-text">
+                <div class="expand-network-title">LAAJENNA VERKOSTOASI</div>
+                <div class="expand-network-subtitle">// OSTA UUSI TUKIKOHTA LAAJENTAAKSESI TOIMINTA-ALUETTA</div>
+            </div>
+            <button class="browse-bases-btn" onclick="openBrowseBasesModal()">
+                🔍 SELAA SIJAINTEJA
+            </button>
+        </div>
+
+        <!-- Bases Grid -->
+        <div id="bases-grid" class="bases-grid">
+            <div class="loading">Ladataan tukikohtia...</div>
+        </div>
+    </section>
+
+    <!-- BROWSE BASES MODAL -->
+    <div id="browse-bases-modal" class="upgrade-modal hidden">
+        <div class="upgrade-modal-overlay" onclick="closeBrowseBasesModal()"></div>
+        <div class="upgrade-modal-content">
+            <!-- Close button -->
+            <button class="upgrade-modal-close" onclick="closeBrowseBasesModal()">✕</button>
+            
+            <!-- Header -->
+            <div class="upgrade-header">
+                <div class="upgrade-title-block">
+                    <h2>TUKIKOHDAT MYYTÄVÄNÄ</h2>
+                    <div class="upgrade-subtitle">// VALITSE UUSI TUKIKOHTA LAIVASTOLLESI</div>
+                </div>
+                <div class="browse-bases-filter">
+                    <input type="text" id="base-search-input" placeholder="🔍 Hae nimellä tai maalla..." oninput="filterAvailableBases()">
+                </div>
+            </div>
+
+            <!-- Available Bases Grid -->
+            <div class="available-bases-grid" id="available-bases-grid">
+                <div class="loading">Ladataan sijainteja...</div>
+            </div>
+        </div>
+    </div>
+
     <!-- AIRCRAFT UPGRADE MODAL -->
     <div id="aircraft-upgrade-modal" class="upgrade-modal hidden">
         <div class="upgrade-modal-overlay" onclick="closeUpgradeModal()"></div>
@@ -682,6 +735,7 @@
     <script src="clubhouse.js"></script>
     <script src="map.js"></script>
     <script src="laivasto.js"></script>
+    <script src="tukikohdat.js"></script>
 </body>
 </html>
 

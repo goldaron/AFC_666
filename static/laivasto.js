@@ -2,23 +2,34 @@ let fleetData = [];
 let filteredFleetData = [];
 let currentSort = { column: null, ascending: true };
 let activeFloatingMenu = null;
+let baseCapacityData = [];
 
 // Load fleet data from API
 async function loadFleetData() {
     try {
-        const response = await fetch('/api/aircrafts');
-        if (!response.ok) throw new Error('Failed to fetch fleet');
+        // Load both fleet and base capacity data
+        const [fleetResponse, capacityResponse] = await Promise.all([
+            fetch('/api/aircrafts'),
+            fetch('/api/bases/capacity')
+        ]);
         
-        const data = await response.json();
-        fleetData = data.aircraft || [];
+        if (!fleetResponse.ok) throw new Error('Failed to fetch fleet');
+        if (!capacityResponse.ok) throw new Error('Failed to fetch capacity');
+        
+        const fleetResult = await fleetResponse.json();  // Renamed to avoid shadowing
+        const capacityResult = await capacityResponse.json();  // Renamed for consistency
+        
+        fleetData = fleetResult.aircraft || [];  // Now assigns to module-level variable
+        baseCapacityData = capacityResult.bases_capacity || [];
         filteredFleetData = [...fleetData];
         
         renderFleetTable();
         updateFleetStats();
+        renderBaseCapacityWarnings();
     } catch (error) {
         console.error('Failed to load fleet:', error);
         document.getElementById('fleet-roster-list').innerHTML = 
-            '<tr><td colspan="8" class="error-cell">❌ Lentokoneiden lataus epäonnistui</td></tr>';
+            '<tr><td colspan="9" class="error-cell">❌ Lentokoneiden lataus epäonnistui</td></tr>';
     }
 }
 
@@ -27,7 +38,7 @@ function renderFleetTable() {
     const tbody = document.getElementById('fleet-roster-list');
     
     if (filteredFleetData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Ei lentokoneita</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Ei lentokoneita</td></tr>';
         document.getElementById('fleet-count').textContent = '0 AIRCRAFT';
         return;
     }
@@ -505,3 +516,34 @@ document.addEventListener('keydown', (e) => {
         closeAircraftMenu();
     }
 });
+
+// Add new function to render capacity warnings
+function renderBaseCapacityWarnings() {
+    const warningsContainer = document.getElementById('capacity-warnings');
+    if (!warningsContainer) return;
+    
+    const warnings = baseCapacityData.filter(base => base.is_near_full || base.is_full);
+    
+    if (warnings.length === 0) {
+        warningsContainer.innerHTML = '';
+        warningsContainer.style.display = 'none';
+        return;
+    }
+    
+    warningsContainer.style.display = 'block';
+    warningsContainer.innerHTML = warnings.map(base => {
+        const warningClass = base.is_full ? 'capacity-full' : 'capacity-near-full';
+        const icon = base.is_full ? '🔴' : '⚠️';
+        const message = base.is_full 
+            ? `TÄYNNÄ: ${base.base_name} (${base.base_ident})`
+            : `LÄHES TÄYNNÄ: ${base.base_name} (${base.base_ident})`;
+        
+        return `
+            <div class="capacity-warning ${warningClass}">
+                <span class="capacity-icon">${icon}</span>
+                <span class="capacity-text">${message}</span>
+                <span class="capacity-count">${base.current_count}/${base.max_capacity} konetta</span>
+            </div>
+        `;
+    }).join('');
+}

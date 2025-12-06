@@ -147,7 +147,11 @@ function showView(viewName) {
     // Lataa dataa erityisiin näkymiin
     if (viewName === 'laivasto') {
         loadFleetData();
-    } else if (viewName === 'tasks') {
+    } 
+    else if (viewName === 'tukikohdat') {
+        loadBasesData();
+    }
+    else if (viewName === 'tasks') {
         loadTasks();
     } else if (viewName === 'market') {
         loadMarketData();
