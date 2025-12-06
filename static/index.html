@@ -121,8 +121,11 @@
 
     <!-- Navigointi -->
     <nav class="main-nav">
+        <button onclick="showView('laivasto')" class="nav-btn" data-view="laivasto">
+            ✈️ Laivasto
+        </button>
         <button onclick="showView('tasks')" class="nav-btn active" data-view="tasks">
-            ✈️ Sopimukset
+            📋 Sopimukset
         </button>
         <button onclick="showView('market')" class="nav-btn" data-view="market">
             🛒 Kauppa
@@ -479,6 +482,115 @@
             <!-- Lentojen lista -->
             <div id="active-flights-list" style="display: flex; flex-direction: column; gap: 12px;">
                 <!-- Täytetään JavaScriptillä -->
+            </div>
+        </div>
+    </section>
+
+    <!-- LAIVASTO / FLEET ROSTER -NÄKYMÄ -->
+    <section id="laivasto-view" class="view-container hidden">
+        <div class="view-header">
+            <h2>AIRCRAFT FLEET</h2>
+            <div class="subtitle">// FLEET MANAGEMENT SYSTEM</div>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="section-card" style="margin-bottom: 24px;">
+            <div class="section-card-header">
+                <h3>🔍 SEARCH & FILTER</h3>
+            </div>
+            <div class="section-card-body">
+                <div style="display: flex; gap: 16px; align-items: center;">
+                    <input 
+                        type="text" 
+                        id="fleet-search" 
+                        placeholder="Search by model, registration..." 
+                        style="flex: 1; background: rgba(16, 24, 40, 0.8); border: 1px solid rgba(0, 212, 255, 0.3); 
+                               border-radius: 8px; padding: 10px 16px; color: #d1d5dc; font-size: 14px;"
+                        oninput="filterFleet()"
+                    >
+                    <select id="fleet-status-filter" 
+                            style="width: 200px; background: rgba(16, 24, 40, 0.8); border: 1px solid rgba(0, 212, 255, 0.3); 
+                                   border-radius: 8px; padding: 10px 16px; color: #d1d5dc; font-size: 14px;"
+                            onchange="filterFleet()">
+                        <option value="all">ALL STATUS</option>
+                        <option value="IDLE">IDLE</option>
+                        <option value="IN_FLIGHT">IN FLIGHT</option>
+                        <option value="RTB">RTB</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fleet Roster Table -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h3>FLEET ROSTER</h3>
+                <span class="section-card-count" id="fleet-count">0 AIRCRAFT</span>
+            </div>
+            <div class="section-card-body">
+                <table class="contracts-table fleet-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="sortFleetTable('model_name')">
+                                MODEL <span class="sort-arrows">⇅</span>
+                            </th>
+                            <th class="sortable" onclick="sortFleetTable('registration')">
+                                REGISTRATION <span class="sort-arrows">⇅</span>
+                            </th>
+                            <th>LOCATION</th>
+                            <th>STATUS</th>
+                            <th class="sortable" onclick="sortFleetTable('condition_percent')">
+                                CONDITION <span class="sort-arrows">⇅</span>
+                            </th>
+                            <th>ECO</th>
+                            <th>MULTIPLIER</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fleet-roster-list">
+                        <tr><td colspan="8" class="loading">Ladataan...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Fleet Statistics -->
+        <div class="stats-grid" style="margin-top: 24px;">
+            <div class="stat-card cyan">
+                <div class="stat-card-content">
+                    <div class="stat-icon cyan">✈️</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">TOTAL FLEET</div>
+                        <div class="stat-text-value" id="total-fleet">0 AIRCRAFT</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-card-content">
+                    <div class="stat-icon green">✓</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">IDLE</div>
+                        <div class="stat-text-value green" id="idle-count">0 READY</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card cyan">
+                <div class="stat-card-content">
+                    <div class="stat-icon cyan">🛫</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">IN FLIGHT</div>
+                        <div class="stat-text-value" id="inflight-count">0 ACTIVE</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-card-content">
+                    <div class="stat-icon red">📊</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">AVG. CONDITION</div>
+                        <div class="stat-text-value" id="avg-condition">0%</div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>

@@ -129,35 +129,30 @@ function showView(viewName) {
         view.classList.add('hidden');
     });
     
-    // Poista aktiivinen luokka navigointipainikkeista
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
     // Näytä valittu näkymä
     const targetView = document.getElementById(`${viewName}-view`);
     if (targetView) {
         targetView.classList.remove('hidden');
-        
-        // Merkitse navigointipainike aktiiviseksi
-        const activeBtn = document.querySelector(`.nav-btn[data-view="${viewName}"]`);
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-        }
-        
-        // Lataa näkymän data
-        if (viewName === 'tasks') {
-            loadActiveTasks();
-            loadAircraftListForTasks();
-        } else if (viewName === 'market') {
-            showMarketTab('new');
-        } else if (viewName === 'clubhouse') {
-            // Kerhohuone: päivitä cash-display
-            updateClubhouseCash();
-        } else if (viewName === 'map') {
-            // Kartta: alusta kartta ja lataa lennon tiedot
-            loadMapView();
-        }
+    }
+    
+    // Päivitä nav-painikkeet
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeBtn = document.querySelector(`[data-view="${viewName}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    // Lataa dataa erityisiin näkymiin
+    if (viewName === 'laivasto') {
+        loadFleetData();
+    } else if (viewName === 'tasks') {
+        loadTasks();
+    } else if (viewName === 'market') {
+        loadMarketData();
+    } else if (viewName === 'map') {
+        initMap();
     }
 }
 
