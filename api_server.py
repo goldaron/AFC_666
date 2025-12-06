@@ -1,4 +1,3 @@
-
 """Flask-pohjainen rajapinta"""
 
 import os
@@ -652,39 +651,82 @@ def api_get_aircraft(aircraft_id: int):
 
 @app.post("/api/aircrafts/<int:aircraft_id>/repair")
 def api_repair_aircraft(aircraft_id: int):
-    """Korjaa lentokoneen täydelliseksi (transaktiona GameSessionin kautta)."""
-    # Arvio kustannuksesta (parhaan yrityksen mukaan)
+    """Korjaa lentokoneen osittain tai täydelliseksi."""
+    payload = request.get_json(silent=True) or {}
+    repair_amount = payload.get("repair_amount")  # Amount to repair (10, 20, 50, or None for full)
+    
+    # Fetch current condition and status
     row = _fetch_one_dict(
-        "SELECT condition_percent FROM aircraft WHERE aircraft_id=%s AND save_id=%s",
+        "SELECT condition_percent, status FROM aircraft WHERE aircraft_id=%s AND save_id=%s",
         (aircraft_id, ACTIVE_SAVE_ID),
     )
     if not row:
         return jsonify({"virhe": "aircraft not found"}), 404
-    cond = int(row.get("condition_percent") or 0)
-    missing = max(0, 100 - cond)
-    est_cost = (Decimal(missing) * REPAIR_COST_PER_PERCENT).quantize(Decimal("0.01"))
-
+    
+    current_cond = int(row.get("condition_percent") or 0)
+    status = row.get("status")
+    
+    # Check if aircraft is busy
+    if status not in ('IDLE', 'RTB'):
+        return jsonify({"virhe": "aircraft is busy (in flight)"}), 409
+    
+    # Calculate target condition
+    if repair_amount is None:
+        # Full repair to 100%
+        target_cond = 100
+    else:
+        # Partial repair
+        repair_amount = int(repair_amount)
+        target_cond = min(100, current_cond + repair_amount)
+    
+    # Calculate actual repair needed
+    actual_repair = target_cond - current_cond
+    if actual_repair <= 0:
+        return jsonify({"virhe": "aircraft already at or above target condition"}), 400
+    
+    # For now, cost is $5 regardless (placeholder)
+    cost = Decimal("5.00")
+    
     session = GameSession(save_id=ACTIVE_SAVE_ID)
+    
+    # Check if player has enough cash
+    if session.cash < cost:
+        return jsonify({"virhe": "insufficient_funds"}), 402
+    
+    # Perform repair
     try:
-        ok = session._repair_aircraft_to_full_tx(aircraft_id)
+        yhteys = get_connection()
+        kursori = None
+        try:
+            kursori = yhteys.cursor()
+            kursori.execute(
+                "UPDATE aircraft SET condition_percent = %s WHERE aircraft_id = %s AND save_id = %s",
+                (target_cond, aircraft_id, ACTIVE_SAVE_ID)
+            )
+            yhteys.commit()
+        finally:
+            if kursori:
+                kursori.close()
+            yhteys.close()
+        
+        # Charge the player
+        session._add_cash(-cost, context="AIRCRAFT_REPAIR")
+        
     except Exception as e:
         app.logger.exception("repair failed")
         return jsonify({"virhe": "repair_failed", "detail": str(e)}), 500
-
-    if not ok:
-        return jsonify({"virhe": "repair failed (insufficient funds / busy)"}), 409
-
-    return (
-        jsonify(
-            {
-                "status": "ok",
-                "aircraft_id": aircraft_id,
-                "cost_charged": _decimal_to_string(est_cost),
-                "remaining_cash": _decimal_to_string(session.cash),
-            }
-        ),
-        200,
-    )
+    
+    return jsonify(
+        {
+            "status": "ok",
+            "aircraft_id": aircraft_id,
+            "previous_condition": current_cond,
+            "new_condition": target_cond,
+            "repaired_amount": actual_repair,
+            "cost_charged": _decimal_to_string(cost),
+            "remaining_cash": _decimal_to_string(session.cash),
+        }
+    ), 200
 
 
 @app.post("/api/aircrafts/<int:aircraft_id>/upgrade")

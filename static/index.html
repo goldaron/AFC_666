@@ -537,6 +537,9 @@
                             <th class="sortable" onclick="sortFleetTable('registration')">
                                 REGISTRATION <span class="sort-arrows">⇅</span>
                             </th>
+                            <th class="sortable" onclick="sortFleetTable('nickname')">
+                                CALLSIGN <span class="sort-arrows">⇅</span>
+                            </th>
                             <th>LOCATION</th>
                             <th>STATUS</th>
                             <th class="sortable" onclick="sortFleetTable('condition_percent')">
@@ -548,7 +551,7 @@
                         </tr>
                     </thead>
                     <tbody id="fleet-roster-list">
-                        <tr><td colspan="8" class="loading">Ladataan...</td></tr>
+                        <tr><td colspan="9" class="loading">Ladataan...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -595,6 +598,79 @@
         </div>
     </section>
 
+    <!-- AIRCRAFT UPGRADE MODAL -->
+    <div id="aircraft-upgrade-modal" class="upgrade-modal hidden">
+        <div class="upgrade-modal-overlay" onclick="closeUpgradeModal()"></div>
+        <div class="upgrade-modal-content">
+            <!-- Close button -->
+            <button class="upgrade-modal-close" onclick="closeUpgradeModal()">✕</button>
+            
+            <!-- Header -->
+            <div class="upgrade-header">
+                <div class="upgrade-title-block">
+                    <h2>UPGRADE CENTER</h2>
+                    <div class="upgrade-subtitle">// ENHANCEMENT TERMINAL</div>
+                </div>
+                <div class="upgrade-aircraft-info">
+                    <div class="upgrade-aircraft-name" id="upgrade-aircraft-name">-</div>
+                    <div class="upgrade-aircraft-reg" id="upgrade-aircraft-reg">-</div>
+                </div>
+            </div>
+
+            <!-- ECO Level Upgrades Section -->
+            <div class="upgrade-section">
+                <div class="upgrade-section-header">
+                    <div class="upgrade-section-icon">⚡</div>
+                    <div>
+                        <h3>ECO LEVEL UPGRADES</h3>
+                        <p class="upgrade-section-desc">// INCREASE FUEL EFFICIENCY & EARNINGS MULTIPLIER</p>
+                    </div>
+                </div>
+
+                <!-- ECO Levels Grid -->
+                <div class="eco-levels-grid" id="eco-levels-grid">
+                    <!-- Заполняется через JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AIRCRAFT REPAIR MODAL -->
+    <div id="aircraft-repair-modal" class="upgrade-modal hidden">
+        <div class="upgrade-modal-overlay" onclick="closeRepairModal()"></div>
+        <div class="upgrade-modal-content">
+            <!-- Close button -->
+            <button class="upgrade-modal-close" onclick="closeRepairModal()">✕</button>
+            
+            <!-- Header -->
+            <div class="upgrade-header">
+                <div class="upgrade-title-block">
+                    <h2>REPAIR CENTER</h2>
+                    <div class="upgrade-subtitle">// MAINTENANCE TERMINAL</div>
+                </div>
+                <div class="upgrade-aircraft-info">
+                    <div class="upgrade-aircraft-name" id="repair-aircraft-name">-</div>
+                    <div class="upgrade-aircraft-reg" id="repair-aircraft-reg">-</div>
+                    <div class="repair-aircraft-condition" id="repair-aircraft-condition">CONDITION: 0%</div>
+                </div>
+            </div>
+
+            <!-- Repair Options Section -->
+            <div class="upgrade-section">
+                <div class="upgrade-section-header">
+                    <div class="upgrade-section-icon">🔧</div>
+                    <div>
+                        <h3>REPAIR OPTIONS</h3>
+                        <p class="upgrade-section-desc">// RESTORE AIRCRAFT CONDITION</p>
+                    </div>
+                </div>
+
+                <!-- Repair Options Grid -->
+                <div class="eco-levels-grid" id="repair-options-grid">
+                    <!-- Filled by JavaScript -->
+                </div>
+            </div>
+        </div>
     </div>
     <!-- END GAME CONTAINER -->
 
@@ -605,6 +681,7 @@
     <script src="market.js"></script>
     <script src="clubhouse.js"></script>
     <script src="map.js"></script>
+    <script src="laivasto.js"></script>
 </body>
 </html>
 
