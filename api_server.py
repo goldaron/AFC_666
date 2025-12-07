@@ -9,6 +9,8 @@ from flask import Flask, jsonify, request, send_from_directory
 
 from game_session import GameSession
 from utils import get_connection
+from session_helpers.common import _to_dec
+from upgrade_config import SURVIVAL_TARGET_DAYS
 
 app = Flask(__name__, static_folder='static')
 # Tämä kertoo minkä tallennuksen tietoja API lukee; oletuksena käytetään slot 1:tä.
@@ -247,6 +249,139 @@ def get_active_game_info():
     except Exception as e:
         app.logger.exception("Aktiivisen pelin tietojen haku epäonnistui")
         return jsonify({"Virhe": f"Aktiivisen pelin tietojen haku epäonnistui: {str(e)}"}), 500
+
+
+#----------- Reitit: Päivän siirto ----------
+
+@app.post("/api/game/advance-day")
+def advance_day():
+    """Siirrytään 1 päivä ja palautetaan yhteenveto."""
+    try: 
+        session = GameSession(save_id=ACTIVE_SAVE_ID)
+        summary = session.advance_to_next_day(silent=True)
+        summary["earned"] = _decimal_to_string(summary.get("earned", 0))
+
+        for event in summary.get("events", []):
+            if "reward_delta" in event:
+                event["reward_delta"] = _decimal_to_string(event["reward_delta"])
+        
+        for bill in summary.get("bills", []):
+            if "amount" in bill:
+                bill["amount"] = _decimal_to_string(bill["amount"])
+        
+        return jsonify(summary), 200
+    
+    except ValueError as e:
+        if "ei löytynyt" in str(e):
+            return jsonify({"virhe": f"Tallennus {ACTIVE_SAVE_ID} ei löytynyt"}), 404
+        app.logger.exception("Päivän siirto epäonnistui")
+        return jsonify({"virhe": f"Päivän siirto epäonnistui: {str(e)}"}), 500
+    except Exception as e:
+        app.logger.exception("Päivän siirto epäonnistui")
+        return jsonify({"virhe": f"Päivän siirto epäonnistui: {str(e)}"}), 500
+
+
+# ---------- Reitit: Päivän siirto kunnes ensimmäinen kone palaa tai konkurssi ----------
+
+@app.post("/api/game/fast-forward")
+def fast_forward():
+    """Siirrytään eteenpäin kunnes ensimmäinen lento saapuu tai konkurssi."""
+    try:
+        session = GameSession(save_id=ACTIVE_SAVE_ID)
+
+        yhteys = get_connection()
+        try:
+            kursori = yhteys.cursor()
+            kursori.execute(
+                "SELEECT COUNT(*) FROM flights WHERE save_id = %s AND status = 'ENROUTE'",
+                (ACTIVE_SAVE_ID,),
+            )
+            result = kursori.fetchone()
+            enroute_count = int(result[0]) if result else 0
+        finally:
+            try:
+                kursori.close()
+            except:
+                pass
+            yhteys.close()
+        
+        if enroute_count == 0:
+            return jsonify({
+                "viesti": "Ei käynnissä olevia lentoja.",
+                "days_advanced": 0,
+                "stop_reason": "NO_FLIGHTS",
+            }), 400
+
+
+        days_advanced = 0
+        earned_total = Decimal("0.00")
+        stop_reason = "max"
+        day_summaries = []
+        max_days = 365  # Turvamekanismi loputtomaan silmukkaan
+    
+        
+        for _ in range(max_days):
+            summary = session.advance_to_next_day(silent=True)
+            days_advanced += 1
+            earned_total += _to_dec(summary.get("earned", 0))
+            summary_copy = summary.copy()
+            summary_copy["earned"] = _decimal_to_string(summary_copy.get("earned", 0))
+
+            for event in summary_copy.get("events", []):
+                if "reward_delta" in event:
+                    event["reward_delta"] = _decimal_to_string(event["reward_delta"])
+
+            for bill in summary_copy.get("bills", []):
+                if "amount" in bill:
+                    bill["amount"] = _decimal_to_string(bill["amount"])
+            
+            day_summaries.append(summary_copy)
+
+            # eri tilanteet pysähtymiselle
+
+            if int(summary.get("arrivals", 0)) > 0:
+                stop_reason = "arrival"
+                break
+            if session.status == "BANKRUPT":
+                stop_reason = "bankrupt"
+                break
+            from upgrade_config import SURVIVAL_TARGET_DAYS
+            if session.current_day > SURVIVAL_TARGET_DAYS:
+                if session.status == "ACTIVE":
+                    session.status = "VICTORY"
+                stop_reason = "victory"
+                break
+
+        messages = {
+            "arrival": f"Ensimmäinen lento palasi päivällä {session.current_day}",
+            "bankrupt": f"Konkurssi keskeytti pikakelauksen päivällä {session.current_day}",
+            "victory": f"Selviytymisraja saavutettu päivällä {session.current_day}!",
+            "max": f"Ei paluuta {max_days} päivän aikana"
+        }
+
+        # Palautetaan yhteenveto
+
+        return jsonify({
+            "days_advanced": days_advanced,
+            "stop_reason": stop_reason,
+            "current_day": session.current_day,
+            "total_earned": _decimal_to_string(earned_total),
+            "message": messages.get(stop_reason, "Pikakelaus valmis"),
+            "day_summaries": day_summaries,
+        }), 200
+    
+    except ValueError as e:
+        if "ei löytynyt" in str(e):
+            return jsonify({"virhe": f"Tallennusta {ACTIVE_SAVE_ID} ei löytynyt"}), 404
+        app.logger.exception("Pikakelaus epäonnistui")
+        return jsonify({"virhe": f"Pikakelaus epäonnistui: {str(e)}"}), 500
+    except Exception as e:
+        app.logger.exception("Pikakelaus epäonnistui")
+        return jsonify({"virhe": f"Pikakelaus epäonnistui: {str(e)}"}), 500
+
+
+
+
 
 # ============================================================================
 # TEHTÄVÄT JA KAUPANKÄYNTI
@@ -1168,15 +1303,17 @@ def get_map_data():
 @app.route('/')
 def serve_index():
     """Palauttaa pääsivun (index.html)"""
-    return send_from_directory(app.static_folder, 'index.html')
+    static_dir = os.path.join(os.path.dirname(__file__), 'static')
+    return send_from_directory(static_dir, 'index.html')
 
 
-@app.route('/<path:path>')
-def serve_static(path):
-    """Palauttaa staattiset tiedostot (CSS, JS)"""
-    return send_from_directory(app.static_folder, path)
+@app.route('/<path:filename>')
+def serve_static(filename):
+    """Palauttaa kaikki staattiset tiedostot (JS, CSS, kuvat)"""
+    static_dir = os.path.join(os.path.dirname(__file__), 'static')
+    return send_from_directory(static_dir, filename)
 
 
 if __name__ == "__main__":
     # Kehityskäyttöön sopiva debug-palvelin.
-    app.run(debug=True)
+    app.run(debug=True, port=5003)
