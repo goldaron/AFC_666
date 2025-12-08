@@ -42,7 +42,7 @@ function renderBasesGrid() {
         grid.innerHTML = `
             <div class="no-bases-warning">
                 <div class="no-bases-icon">🏢</div>
-                <div class="no-bases-text">NO BASES OWNED</div>
+                <div class="no-bases-text">EI TUKIKOHTIA</div>
             </div>
         `;
         return;
@@ -107,7 +107,7 @@ function renderBasesGrid() {
                         <div class="base-upgrade-section">
                             <div class="base-upgrade-cost">
                                 <span class="base-upgrade-label">PÄIVITYKSEN HINTA</span>
-                                <span class="base-upgrade-price">$${parseFloat(upgradeCost).toLocaleString()}</span>
+                                <span class="base-upgrade-price">€${parseFloat(upgradeCost).toLocaleString()}</span>
                             </div>
                             <button class="base-upgrade-btn" onclick="upgradeBase(${base.base_id}, '${currentLevel}', '${nextLevel}', ${upgradeCost})">
                                 ↑ PÄIVITÄ TUKIKOHTAA
@@ -127,7 +127,7 @@ function renderBasesGrid() {
 
 // Upgrade base
 async function upgradeBase(baseId, currentLevel, nextLevel, cost) {
-    if (!confirm(`Vahvista tukikohdan päivitys tasolle ${BASE_LEVELS[nextLevel].name} hintaan $${parseFloat(cost).toLocaleString()}?`)) {
+    if (!confirm(`Vahvista tukikohdan päivitys tasolle ${BASE_LEVELS[nextLevel].name} hintaan €${parseFloat(cost).toLocaleString()}?`)) {
         return;
     }
 
@@ -145,7 +145,7 @@ async function upgradeBase(baseId, currentLevel, nextLevel, cost) {
             } else if (error.virhe === 'already_max') {
                 showNotification('❌ Tukikohta on jo maksimitasolla!', 'error');
             } else {
-                throw new Error(error.virhe || 'Upgrade failed');
+                throw new Error(error.virhe || 'Päivitys epäonnistui');
             }
             return;
         }
@@ -274,7 +274,7 @@ function renderAvailableBases() {
                 <div class="available-base-details">
                     <div class="available-base-detail">
                         <div class="available-base-detail-label">HINTA</div>
-                        <div class="available-base-detail-value price">$${price.toLocaleString()}</div>
+                        <div class="available-base-detail-value price">€${price.toLocaleString()}</div>
                     </div>
                     <div class="available-base-detail">
                         <div class="available-base-detail-label">KAPASITEETTI</div>
@@ -292,7 +292,7 @@ function renderAvailableBases() {
 
 // Buy a base
 async function buyBase(ident, name, price) {
-    if (!confirm(`Haluatko ostaa tukikohdan ${name} (${ident}) hintaan $${price.toLocaleString()}?`)) {
+    if (!confirm(`Haluatko ostaa tukikohdan ${name} (${ident}) hintaan €${price.toLocaleString()}?`)) {
         return;
     }
     
@@ -310,7 +310,7 @@ async function buyBase(ident, name, price) {
             } else if (error.virhe === 'already_owned') {
                 showNotification('❌ Omistat jo tämän tukikohdan!', 'error');
             } else {
-                throw new Error(error.virhe || 'Purchase failed');
+                throw new Error(error.virhe || 'Osto epäonnistui');
             }
             return;
         }

@@ -16,6 +16,9 @@
  * on selitetty inline-kommenteilla.
  */
 
+// Tallennetaan nykyiset tarjoukset muistiin, jotta niitä ei tarvitse parsia HTML:stä
+let currentOffers = [];
+
 /**
  * Lataa aktiiviset tehtävät ja näyttää ne taulukossa
  */
@@ -27,9 +30,10 @@ async function loadActiveTasks() {
         
         if (!data.tehtavat || data.tehtavat.length === 0) {
             listContainer.innerHTML = '<tr><td colspan="10" class="empty-state">Ei aktiivisia sopimuksia</td></tr>';
-            // Päivitä sopimuksien lukumäärä
-            const countElement = document.getElementById('contracts-count');
-            if (countElement) countElement.textContent = '0 SAATAVILLA';
+            // Päivitä sopimuksien lukumäärä ja tilastot
+            const countElement = document.getElementById('available-count');
+            if (countElement) countElement.textContent = '0';
+            updateTaskStats([]);
             return;
         }
         
@@ -41,14 +45,55 @@ async function loadActiveTasks() {
         });
         
         // Päivitä sopimuksien lukumäärä
-        const countElement = document.getElementById('contracts-count');
-        if (countElement) countElement.textContent = data.tehtavat.length + ' SAATAVILLA';
+        const countElement = document.getElementById('available-count');
+        if (countElement) countElement.textContent = data.tehtavat.length;
+        
+        // Päivitä tilastot (keskiarvo, etäisyys, kiireelliset)
+        updateTaskStats(data.tehtavat);
         
     } catch (error) {
         console.error('Aktiivisten sopimuksien lataus epäonnistui:', error);
         listContainer.innerHTML = '<tr><td colspan="10" class="error-cell">❌ Sopimuksien lataus epäonnistui</td></tr>';
         showNotification('Sopimuksien lataus epäonnistui', 'error');
     }
+}
+
+/**
+ * Päivittää tilastokortit (keskimääräinen palkkio, etäisyys, kiireelliset)
+ * @param {Array} tasks - Lista tehtävistä
+ */
+function updateTaskStats(tasks) {
+    if (!tasks || tasks.length === 0) {
+        document.getElementById('avg-reward').textContent = '€0';
+        document.getElementById('avg-distance').textContent = '0 KM';
+        document.getElementById('urgent-count').textContent = '0';
+        return;
+    }
+    
+    // Laske keskimääräinen palkkio
+    const totalReward = tasks.reduce((sum, task) => {
+        const reward = typeof task.reward === 'string' ? parseInt(task.reward) : (task.reward || 0);
+        return sum + reward;
+    }, 0);
+    const avgReward = Math.round(totalReward / tasks.length);
+    
+    // Laske keskimääräinen etäisyys
+    const totalDistance = tasks.reduce((sum, task) => {
+        const distance = typeof task.distance_km === 'string' ? parseInt(task.distance_km) : (task.distance_km || 0);
+        return sum + distance;
+    }, 0);
+    const avgDistance = Math.round(totalDistance / tasks.length);
+    
+    // Laske kiireellisten määrä (deadline < 24h eli < 1 päivä)
+    const urgentCount = tasks.filter(task => {
+        const deadline = typeof task.deadlineDay === 'string' ? parseInt(task.deadlineDay) : (task.deadlineDay || 0);
+        return deadline < 24;
+    }).length;
+    
+    // Päivitä HTML
+    document.getElementById('avg-reward').textContent = '€' + formatMoney(avgReward);
+    document.getElementById('avg-distance').textContent = formatNumber(avgDistance) + ' KM';
+    document.getElementById('urgent-count').textContent = urgentCount;
 }
 
 /**
@@ -88,8 +133,8 @@ function createTaskElement(task) {
         <td class="col-difficulty">
             <span class="difficulty-badge difficulty-${difficultyClass}">${difficultyText}</span>
         </td>
-        <td class="col-actions">
-            <button class="btn-accept" onclick="acceptTask('${task.contractId}')">📋 ACCEPT</button>
+        <td class="col-status">
+            <button class="btn-status" onclick="showFlightDetails('${task.contractId}')">✈️ ${getFlightStatusText(task.flight)}</button>
         </td>
     `;
     
@@ -119,11 +164,11 @@ function getTaskDifficulty(reward, penalty) {
  */
 function getDifficultyBadge(difficulty) {
     const badgeMap = {
-        'easy': '● EASY',
-        'medium': '●● MEDIUM',
-        'hard': '●●● HARD'
+        'easy': '● HELPPO',
+        'medium': '●● KESKITASO',
+        'hard': '●●● VAIKEA'
     };
-    return badgeMap[difficulty.toLowerCase()] || '●● MEDIUM';
+    return badgeMap[difficulty.toLowerCase()] || '●● KESKITASO';
 }
 
 /**
@@ -137,7 +182,7 @@ function formatMoneyCompact(amount) {
     } else if (amount >= 1000) {
         return (amount / 1000).toFixed(0) + 'K';
     }
-    return '$' + amount;
+    return '€' + amount;
 }
 
 /**
@@ -162,33 +207,43 @@ async function loadAircraftListForTasks() {
     const select = document.getElementById('task-aircraft-select');
     if (!select) return; // Ei ole valintaa näkymällä
     
+    // Tyhjennetään valinta
     select.innerHTML = '<option value="">-- Valitse kone --</option>';
+    select.disabled = true; // Estetään valinta latauksen ajaksi
     
     try {
         const data = await apiCall('/api/aircrafts');
         
-        if (!data || !data.aircrafts || data.aircrafts.length === 0) {
-            select.innerHTML = '<option value="">Ei vapaita koneita</option>';
+        if (!data || !data.aircraft || data.aircraft.length === 0) {
+            select.innerHTML = '<option value="">Ei omistettuja koneita</option>';
             return;
         }
         
         // Lisää vain IDLE-tilassa olevat koneet
-        const idleAircraft = data.aircrafts.filter(aircraft => aircraft.status === 'IDLE');
+        // Varmistetaan, että vertailu on case-insensitive ja tarkka
+        const idleAircraft = data.aircraft.filter(aircraft => 
+            aircraft.status && aircraft.status.toUpperCase() === 'IDLE'
+        );
         
         if (idleAircraft.length === 0) {
-            select.innerHTML = '<option value="">Ei vapaita koneita (kaikki BUSY)</option>';
+            // Jos on koneita mutta kaikki BUSY
+            const busyCount = data.aircraft.length;
+            select.innerHTML = `<option value="">Ei vapaita koneita (${busyCount} lennolla/huollossa)</option>`;
             return;
         }
         
+        // Lisätään vapaat koneet listaan
         idleAircraft.forEach(aircraft => {
             const option = document.createElement('option');
             option.value = aircraft.aircraft_id;
-            const displayName = `${aircraft.registration} - ${aircraft.model_name || 'Tuntematon'} (${aircraft.current_airport_ident || '-'})`;
+            // Näytetään: REKISTERI - MALLI (KENTTÄ) - KUNTO%
+            const displayName = `${aircraft.registration} - ${aircraft.model_name || 'Tuntematon'} (${aircraft.current_airport_ident || '-'}) ${aircraft.condition_percent}%`;
             option.textContent = displayName;
             select.appendChild(option);
         });
         
-        // Lisää muutoskuuntelija
+        // Otetaan valinta käyttöön ja lisätään kuuntelija
+        select.disabled = false;
         select.onchange = loadTaskOffersForAircraft;
         
     } catch (error) {
@@ -227,16 +282,20 @@ async function loadTaskOffersForAircraft() {
         
         if (!data || !data.offers || data.offers.length === 0) {
             offersContainer.innerHTML = '<p class="info">Ei uusia tarjouksia saatavilla tälle koneelle.</p>';
+            currentOffers = [];
             return;
         }
+        
+        // Tallennetaan tarjoukset globaaliin muuttujaan
+        currentOffers = data.offers;
         
         // Renderöi tarjoukset
         offersContainer.innerHTML = '';
         const offersGrid = document.createElement('div');
         offersGrid.className = 'offers-grid';
         
-        data.offers.forEach(offer => {
-            const offerCard = createOfferCard(offer, parseInt(aircraftId));
+        data.offers.forEach((offer, index) => {
+            const offerCard = createOfferCard(offer, parseInt(aircraftId), index);
             offersGrid.appendChild(offerCard);
         });
         
@@ -244,8 +303,8 @@ async function loadTaskOffersForAircraft() {
         
     } catch (error) {
         console.error('Tarjousten lataus epäonnistui:', error);
-        offersContainer.innerHTML = '<p class="error-msg">❌ Tarjousten lataus epäonnistui</p>';
-        showNotification('Tarjousten lataus epäonnistui', 'error');
+        offersContainer.innerHTML = `<p class="error-msg">❌ Tarjousten lataus epäonnistui: ${error.message}</p>`;
+        showNotification(`Tarjousten lataus epäonnistui: ${error.message}`, 'error');
     }
 }
 
@@ -253,9 +312,10 @@ async function loadTaskOffersForAircraft() {
  * Luo offer-kortin (tarjouskortti)
  * @param {Object} offer - Tarjouksen tiedot
  * @param {number} aircraftId - Koneen ID
+ * @param {number} offerIndex - Tarjouksen indeksi taulukossa
  * @returns {HTMLElement} Tarjouskortin HTML-elementti
  */
-function createOfferCard(offer, aircraftId) {
+function createOfferCard(offer, aircraftId, offerIndex) {
     const card = document.createElement('div');
     card.className = 'offer-card';
     
@@ -302,7 +362,7 @@ function createOfferCard(offer, aircraftId) {
             </div>
         </div>
         <div class="offer-actions">
-            <button class="btn-accept" onclick="acceptNewTask(${aircraftId}, this)">
+            <button class="btn-accept" onclick="acceptNewTask(this)" data-aircraft-id="${aircraftId}" data-offer-index="${offerIndex}">
                 ✅ Hyväksy tehtävä
             </button>
         </div>
@@ -312,34 +372,31 @@ function createOfferCard(offer, aircraftId) {
 }
 
 /**
- * Hyväksyy sopimuksen tai näyttää virheen
- * @param {string} contractId - Sopimuksen ID
- */
-/**
  * Hyväksy uusi tehtävä - lähettää POST /api/tasks
- * @param {number} aircraftId - Koneen ID
- * @param {HTMLElement} button - Hyväksymispainike (disabloidaan ladatessa)
+ * @param {HTMLElement} button - Hyväksymispainike
  */
-async function acceptNewTask(aircraftId, button) {
+async function acceptNewTask(button) {
+    const aircraftId = button.getAttribute('data-aircraft-id');
+    const offerIndex = button.getAttribute('data-offer-index');
+    
+    if (!aircraftId || offerIndex === null) {
+        showNotification('Virhe: Puuttuvat tiedot', 'error');
+        return;
+    }
+
+    // Haetaan tarjous muistista indeksin perusteella
+    const offerData = currentOffers[parseInt(offerIndex)];
+    if (!offerData) {
+        showNotification('Virhe: Tarjousta ei löytynyt muistista', 'error');
+        return;
+    }
+
     button.disabled = true;
     button.textContent = '⏳ Hyväksytään...';
     
     try {
-        // Etsi tarjous button:n parent-kortin datasta
-        const card = button.closest('.offer-card');
-        if (!card) {
-            showNotification('Kortin tiedot menetettiin', 'error');
-            button.disabled = false;
-            button.textContent = '✅ Hyväksy tehtävä';
-            return;
-        }
-        
-        // Nouda tarjouksen tiedot kortin elementeistä
-        // Tämä on hieman kinkkinen tapa, mutta vältetään datan duplikointia
-        const offerData = extractOfferDataFromCard(card, aircraftId);
-        
         const payload = {
-            aircraft_id: aircraftId,
+            aircraft_id: parseInt(aircraftId),
             offer: offerData
         };
         
@@ -367,6 +424,12 @@ async function acceptNewTask(aircraftId, button) {
                 offersContainer.innerHTML = '<p class="info">Valitse kone yllä olevasta listasta uusien tarjousten näkemiseksi.</p>';
             }
         }
+        currentOffers = []; // Tyhjennetään tarjoukset
+        
+        // Päivitä myös kojelauta ja rahatilanne
+        if (typeof updateGameStats === 'function') {
+            updateGameStats();
+        }
         
     } catch (error) {
         console.error('Tehtävän hyväksyminen epäonnistui:', error);
@@ -376,65 +439,41 @@ async function acceptNewTask(aircraftId, button) {
     }
 }
 
+
 /**
- * Pura tarjouksen tiedot kortin HTML-sisällöstä
- * Käytetään kun offer-objektia ei ole tallessa JavaScriptissä
- * @param {HTMLElement} card - Tarjouskortti
- * @param {number} aircraftId - Koneen ID
- * @returns {Object} Tarjouksen tiedot
+ * Palauttaa lennon tilanteen suomenkielisesti
+ * @param {Object} flight - Lennon objekti (arrival_day, status, jne)
+ * @returns {string} Tilanteen teksti
  */
-function extractOfferDataFromCard(card, aircraftId) {
-    // Yksinkertainen parsinta: etsi teksti-arvot kortin riveistä
-    const rows = Array.from(card.querySelectorAll('.offer-row'));
-    const data = {
-        dest_ident: card.querySelector('.offer-header h4').textContent.split(' - ')[0].trim(),
-        dest_name: card.querySelector('.offer-header h4').textContent.split(' - ')[1] || 'Tuntematon',
-        payload_kg: 0,
-        distance_km: 0,
-        trips: 0,
-        total_days: 0,
-        reward: 0,
-        penalty: 0,
-        deadline: 0
-    };
+function getFlightStatusText(flight) {
+    if (!flight) {
+        return "Odottaa lähtöä";
+    }
     
-    // Parsitaan kukin rivi säännöllisesti
-    rows.forEach(row => {
-        const label = row.querySelector('.label').textContent.toLowerCase();
-        const valueText = row.querySelector('.value').textContent.trim();
-        
-        if (label.includes('rahti')) {
-            data.payload_kg = parseInt(valueText.replace(/[^\d]/g, '')) || 0;
-        } else if (label.includes('etäisyys')) {
-            data.distance_km = parseInt(valueText.replace(/[^\d]/g, '')) || 0;
-        } else if (label.includes('reissuja')) {
-            data.trips = parseInt(valueText.replace(/[^\d]/g, '')) || 0;
-        } else if (label.includes('kesto')) {
-            data.total_days = parseInt(valueText.replace(/[^\d]/g, '')) || 0;
-        } else if (label.includes('palkkio')) {
-            data.reward = parseInt(valueText.replace(/[^\d]/g, '')) || 0;
-        } else if (label.includes('sakko')) {
-            data.penalty = parseInt(valueText.replace(/[^\d]/g, '')) || 0;
-        } else if (label.includes('deadline')) {
-            data.deadline = parseInt(valueText.replace(/[^\d]/g, '')) || 0;
-        }
-    });
+    const status = flight.status || "UNKNOWN";
     
-    return data;
+    switch(status) {
+        case "SCHEDULED":
+            return "Ajoitettu";
+        case "IN_FLIGHT":
+        case "ENROUTE":
+            return "Reitillä";
+        case "ARRIVED":
+        case "ARRIVED_RTB":
+            return "Saapunut";
+        case "COMPLETED":
+            return "Valmis";
+        case "CANCELLED":
+            return "Peruutettu";
+        default:
+            return "Reitillä";
+    }
 }
 
 /**
- * Hyväksy aktiivisen sopimuksen (taulukosta)
- * Huomio: aktiiviset sopimukset on jo hyväksytty
- * ACCEPT-painike on taulukossa vain reference, ei ole todellista funktionaalisuutta
+ * Näyttää lennon tiedot modalissa tai notifikaatiossa
  * @param {string} contractId - Sopimuksen ID
  */
-async function acceptTask(contractId) {
-    try {
-        showNotification(`ℹ️ Sopimus ${contractId} on jo aktiivinen. Tämä painike on UI-placeholder.`, 'info');
-        
-    } catch (error) {
-        console.error('Toiminnot epäonnistui:', error);
-        showNotification('Toiminnot epäonnistui', 'error');
-    }
+function showFlightDetails(contractId) {
+    showNotification(`ℹ️ Sopimus ${contractId} on käynnissä. Seuraa lennon edistymistä kojelauta-näkymässä.`, 'info');
 }

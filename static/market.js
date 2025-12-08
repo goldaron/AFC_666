@@ -281,8 +281,8 @@ function createUsedAircraftRow(aircraft) {
                 <span class="market-condition-text" style="color: ${conditionColor};">${conditionPercent}%</span>
             </div>
         </td>
-        <td class="market-table-cell market-table-hours">${formatNumberWithSeparators(hoursFlown)} TUN</td>
-        <td class="market-table-cell market-table-age">${ageYears} V</td>
+        <td class="market-table-cell market-table-hours">${formatNumberWithSeparators(hoursFlown)} h</td>
+        <td class="market-table-cell market-table-age">${ageYears} v</td>
         <td class="market-table-cell market-table-notes">${notes}</td>
         <td class="market-table-cell market-table-actions">
             <button class="market-buy-btn" onclick="buyUsedAircraftEvent(this)" data-aircraft='${JSON.stringify(aircraft).replace(/'/g, "&apos;")}'>

@@ -26,7 +26,7 @@ async function updateClubhouseCash() {
     try {
         // Hae pelin tila - stats sisältää cash-arvon
         // Tämä kutsutaan kun kerhohuone näytetään
-        const response = await apiCall('/api/game/stats');
+        const response = await apiCall('/api/game');
         const cashDisplay = document.getElementById('clubhouse-cash-display');
         if (cashDisplay && response.cash) {
             cashDisplay.textContent = formatMoney(response.cash);
@@ -130,23 +130,35 @@ function showSlotsGame() {
     
     content.innerHTML = `
         <div class="kerhohuone-game-form">
-            <h2>YKSIKÄTINEN ROSVO</h2>
-            <div class="kerhohuone-game-desc">Pyöräytä kiekkoja ja voita jopa 50x panos!</div>
+            <div class="kerhohuone-game-header">
+                <h2>YKSIKÄTINEN ROSVO</h2>
+                <p class="kerhohuone-game-subtitle">Kolme samaa symbolia = voitto!</p>
+            </div>
+            
+            <div class="kerhohuone-slots-display" id="kerhohuone-slots-display">🍒 🍋 🔔</div>
+            
+            <div class="kerhohuone-paytable">
+                <p class="kerhohuone-paytable-title">MAKSUASTEIKKO</p>
+                <div class="kerhohuone-paytable-grid">
+                    <div>💎💎💎 = 10x</div>
+                    <div>💰💰💰 = 8x</div>
+                    <div>⭐⭐⭐ = 6x</div>
+                    <div>🔔🔔🔔 = 4x</div>
+                    <div>🍒🍒🍒 / 🍋🍋🍋 = 2x</div>
+                    <div>2 sama = 0.5x</div>
+                </div>
+            </div>
             
             <div class="kerhohuone-form-group">
                 <label for="slots-bet-modal">PANOS (€)</label>
-                <input type="number" id="slots-bet-modal" value="50" min="1" step="10" class="kerhohuone-form-input">
+                <input type="number" id="slots-bet-modal" value="100" min="1" step="10" class="kerhohuone-form-input">
             </div>
             
-            <div class="kerhohuone-slots-display">❓ ❓ ❓</div>
-            
-            <div class="kerhohuone-form-buttons">
-                <button class="kerhohuone-form-btn kerhohuone-form-btn-large" onclick="playSlots()">🎰 PYÖRÄYTÄ</button>
-            </div>
+            <button class="kerhohuone-form-btn kerhohuone-btn-spin" onclick="playSlots()">🎰 SPIN</button>
             
             <div id="slots-modal-result" class="kerhohuone-game-result hidden"></div>
             
-            <button class="kerhohuone-form-close" onclick="closeSlotsGame()">SULJE</button>
+            <button class="kerhohuone-form-close" onclick="closeSlotsGame()">TAKAISIN PELEIHIN</button>
         </div>
     `;
     
@@ -203,12 +215,10 @@ async function playCoinFlip(choice) {
             <div class="kerhohuone-game-result-card">
                 <h3>TULOS: ${resultEmoji}</h3>
                 <p class="${winClass}">${data.viesti}</p>
-                <p>Uusi saldo: ${formatMoney(data.balance)} €</p>
+                <p>Uusi saldo: ${formatMoney(data.uusi_saldo)} €</p>
             </div>
         `;
         
-        handleGameResult(data.voitto, data.viesti);
-        await updateGameStats();
         await updateClubhouseCash();
         
     } catch (error) {
@@ -248,16 +258,11 @@ async function playHighLow(choice) {
         resultContainer.innerHTML = `
             <div class="kerhohuone-game-result-card">
                 <h3>🎲 ${data.dice1} vs 🎲 ${data.dice2}</h3>
-                <p class="${winClass}">${data.viesti}</p>
-                <p>Uusi saldo: ${formatMoney(data.balance)} €</p>
+                <p class="${winClass}">${title}: ${data.viesti}</p>
+                <p>Uusi saldo: ${formatMoney(data.uusi_saldo)} €</p>
             </div>
         `;
         
-        if (data.voitto) showNotification(data.viesti, 'success');
-        else if (data.push) showNotification(data.viesti, 'success', 'TASAPELI'); // Push ei ole teknisesti virhe
-        else showNotification(data.viesti, 'error');
-        
-        await updateGameStats();
         await updateClubhouseCash();
         
     } catch (error) {
@@ -267,6 +272,10 @@ async function playHighLow(choice) {
 
 /**
  * Pelaa Yksikätistä Rosvoa
+ * 
+ * Lisätään spinning animaatio ennen tulosten näyttöä.
+ * Rullat pyörivät satunnaisella emojilla noin 2 sekuntia,
+ * sitten näytetään lopullinen tulos.
  */
 async function playSlots() {
     const betInput = document.getElementById('slots-bet-modal') || document.getElementById('slots-bet');
@@ -276,10 +285,27 @@ async function playSlots() {
     
     if (!validateBet(bet)) return;
     
-    // Visuaalinen efekti
-    if (slotsDisplay) slotsDisplay.textContent = '🎰 🎰 🎰';
+    // Estä kaksoisklikkaus
+    if (betInput.disabled) return;
+    betInput.disabled = true;
+    
+    // Visuaalinen efekti - aloita spin
+    if (slotsDisplay) slotsDisplay.classList.add('spinning');
     resultContainer.innerHTML = '<p class="loading">Pyörii...</p>';
     resultContainer.classList.remove('hidden');
+    
+    // Simuloi spinningia - näytä satunnaisia symboleja
+    const symbols = ['🍒', '🍋', '🔔', '💎', '💰', '⭐'];
+    let spinCount = 0;
+    const spinInterval = setInterval(() => {
+        if (slotsDisplay) {
+            const reels = [symbols[Math.floor(Math.random() * symbols.length)],
+                          symbols[Math.floor(Math.random() * symbols.length)],
+                          symbols[Math.floor(Math.random() * symbols.length)]];
+            slotsDisplay.textContent = `${reels[0]} ${reels[1]} ${reels[2]}`;
+        }
+        spinCount++;
+    }, 100);  // Vaihda 100ms välein (10 kertaa sekunnissa)
     
     try {
         const data = await apiCall('/api/clubhouse', {
@@ -290,24 +316,37 @@ async function playSlots() {
             })
         });
         
-        // Päivitetään rullat
-        if (slotsDisplay) slotsDisplay.textContent = `${data.reels[0]} ${data.reels[1]} ${data.reels[2]}`;
-        
-        const winClass = data.voitto ? 'success-text' : 'error-text';
-        
-        resultContainer.innerHTML = `
-            <div class="kerhohuone-game-result-card">
-                <p class="${winClass}">${data.viesti}</p>
-                <p>Uusi saldo: ${formatMoney(data.balance)} €</p>
-            </div>
-        `;
-        
-        handleGameResult(data.voitto, data.viesti);
-        await updateGameStats();
-        await updateClubhouseCash();
+        // Pysäytä spinning jonkin ajan kuluttua
+        setTimeout(() => {
+            clearInterval(spinInterval);
+            
+            // Päivitetään lopulliset rullat
+            if (slotsDisplay) {
+                slotsDisplay.textContent = `${data.reels[0]} ${data.reels[1]} ${data.reels[2]}`;
+                slotsDisplay.classList.remove('spinning');
+            }
+            
+            const winClass = data.voitto ? 'success-text' : 'error-text';
+            
+            resultContainer.innerHTML = `
+                <div class="kerhohuone-game-result-card">
+                    <p class="${winClass}">${data.viesti}</p>
+                    <p>Uusi saldo: ${formatMoney(data.uusi_saldo)} €</p>
+                </div>
+            `;
+            
+            updateClubhouseCash();
+            
+            // Salli uutta peliä
+            betInput.disabled = false;
+            
+        }, 1500);  // Näytä spinningia 1.5 sekuntia ennen tuloksia
         
     } catch (error) {
+        clearInterval(spinInterval);
+        if (slotsDisplay) slotsDisplay.classList.remove('spinning');
         handleGameError(error, resultContainer);
+        betInput.disabled = false;
     }
 }
 
@@ -315,18 +354,13 @@ async function playSlots() {
 
 function validateBet(bet) {
     if (!bet || bet <= 0) {
-        showNotification('Aseta kelvollinen panos!', 'error');
         return false;
     }
     return true;
 }
 
 function handleGameResult(won, message) {
-    if (won) {
-        showNotification(message, 'success', 'VOITTO');
-    } else {
-        showNotification(message, 'error', 'TAPPIO');
-    }
+    // Notifikaatiot poistettu käyttäjän pyynnöstä
 }
 
 function handleGameError(error, container) {
@@ -334,5 +368,4 @@ function handleGameError(error, container) {
     if (container) {
         container.innerHTML = '<p class="error-msg">❌ Peli epäonnistui</p>';
     }
-    showNotification(error.message || 'Peli epäonnistui', 'error');
 }

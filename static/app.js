@@ -28,6 +28,9 @@ async function startNewGame() {
         // Päivitä pelin tila
         await updateGameStats();
         
+        // Näytä kojelauta oletusena
+        showView('dashboard');
+        
     } catch (error) {
         console.error('Uuden pelin aloitus epäonnistui:', error);
         showNotification('Uuden pelin aloitus epäonnistui', 'error');
@@ -48,6 +51,9 @@ async function loadGame() {
         
         // Päivitä pelin tila
         await updateGameStats();
+        
+        // Näytä kojelauta oletusena
+        showView('dashboard');
         
     } catch (error) {
         console.error('Pelin lataus epäonnistui:', error);
@@ -76,6 +82,30 @@ function exitGame() {
     startScreen.classList.remove('hidden');
     
     showNotification('Palattu aloitusnäyttöön', 'success', 'NÄKEMIIN');
+}
+
+/**
+ * Poistuu pelistä ja tallentaa sen hetkisen tilanteen
+ * Kutsutaan "Lopeta peli" -napista
+ */
+async function exitAndSaveGame() {
+    try {
+        showNotification('Tallennetaan peliä...', 'success', 'TALLENNUS');
+        
+        // Kutsu API:a pelin tallentamiseksi
+        const saveResponse = await apiCall('/api/game/save', { method: 'POST' });
+        
+        console.log('Peli tallennettu:', saveResponse);
+        
+        // Palaa aloitusnäyttöön
+        setTimeout(() => {
+            exitGame();
+        }, 500);
+        
+    } catch (error) {
+        console.error('Pelin tallentaminen epäonnistui:', error);
+        showNotification('Pelin tallentaminen epäonnistui', 'error');
+    }
 }
 
 /**
@@ -129,6 +159,11 @@ function showView(viewName) {
         view.classList.add('hidden');
     });
     
+    // Poista aktiivisuus kaikista napeista
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
     // Näytä valittu näkymä
     const targetView = document.getElementById(`${viewName}-view`);
     if (targetView) {
@@ -147,13 +182,16 @@ function showView(viewName) {
         } else if (viewName === 'market') {
             showMarketTab('new');
         } else if (viewName === 'dashboard') {
-            // Kojelauta: placeholder
-        } else if (viewName === 'fleet') {
-            // Laivasto: placeholder
+            // Kojelauta: lataa tiedot
+            loadDashboardData();
+        } else if (viewName === 'laivasto') {
+            // Laivasto: lataa lentokoneet
+            loadFleetData();
         } else if (viewName === 'upgrades') {
             // Päivitykset: placeholder
         } else if (viewName === 'maintenance') {
-            // Huolto: placeholder
+            // Huolto: lataa huoltonäkymän tiedot
+            loadMaintenanceView();
         } else if (viewName === 'clubhouse') {
             // Kerhohuone: päivitä cash-display
             updateClubhouseCash();
@@ -169,7 +207,8 @@ function showView(viewName) {
  */
 async function updateGameStats() {
     try {
-        const response = await fetch(`${API_BASE}/api/game`);
+        // Lisätään aikaleima välimuistin ohittamiseksi
+        const response = await fetch(`${API_BASE}/api/game?t=${new Date().getTime()}`);
         if (!response.ok) {
             throw new Error('Pelin tilan haku epäonnistui');
         }
@@ -231,6 +270,77 @@ async function apiCall(endpoint, options = {}) {
     } catch (error) {
         console.error('API-kutsu epäonnistui:', error);
         throw error;
+    }
+}
+
+/**
+ * Lataa kojelaudan tiedot
+ * Hakee lennot, sopimukset, huollon tarpeet ja päivitykset
+ */
+async function loadDashboardData() {
+    try {
+        // Hae kaikki lentokoneet
+        const aircraftResponse = await apiCall('/api/aircrafts');
+        const aircrafts = aircraftResponse.aircraft || [];
+        const aircraftCount = aircrafts.length;
+        
+        // Hae aktiiviset sopimukset
+        const tasksResponse = await apiCall('/api/tasks');
+        const tasks = tasksResponse.tehtavat || [];
+        const contractCount = tasks.filter(task => task.status === 'IN_PROGRESS').length;
+        
+        // Laske koneet, jotka tarvitsevat huoltoa (kunto < 70%)
+        const maintenanceCount = aircrafts.filter(aircraft => {
+            const condition = aircraft.condition_percent || 0;
+            return condition < 70;
+        }).length;
+        
+        // Laske saatavilla olevat päivitykset (oletetaan että kaikilla koneilla voi olla ECO-päivitys)
+        // Tämä voidaan myöhemmin korvata todellisella API:lla
+        const upgradeCount = aircrafts.filter(aircraft => {
+            // Tarkista, onko koneella ECO-päivitys
+            return !aircraft.eco_equipped;
+        }).length;
+        
+        // Päivitä DOM
+        const fleetCountEl = document.getElementById('dashboard-fleet-count');
+        const contractCountEl = document.getElementById('dashboard-contracts-count');
+        const maintenanceCountEl = document.getElementById('dashboard-maintenance-count');
+        const upgradeCountEl = document.getElementById('dashboard-upgrades-count');
+        
+        if (fleetCountEl) fleetCountEl.textContent = aircraftCount;
+        if (contractCountEl) contractCountEl.textContent = contractCount;
+        if (maintenanceCountEl) maintenanceCountEl.textContent = maintenanceCount;
+        if (upgradeCountEl) upgradeCountEl.textContent = upgradeCount;
+        
+        console.log('Kojelaudan tiedot ladattu:', {
+            aircraftCount,
+            contractCount,
+            maintenanceCount,
+            upgradeCount
+        });
+        
+    } catch (error) {
+        console.error('Kojelaudan tietojen lataus epäonnistui:', error);
+        // Näytä virheilmoitus käyttäjälle
+        showNotification('Kojelaudan tietojen lataus epäonnistui', 'error');
+    }
+}
+
+/**
+ * Lataa aktiivisen näkymän tiedot uudelleen
+ * Käytetään päivän kelauksien jälkeen näkymän päivittämiseen
+ */
+function reloadCurrentView() {
+    // Etsi aktiivinen näkymä
+    const activeBtn = document.querySelector('.nav-btn.active');
+    if (activeBtn) {
+        const viewName = activeBtn.getAttribute('data-view');
+        if (viewName) {
+            // Kutsu showView uudelleen samalla näkymällä
+            // showView kutsuu automaattisesti oikeat lataustoiminnot
+            showView(viewName);
+        }
     }
 }
 

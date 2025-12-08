@@ -4,6 +4,17 @@ let currentSort = { column: null, ascending: true };
 let activeFloatingMenu = null;
 let baseCapacityData = [];
 
+// Apufunktio lentokoneen tilan kääntämiseen suomeksi
+function translateStatus(status) {
+    switch (status) {
+        case 'IDLE': return 'ODOTTAA';
+        case 'IN_FLIGHT': return 'LENNOLLA';
+        case 'RTB': return 'PALUUMATKALLA';
+        case 'BUSY': return 'VARATTU';
+        default: return status;
+    }
+}
+
 // Load fleet data from API
 async function loadFleetData() {
     try {
@@ -39,7 +50,7 @@ function renderFleetTable() {
     
     if (filteredFleetData.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Ei lentokoneita</td></tr>';
-        document.getElementById('fleet-count').textContent = '0 AIRCRAFT';
+        document.getElementById('fleet-count').textContent = '0 KONETTA';
         return;
     }
 
@@ -52,13 +63,13 @@ function renderFleetTable() {
         
         return `
             <tr class="aircraft-row">
-                <td class="model-name">${aircraft.model_name || 'Unknown'}</td>
+                <td class="model-name">${aircraft.model_name || 'Tuntematon'}</td>
                 <td class="registration">${aircraft.registration || 'N/A'}</td>
                 <td class="callsign">${aircraft.model_name || '-'}</td>
-                <td class="location">${aircraft.current_airport_ident || 'Unknown'}</td>
+                <td class="location">${aircraft.current_airport_ident || 'Tuntematon'}</td>
                 <td>
                     <span class="${statusClass}">
-                        ${aircraft.status || 'IDLE'}
+                        ${translateStatus(aircraft.status) || 'ODOTTAA'}
                     </span>
                 </td>
                 <td class="condition-cell">
@@ -75,14 +86,14 @@ function renderFleetTable() {
                 <td class="multiplier-cell">${aircraft.effective_eco || '1.0'}×</td>
                 <td>
                     <button class="btn-manage" onclick="toggleAircraftMenu(event, ${aircraft.aircraft_id})">
-                        ⚙ MANAGE
+                        ⚙ HALLINTA
                     </button>
                 </td>
             </tr>
         `;
     }).join('');
 
-    document.getElementById('fleet-count').textContent = `${filteredFleetData.length} AIRCRAFT`;
+    document.getElementById('fleet-count').textContent = `${filteredFleetData.length} KONETTA`;
 }
 
 // Toggle floating aircraft menu
@@ -111,7 +122,7 @@ function toggleAircraftMenu(event, aircraftId) {
             ⚡ ECO
         </button>
         <button class="aircraft-menu-btn repair-btn" onclick="openRepairModal(${aircraftId})">
-            🔧 REPAIR
+            🔧 KORJAA
         </button>
     `;
     
@@ -147,11 +158,11 @@ async function openEcoUpgrade(aircraftId) {
         openUpgradeModal(aircraft);
     } catch (error) {
         console.error('Failed to load aircraft details:', error);
-        showNotification('Не удалось загрузить данные самолёта', 'error');
+        showNotification('Lentokoneen tietojen lataus epäonnistui', 'error');
     }
 }
 
-// Open repair modal
+    // Avaa repair modal
 async function openRepairModal(aircraftId) {
     closeAircraftMenu();
     
@@ -163,22 +174,22 @@ async function openRepairModal(aircraftId) {
         openRepairModalWindow(aircraft);
     } catch (error) {
         console.error('Failed to load aircraft details:', error);
-        showNotification('Не удалось загрузить данные самолёта', 'error');
+        showNotification('Lentokoneen tietojen lataus epäonnistui', 'error');
     }
 }
 
 function openRepairModalWindow(aircraft) {
     const modal = document.getElementById('aircraft-repair-modal');
     
-    // Fill header
-    document.getElementById('repair-aircraft-name').textContent = aircraft.model_name || 'Unknown';
+    // Täytä header
+    document.getElementById('repair-aircraft-name').textContent = aircraft.model_name || 'Tuntematon';
     document.getElementById('repair-aircraft-reg').textContent = aircraft.registration || 'N/A';
-    document.getElementById('repair-aircraft-condition').textContent = `CONDITION: ${aircraft.condition_percent}%`;
+    document.getElementById('repair-aircraft-condition').textContent = `KUNTO: ${aircraft.condition_percent}%`;
     
-    // Build repair options grid
+    // Rakenna repair options -ruudukko
     renderRepairOptions(aircraft);
     
-    // Show modal
+    // Näytä modal
     modal.classList.remove('hidden');
 }
 
@@ -191,35 +202,35 @@ function renderRepairOptions(aircraft) {
     const grid = document.getElementById('repair-options-grid');
     const currentCondition = aircraft.condition_percent || 0;
     
-    // Repair options
+    // Korjaus vaihtoehdot
     const repairOptions = [
         { 
-            type: 'REPAIR 10%', 
+            type: 'KORJAA 10%', 
             amount: 10, 
-            cost: '$5 (PLACEHOLDER)', 
+            cost: '€5 (PAIKANNTÄYTE)', 
             icon: '🔧',
-            benefits: ['Restore 10% condition', 'Quick maintenance'] 
+            benefits: ['Palauta 10% kuntoa', 'Nopea huolto'] 
         },
         { 
-            type: 'REPAIR 20%', 
+            type: 'KORJAA 20%', 
             amount: 20, 
-            cost: '$5 (PLACEHOLDER)', 
+            cost: '€5 (PAIKANNTÄYTE)', 
             icon: '🔧',
-            benefits: ['Restore 20% condition', 'Standard maintenance'] 
+            benefits: ['Palauta 20% kuntoa', 'Tavallinen huolto'] 
         },
         { 
-            type: 'REPAIR 50%', 
+            type: 'KORJAA 50%', 
             amount: 50, 
-            cost: '$5 (PLACEHOLDER)', 
+            cost: '€5 (PAIKANNTÄYTE)', 
             icon: '🔧',
-            benefits: ['Restore 50% condition', 'Major maintenance'] 
+            benefits: ['Palauta 50% kuntoa', 'Päähuolto'] 
         },
         { 
-            type: 'REPAIR TO 100%', 
+            type: 'KORJAA 100%:IIN', 
             amount: 100 - currentCondition, 
-            cost: '$5 (PLACEHOLDER)', 
+            cost: '€5 (PAIKANNTÄYTE)', 
             icon: '🔧',
-            benefits: ['Full restoration', 'Complete overhaul'] 
+            benefits: ['Täysi korjaus', 'Kokonaisvaltainen kunnostus'] 
         }
     ];
     
@@ -230,11 +241,11 @@ function renderRepairOptions(aircraft) {
         
         let buttonHtml = '';
         if (isMaxed) {
-            buttonHtml = '<button class="eco-level-upgrade-btn active" disabled>✓ MAX CONDITION</button>';
+            buttonHtml = '<button class="eco-level-upgrade-btn active" disabled>✓ MAKSIMI KUNTO</button>';
         } else if (canRepair && targetCondition > currentCondition) {
-            buttonHtml = `<button class="eco-level-upgrade-btn" onclick="performRepair(${aircraft.aircraft_id}, ${option.amount}, '${option.type}')">🔧 REPAIR</button>`;
+            buttonHtml = `<button class="eco-level-upgrade-btn" onclick="performRepair(${aircraft.aircraft_id}, ${option.amount}, '${option.type}')">🔧 KORJAA</button>`;
         } else {
-            buttonHtml = '<button class="eco-level-upgrade-btn" disabled>N/A</button>';
+            buttonHtml = '<button class="eco-level-upgrade-btn" disabled>EI SAATAVILLA</button>';
         }
         
         return `
@@ -246,13 +257,13 @@ function renderRepairOptions(aircraft) {
                 </div>
                 <div class="eco-level-multiplier">${currentCondition}% → ${targetCondition}%</div>
                 <div class="eco-level-cost">
-                    <div class="eco-level-cost-label">REPAIR COST</div>
+                    <div class="eco-level-cost-label">KORJAUS HINTA</div>
                     <div class="eco-level-cost-value">
                         ${option.cost}
                     </div>
                 </div>
                 <div class="eco-level-benefits">
-                    <div class="eco-level-benefits-title">BENEFITS</div>
+                    <div class="eco-level-benefits-title">EDUT</div>
                     <ul class="eco-level-benefits-list">
                         ${option.benefits.map(b => `<li>${b}</li>`).join('')}
                     </ul>
@@ -264,7 +275,7 @@ function renderRepairOptions(aircraft) {
 }
 
 async function performRepair(aircraftId, repairAmount, repairType) {
-    if (!confirm(`Confirm ${repairType} for $5?`)) return;
+    if (!confirm(`Vahvista ${repairType} hinnalla €5?`)) return;
     
     try {
         const response = await fetch(`/api/aircrafts/${aircraftId}/repair`, {
@@ -276,17 +287,17 @@ async function performRepair(aircraftId, repairAmount, repairType) {
         if (!response.ok) {
             const error = await response.json();
             if (error.virhe === 'insufficient_funds') {
-                showNotification('❌ Not enough cash for repair!', 'error');
+                showNotification('❌ Ei tarpeeksi rahaa korjaukseen!', 'error');
             } else if (error.virhe === 'aircraft is busy (in flight)') {
-                showNotification('❌ Cannot repair aircraft in flight!', 'error');
+                showNotification('❌ Ei voi korjata konetta lennolla!', 'error');
             } else {
-                throw new Error(error.virhe || 'Repair failed');
+                throw new Error(error.virhe || 'Korjaus epäonnistui');
             }
             return;
         }
         
         const result = await response.json();
-        showNotification(`✓ Repair complete! Condition: ${result.previous_condition}% → ${result.new_condition}%`, 'success');
+        showNotification(`✓ Korjaus valmis! Kunto: ${result.previous_condition}% → ${result.new_condition}%`, 'success');
         
         // Reload aircraft data to update modal
         const aircraftResponse = await fetch(`/api/aircrafts/${aircraftId}`);
@@ -304,7 +315,7 @@ async function performRepair(aircraftId, repairAmount, repairType) {
         
     } catch (error) {
         console.error('Repair failed:', error);
-        showNotification(error.message || 'Repair failed', 'error');
+        showNotification(error.message || 'Korjaus epäonnistui', 'error');
     }
 }
 
@@ -383,9 +394,9 @@ function updateFleetStats() {
         fleetData.reduce((sum, a) => sum + (a.condition_percent || 0), 0) / totalFleet
     ) : 0;
 
-    document.getElementById('total-fleet').textContent = `${totalFleet} AIRCRAFT`;
-    document.getElementById('idle-count').textContent = `${idleCount} READY`;
-    document.getElementById('inflight-count').textContent = `${inflightCount} ACTIVE`;
+    document.getElementById('total-fleet').textContent = `${totalFleet} KONETTA`;
+    document.getElementById('idle-count').textContent = `${idleCount} VALMIINA`;
+    document.getElementById('inflight-count').textContent = `${inflightCount} LENNOLLA`;
     document.getElementById('avg-condition').textContent = `${avgCondition}%`;
 }
 
@@ -422,14 +433,14 @@ function renderEcoLevels(aircraft) {
     const currentLevel = aircraft.eco.current_level || 0;
     const nextLevel = currentLevel + 1;
     
-    // ECO уровни 1-6
+    // ECO tasot 1-6
     const ecoLevels = [
-        { level: 1, multiplier: '1.05×', cost: 'FREE (STARTER)', benefits: ['Earnings multiplier: 1.05×', 'Reduced fuel consumption'] },
-        { level: 2, multiplier: '1.1×', cost: '$50 000', benefits: ['Earnings multiplier: 1.1×', 'Reduced fuel consumption'] },
-        { level: 3, multiplier: '1.15×', cost: '$150 000', benefits: ['Earnings multiplier: 1.15×', 'Reduced fuel consumption'] },
-        { level: 4, multiplier: '1.2×', cost: '$350 000', benefits: ['Earnings multiplier: 1.2×', 'Reduced fuel consumption'] },
-        { level: 5, multiplier: '1.3×', cost: '$750 000', benefits: ['Earnings multiplier: 1.3×', 'Reduced fuel consumption'] },
-        { level: 6, multiplier: '1.4×', cost: '$1 500 000', benefits: ['Earnings multiplier: 1.4×', 'Reduced fuel consumption'] }
+        { level: 1, multiplier: '1.05×', cost: 'ILMAINEN (ALOITUS)', benefits: ['Tulojen kerroin: 1.05×', 'Alentunut polttoainekulutus'] },
+        { level: 2, multiplier: '1.1×', cost: '€50 000', benefits: ['Tulojen kerroin: 1.1×', 'Alentunut polttoainekulutus'] },
+        { level: 3, multiplier: '1.15×', cost: '€150 000', benefits: ['Tulojen kerroin: 1.15×', 'Alentunut polttoainekulutus'] },
+        { level: 4, multiplier: '1.2×', cost: '€350 000', benefits: ['Tulojen kerroin: 1.2×', 'Alentunut polttoainekulutus'] },
+        { level: 5, multiplier: '1.3×', cost: '€750 000', benefits: ['Tulojen kerroin: 1.3×', 'Alentunut polttoainekulutus'] },
+        { level: 6, multiplier: '1.4×', cost: '€1 500 000', benefits: ['Tulojen kerroin: 1.4×', 'Alentunut polttoainekulutus'] }
     ];
     
     grid.innerHTML = ecoLevels.map(eco => {
@@ -439,12 +450,12 @@ function renderEcoLevels(aircraft) {
         
         let buttonHtml = '';
         if (isActive) {
-            buttonHtml = '<button class="eco-level-upgrade-btn active" disabled>✓ ACTIVE</button>';
+            buttonHtml = '<button class="eco-level-upgrade-btn active" disabled>✓ AKTIIVINEN</button>';
         } else if (isNext) {
             const actualCost = aircraft.eco.next_upgrade_cost || eco.cost;
-            buttonHtml = `<button class="eco-level-upgrade-btn" onclick="upgradeEcoLevel(${aircraft.aircraft_id}, ${eco.level})">↑ UPGRADE</button>`;
+            buttonHtml = `<button class="eco-level-upgrade-btn" onclick="upgradeEcoLevel(${aircraft.aircraft_id}, ${eco.level})">↑ PÄIVITÄ</button>`;
         } else {
-            buttonHtml = '<button class="eco-level-upgrade-btn" disabled>🔒 LOCKED</button>';
+            buttonHtml = '<button class="eco-level-upgrade-btn" disabled>🔒 LUKITTU</button>';
         }
         
         return `
@@ -452,19 +463,19 @@ function renderEcoLevels(aircraft) {
                 ${isLocked ? '<div class="eco-level-lock-icon">🔒</div>' : ''}
                 <div class="eco-level-header">
                     <div class="eco-level-title">
-                        <div class="eco-level-number">✈ ECO LEVEL ${eco.level}</div>
+                        <div class="eco-level-number">✈ ECO-TASO ${eco.level}</div>
                     </div>
-                    ${isActive ? '<div class="eco-level-badge active">✓ ACTIVE</div>' : ''}
+                    ${isActive ? '<div class="eco-level-badge active">✓ AKTIIVINEN</div>' : ''}
                 </div>
-                <div class="eco-level-multiplier">${eco.multiplier} MULTIPLIER</div>
+                <div class="eco-level-multiplier">${eco.multiplier} KERROIN</div>
                 <div class="eco-level-cost">
-                    <div class="eco-level-cost-label">UPGRADE COST</div>
+                    <div class="eco-level-cost-label">PÄIVITYSHINTA</div>
                     <div class="eco-level-cost-value ${eco.level === 1 ? 'free' : ''}">
                         ${isNext && aircraft.eco.next_upgrade_cost ? aircraft.eco.next_upgrade_cost : eco.cost}
                     </div>
                 </div>
                 <div class="eco-level-benefits">
-                    <div class="eco-level-benefits-title">BENEFITS</div>
+                    <div class="eco-level-benefits-title">EDUT</div>
                     <ul class="eco-level-benefits-list">
                         ${eco.benefits.map(b => `<li>${b}</li>`).join('')}
                     </ul>
@@ -476,7 +487,7 @@ function renderEcoLevels(aircraft) {
 }
 
 async function upgradeEcoLevel(aircraftId, targetLevel) {
-    if (!confirm(`Подтвердить апгрейд до ECO LEVEL ${targetLevel}?`)) return;
+    if (!confirm(`Vahvista päivitys ECO LEVEL ${targetLevel}:iin?`)) return;
     
     try {
         const response = await fetch(`/api/aircrafts/${aircraftId}/upgrade`, {
@@ -487,28 +498,28 @@ async function upgradeEcoLevel(aircraftId, targetLevel) {
         
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.virhe || 'Upgrade failed');
+            throw new Error(error.virhe || 'Päivitys epäonnistui');
         }
         
         const result = await response.json();
         
-        showNotification(`✓ Апгрейд завершён! Новый уровень: ${result.new_level}`, 'success');
+        showNotification(`✓ Päivitys valmis! Uusi taso: ${result.new_level}`, 'success');
         
-        // Перезагрузить данные самолёта
+        // Lataa lentokoneen tiedot uudelleen
         const aircraftResponse = await fetch(`/api/aircrafts/${aircraftId}`);
         const aircraft = await aircraftResponse.json();
         renderEcoLevels(aircraft);
         
-        // Обновить Fleet Roster
+        // Päivitä Fleet Roster
         loadFleetData();
         
     } catch (error) {
         console.error('Upgrade failed:', error);
-        showNotification(error.message || 'Апгрейд не удался', 'error');
+        showNotification(error.message || 'Päivitys epäonnistui', 'error');
     }
 }
 
-// Закрытие по Escape
+// Sulkeminen Escape-näppäimellä
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         closeUpgradeModal();
@@ -517,7 +528,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Add new function to render capacity warnings
+// Lisää uusi funktio kapasiteettivaroitusten renderöintiin
 function renderBaseCapacityWarnings() {
     const warningsContainer = document.getElementById('capacity-warnings');
     if (!warningsContainer) return;

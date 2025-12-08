@@ -67,7 +67,7 @@ import time
 from typing import List, Optional, Dict, Set
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 from datetime import datetime
-from utils import get_connection
+from utils import get_connection, get_db_connection
 from airplane import init_airplanes, upgrade_airplane as db_upgrade_airplane
 from event_system import init_events_for_seed, get_event_for_day, FlightEvent
 from session_helpers import (
@@ -570,7 +570,7 @@ class GameSession:
 
         _icon_title("Käytettyjen markkinat")
 
-        with get_connection() as yhteys:
+        with get_db_connection() as yhteys:
             kursori = yhteys.cursor(dictionary=True)
             kursori.execute("""
                             SELECT m.*, am.model_name, am.manufacturer
@@ -656,7 +656,7 @@ class GameSession:
         Päivittää markkinoiden tarjonnan. Poistaa vanhat ja lisää uusia koneita.
         Ajetaan joka kerta, kun pelaaja avaa markkinat.
         """
-        with get_connection() as yhteys:
+        with get_db_connection() as yhteys:
             kursori = yhteys.cursor(dictionary=True)
             # 1. Poista vanhat ilmoitukset (yli 10 päivää vanhat)
             kursori.execute("DELETE FROM market_aircraft WHERE listed_day < %s", (self.current_day - 10,))
@@ -707,7 +707,7 @@ class GameSession:
 
     def _purchase_market_aircraft_tx(self, plane_data: dict) -> bool:
         """Suorittaa käytetyn koneen oston atomisena transaktiona."""
-        with get_connection() as yhteys:
+        with get_db_connection() as yhteys:
             kursori = yhteys.cursor()
             try:
                 # 1. Varmista kassa ja lukitse pelaajan tallennus
@@ -866,7 +866,7 @@ class GameSession:
               ORDER BY a.aircraft_id \
               """
 
-        with get_connection() as yhteys:
+        with get_db_connection() as yhteys:
             kursori = yhteys.cursor(dictionary=True)
             kursori.execute(sql, (self.save_id,))
             return kursori.fetchall() or []
@@ -1417,91 +1417,103 @@ class GameSession:
         - Sakko on osuus palkkiosta, mutta ei koskaan negatiivinen.
         Muokkaa: PER_KG, PER_KM, MIN_TASK_REWARD, ECO_MIN/ECO_MAX.
         """
-
-        # Muokattavat palkkioparametrit
-        PER_KG = Decimal("10.10")  # €/kg
-        PER_KM = Decimal("6.90")  # €/km
-        MIN_TASK_REWARD = Decimal("250.00")  # alin sallittu palkkio
-        ECO_MIN = Decimal("0.10")  # eco-kerroin ei alle tämän
-        ECO_MAX = Decimal("5.00")  # eikä yli tämän
-        dep_ident = plane["current_airport_ident"]
-        speed_kts = float(plane.get("cruise_speed_kts") or 200.0)
-        speed_km_per_day = max(1.0, speed_kts * 1.852 * 24.0 * 2.0)
-        capacity = int(plane.get("base_cargo_kg") or 0) or 1
-
-        # Yritä käyttää tehokasta eco-kerrointa (malli + upgradet); fallback: plane.eco_fee_multiplier
         try:
-            eff_eco_val = get_effective_eco_for_aircraft(
-                plane["aircraft_id"])  # oletetaan funktion olevan käytettävissä
-            eff_eco = Decimal(str(eff_eco_val))
-        except Exception:
-            eff_eco = Decimal(str(plane.get("eco_fee_multiplier") or 1.0))
-        # Rajaa eco kohtuullisiin rajoihin
-        eff_eco = max(ECO_MIN, min(ECO_MAX, eff_eco))
+            # Muokattavat palkkioparametrit
+            PER_KG = Decimal("10.10")  # €/kg
+            PER_KM = Decimal("6.90")  # €/km
+            MIN_TASK_REWARD = Decimal("250.00")  # alin sallittu palkkio
+            ECO_MIN = Decimal("0.10")  # eco-kerroin ei alle tämän
+            ECO_MAX = Decimal("5.00")  # eikä yli tämän
+            
+            dep_ident = plane.get("current_airport_ident")
+            if not dep_ident:
+                print(f"⚠️ Koneella {plane.get('aircraft_id')} ei ole sijaintia.")
+                return []
 
-        # Haetaan hieman ylimääräisiä kohteita siltä varalta, että osa karsiutuu
-        dests = self._pick_random_destinations(count * 2, dep_ident)
-        offers = []
+            speed_kts = float(plane.get("cruise_speed_kts") or 200.0)
+            speed_km_per_day = max(1.0, speed_kts * 1.852 * 24.0 * 2.0)
+            capacity = int(plane.get("base_cargo_kg") or 0) or 1
 
-        for d in dests:
-            if len(offers) >= count:
-                break
+            # Yritä käyttää tehokasta eco-kerrointa (malli + upgradet); fallback: plane.eco_fee_multiplier
+            try:
+                eff_eco_val = get_effective_eco_for_aircraft(
+                    plane["aircraft_id"])  # oletetaan funktion olevan käytettävissä
+                eff_eco = Decimal(str(eff_eco_val))
+            except Exception:
+                eff_eco = Decimal(str(plane.get("eco_fee_multiplier") or 1.0))
+            # Rajaa eco kohtuullisiin rajoihin
+            eff_eco = max(ECO_MIN, min(ECO_MAX, eff_eco))
 
-            dest_ident = d["ident"]
-            dep_xy = self._get_airport_coords(dep_ident)
-            dst_xy = self._get_airport_coords(dest_ident)
-            if not (dep_xy and dst_xy):
-                # Jos koordinaatit puuttuvat, ohitetaan
-                continue
+            # Haetaan hieman ylimääräisiä kohteita siltä varalta, että osa karsiutuu
+            dests = self._pick_random_destinations(count * 2, dep_ident)
+            if not dests:
+                print(f"⚠️ Ei kohteita saatavilla kentältä {dep_ident}.")
+                return []
 
-            # Etäisyys (km)
-            dist_km = self._haversine_km(dep_xy[0], dep_xy[1], dst_xy[0], dst_xy[1])
+            offers = []
 
-            # Rahti skaalataan etäisyyden mukaan; sallitaan yli-kapasiteetti (→ useita reissuja)
-            if dist_km < 500:
-                base_payload = random.randint(max(1, capacity // 2), max(1, capacity * 3))
-            elif dist_km < 1500:
-                base_payload = random.randint(capacity, capacity * 4)
-            else:
-                base_payload = random.randint(capacity * 2, capacity * 6)
+            for d in dests:
+                if len(offers) >= count:
+                    break
 
-            # Päivän tapahtuma ei enää vaikuta etukäteen lastiin; käytetään perusrahtia.
-            payload = max(1, int(base_payload))
+                dest_ident = d["ident"]
+                dep_xy = self._get_airport_coords(dep_ident)
+                dst_xy = self._get_airport_coords(dest_ident)
+                if not (dep_xy and dst_xy):
+                    # Jos koordinaatit puuttuvat, ohitetaan
+                    continue
 
-            # Peruskesto (päivinä) matkan mukaan; yli-kapasiteetti lisää reissujen määrää ja kokonaiskestoa
-            base_days = max(1, math.ceil(dist_km / speed_km_per_day))
-            trips = max(1, math.ceil(payload / capacity))
-            total_days = base_days * trips
+                # Etäisyys (km)
+                dist_km = self._haversine_km(dep_xy[0], dep_xy[1], dst_xy[0], dst_xy[1])
 
-            # Palkkion laskenta (lattia varmistaa ettei negatiivinen)
-            base_reward = (Decimal(payload) * PER_KG) + (Decimal(dist_km) * PER_KM)
-            reward = (base_reward * eff_eco).quantize(Decimal("0.01"))
-            if reward < MIN_TASK_REWARD:
-                reward = MIN_TASK_REWARD
+                # Rahti skaalataan etäisyyden mukaan; sallitaan yli-kapasiteetti (→ useita reissuja)
+                if dist_km < 500:
+                    base_payload = random.randint(max(1, capacity // 2), max(1, capacity * 3))
+                elif dist_km < 1500:
+                    base_payload = random.randint(capacity, capacity * 4)
+                else:
+                    base_payload = random.randint(capacity * 2, capacity * 6)
 
-            # Sakko osuutena; ei koskaan negatiivinen
-            penalty = (reward * Decimal("0.30")).quantize(Decimal("0.01"))
-            if penalty < Decimal("0.00"):
-                penalty = Decimal("0.00")
+                # Päivän tapahtuma ei enää vaikuta etukäteen lastiin; käytetään perusrahtia.
+                payload = max(1, int(base_payload))
 
-            # Deadline: kokonaiskesto + puskuri
-            buffer_days = max(1, trips // 2)
-            deadline = self.current_day + total_days + buffer_days
+                # Peruskesto (päivinä) matkan mukaan; yli-kapasiteetti lisää reissujen määrää ja kokonaiskestoa
+                base_days = max(1, math.ceil(dist_km / speed_km_per_day))
+                trips = max(1, math.ceil(payload / capacity))
+                total_days = base_days * trips
 
-            offers.append({
-                "dest_ident": dest_ident,
-                "dest_name": d.get("name"),
-                "payload_kg": payload,
-                "distance_km": dist_km,
-                "base_days": base_days,
-                "trips": trips,
-                "total_days": total_days,
-                "reward": reward,
-                "penalty": penalty,
-                "deadline": deadline,
-            })
+                # Palkkion laskenta (lattia varmistaa ettei negatiivinen)
+                base_reward = (Decimal(payload) * PER_KG) + (Decimal(dist_km) * PER_KM)
+                reward = (base_reward * eff_eco).quantize(Decimal("0.01"))
+                if reward < MIN_TASK_REWARD:
+                    reward = MIN_TASK_REWARD
 
-        return offers[:count]
+                # Sakko osuutena; ei koskaan negatiivinen
+                penalty = (reward * Decimal("0.30")).quantize(Decimal("0.01"))
+                if penalty < Decimal("0.00"):
+                    penalty = Decimal("0.00")
+
+                # Deadline: kokonaiskesto + puskuri
+                buffer_days = max(1, trips // 2)
+                deadline = self.current_day + total_days + buffer_days
+
+                offers.append({
+                    "dest_ident": dest_ident,
+                    "dest_name": d.get("name"),
+                    "payload_kg": payload,
+                    "distance_km": dist_km,
+                    "base_days": base_days,
+                    "trips": trips,
+                    "total_days": total_days,
+                    "reward": reward,
+                    "penalty": penalty,
+                    "deadline": deadline,
+                })
+
+            return offers[:count]
+        except Exception as e:
+            print(f"❌ Virhe tarjousten generoinnissa: {e}")
+            return []
 
     def show_active_tasks(self) -> None:
         """
@@ -2244,7 +2256,7 @@ class GameSession:
 
         params = [self.save_id] + list(owned_bases.keys())
 
-        with get_connection() as yhteys:
+        with get_db_connection() as yhteys:
             kursori = yhteys.cursor(dictionary=True)
             kursori.execute(sql, tuple(params))
             stranded_planes = kursori.fetchall() or []
@@ -2487,7 +2499,7 @@ class GameSession:
                 )
                 return
 
-            with get_connection() as yhteys:
+            with get_db_connection() as yhteys:
                 try:
                     cur = yhteys.cursor()
                 except TypeError:
@@ -3171,7 +3183,7 @@ class GameSession:
                     FROM game_saves gs
                     WHERE gs.save_id = %s; \
                     """
-        with get_connection() as yhteys:
+        with get_db_connection() as yhteys:
             kursori = yhteys.cursor(dictionary=True)
             kursori.execute(sql_stats, (self.save_id,))
             stats = kursori.fetchone()
