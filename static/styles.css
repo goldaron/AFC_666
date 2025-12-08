@@ -440,6 +440,14 @@ body {
     align-items: center;
     gap: 8px;
     position: relative;
+    white-space: nowrap;
+}
+
+.nav-icon {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    flex-shrink: 0;
 }
 
 .nav-btn:hover {

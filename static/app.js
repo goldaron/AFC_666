@@ -151,6 +151,14 @@ function showView(viewName) {
             loadAircraftListForTasks();
         } else if (viewName === 'market') {
             showMarketTab('new');
+        } else if (viewName === 'dashboard') {
+            // Kojelauta: placeholder
+        } else if (viewName === 'fleet') {
+            // Laivasto: placeholder
+        } else if (viewName === 'upgrades') {
+            // Päivitykset: placeholder
+        } else if (viewName === 'maintenance') {
+            // Huolto: placeholder
         } else if (viewName === 'clubhouse') {
             // Kerhohuone: päivitä cash-display
             updateClubhouseCash();

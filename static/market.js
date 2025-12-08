@@ -271,7 +271,7 @@ function createUsedAircraftRow(aircraft) {
     
     tr.innerHTML = `
         <td class="market-table-cell market-table-id">${aircraft.market_id || 'U-?'}</td>
-        <td class="market-table-cell market-table-model">${aircraft.model_name || 'Unknown'}</td>
+        <td class="market-table-cell market-table-model">${aircraft.model_name || 'Tuntematon'}</td>
         <td class="market-table-cell market-table-price">€${formatMoney(aircraft.purchase_price || 0)}</td>
         <td class="market-table-cell market-table-condition">
             <div class="market-condition-bar-wrapper">
