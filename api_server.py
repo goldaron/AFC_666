@@ -215,173 +215,32 @@ def load_game(save_id: int):
 
 @app.get("/api/game")
 def get_active_game_info():
-    """Palauttaa aktiivisen pelin tietoja. Päivä, kassa, status"""
+    """Palauttaa aktiivisen pelin tietoja. Päivä, kassa, status, komentaja, tukikohta"""
     try:
         session = GameSession(save_id=ACTIVE_SAVE_ID)
-        
-        # Fetch headquarters base
-        bases = fetch_owned_bases(ACTIVE_SAVE_ID)
-        home_base = None
-        if bases:
-            # Get headquarters from database
-            sql = "SELECT base_ident FROM owned_bases WHERE save_id = %s AND is_headquarters = 1 LIMIT 1"
-            hq = _fetch_one_dict(sql, (ACTIVE_SAVE_ID,))
-            if hq:
-                home_base = hq.get("base_ident")
-            else:
-                # Fallback to first base
-                home_base = bases[0].get("base_ident")
+
+        # Hae pääkenttä (home base) jos se on olemassa
+        home_base = session._get_primary_base_ident()
+        if not home_base:
+            home_base = "EFHK"  # Oletustukikohta jos sitä ei ole vielä ostettu
 
         return jsonify({
             "save_id": ACTIVE_SAVE_ID,
-            "player_name": session.player_name,
-            "current_day": session.current_day,
+            "playerName": session.player_name,
+            "day": session.current_day,
             "cash": _decimal_to_string(session.cash),
+            "homeBase": home_base,
             "status": session.status,
             "difficulty": session.difficulty,
-            "home_base": home_base,
         })
     except ValueError as e:
         if "ei löytynyt" in str(e):
-            return jsonify({"virhe": f"Tallennus {ACTIVE_SAVE_ID} ei löytynyt"}), 404
+            return jsonify({"virhe": f"Aktiivista tallennusta {ACTIVE_SAVE_ID} ei löytynyt. Luo uusi peli tai lataa toinen peli."}), 404
         app.logger.exception("Aktiivisen pelin tietojen haku epäonnistui")
-        return jsonify({"Virhe": f"Aktiivisen pelin tietojen haku epäonnistui: {str(e)}"}), 500
+        return jsonify({"virhe": f"Aktiivisen pelin tietojen haku epäonnistui: {str(e)}"}), 500
     except Exception as e:
         app.logger.exception("Aktiivisen pelin tietojen haku epäonnistui")
-        return jsonify({"Virhe": f"Aktiivisen pelin tietojen haku epäonnistui: {str(e)}"}), 500
-
-
-#----------- Reitit: Päivän siirto ----------
-
-@app.post("/api/game/advance-day")
-def advance_day():
-    """Siirrytään 1 päivä ja palautetaan yhteenveto."""
-    try: 
-        session = GameSession(save_id=ACTIVE_SAVE_ID)
-        summary = session.advance_to_next_day(silent=True)
-        summary["earned"] = _decimal_to_string(summary.get("earned", 0))
-
-        for event in summary.get("events", []):
-            if "reward_delta" in event:
-                event["reward_delta"] = _decimal_to_string(event["reward_delta"])
-        
-        for bill in summary.get("bills", []):
-            if "amount" in bill:
-                bill["amount"] = _decimal_to_string(bill["amount"])
-        
-        return jsonify(summary), 200
-    
-    except ValueError as e:
-        if "ei löytynyt" in str(e):
-            return jsonify({"virhe": f"Tallennus {ACTIVE_SAVE_ID} ei löytynyt"}), 404
-        app.logger.exception("Päivän siirto epäonnistui")
-        return jsonify({"virhe": f"Päivän siirto epäonnistui: {str(e)}"}), 500
-    except Exception as e:
-        app.logger.exception("Päivän siirto epäonnistui")
-        return jsonify({"virhe": f"Päivän siirto epäonnistui: {str(e)}"}), 500
-
-
-# ---------- Reitit: Päivän siirto kunnes ensimmäinen kone palaa tai konkurssi ----------
-
-@app.post("/api/game/fast-forward")
-def fast_forward():
-    """Siirrytään eteenpäin kunnes ensimmäinen lento saapuu tai konkurssi."""
-    try:
-        session = GameSession(save_id=ACTIVE_SAVE_ID)
-
-        yhteys = get_connection()
-        try:
-            kursori = yhteys.cursor()
-            kursori.execute(
-                "SELEECT COUNT(*) FROM flights WHERE save_id = %s AND status = 'ENROUTE'",
-                (ACTIVE_SAVE_ID,),
-            )
-            result = kursori.fetchone()
-            enroute_count = int(result[0]) if result else 0
-        finally:
-            try:
-                kursori.close()
-            except:
-                pass
-            yhteys.close()
-        
-        if enroute_count == 0:
-            return jsonify({
-                "viesti": "Ei käynnissä olevia lentoja.",
-                "days_advanced": 0,
-                "stop_reason": "NO_FLIGHTS",
-            }), 400
-
-
-        days_advanced = 0
-        earned_total = Decimal("0.00")
-        stop_reason = "max"
-        day_summaries = []
-        max_days = 365  # Turvamekanismi loputtomaan silmukkaan
-    
-        
-        for _ in range(max_days):
-            summary = session.advance_to_next_day(silent=True)
-            days_advanced += 1
-            earned_total += _to_dec(summary.get("earned", 0))
-            summary_copy = summary.copy()
-            summary_copy["earned"] = _decimal_to_string(summary_copy.get("earned", 0))
-
-            for event in summary_copy.get("events", []):
-                if "reward_delta" in event:
-                    event["reward_delta"] = _decimal_to_string(event["reward_delta"])
-
-            for bill in summary_copy.get("bills", []):
-                if "amount" in bill:
-                    bill["amount"] = _decimal_to_string(bill["amount"])
-            
-            day_summaries.append(summary_copy)
-
-            # eri tilanteet pysähtymiselle
-
-            if int(summary.get("arrivals", 0)) > 0:
-                stop_reason = "arrival"
-                break
-            if session.status == "BANKRUPT":
-                stop_reason = "bankrupt"
-                break
-            from upgrade_config import SURVIVAL_TARGET_DAYS
-            if session.current_day > SURVIVAL_TARGET_DAYS:
-                if session.status == "ACTIVE":
-                    session.status = "VICTORY"
-                stop_reason = "victory"
-                break
-
-        messages = {
-            "arrival": f"Ensimmäinen lento palasi päivällä {session.current_day}",
-            "bankrupt": f"Konkurssi keskeytti pikakelauksen päivällä {session.current_day}",
-            "victory": f"Selviytymisraja saavutettu päivällä {session.current_day}!",
-            "max": f"Ei paluuta {max_days} päivän aikana"
-        }
-
-        # Palautetaan yhteenveto
-
-        return jsonify({
-            "days_advanced": days_advanced,
-            "stop_reason": stop_reason,
-            "current_day": session.current_day,
-            "total_earned": _decimal_to_string(earned_total),
-            "message": messages.get(stop_reason, "Pikakelaus valmis"),
-            "day_summaries": day_summaries,
-        }), 200
-    
-    except ValueError as e:
-        if "ei löytynyt" in str(e):
-            return jsonify({"virhe": f"Tallennusta {ACTIVE_SAVE_ID} ei löytynyt"}), 404
-        app.logger.exception("Pikakelaus epäonnistui")
-        return jsonify({"virhe": f"Pikakelaus epäonnistui: {str(e)}"}), 500
-    except Exception as e:
-        app.logger.exception("Pikakelaus epäonnistui")
-        return jsonify({"virhe": f"Pikakelaus epäonnistui: {str(e)}"}), 500
-
-
-
-
+        return jsonify({"virhe": f"Aktiivisen pelin tietojen haku epäonnistui: {str(e)}"}), 500
 
 # ============================================================================
 # TEHTÄVÄT JA KAUPANKÄYNTI
@@ -522,7 +381,6 @@ def accept_task_stub():
 
 
 # ---------- Reitit: Kauppapaikka ----------
-# [KEHITTÄJÄ 4]
 # Kauppapaikka-endpointit hallitsevat koneiden ostamista uusien ja käytettyjen
 # markkinoilta. Uudet koneet suodatetaan pelaajan tukikohdan tason (SMALL..HUGE)
 # perusteella, mikä soveltaa GameSession-metodia _fetch_aircraft_models_by_base_progress().
@@ -577,7 +435,7 @@ def market_new():
 @app.get("/api/market/used")
 def market_used():
     """
-    [KEHITTÄJÄ 4] Listaa käytettyjen koneiden markkinapaikan.
+    Listaa käytettyjen koneiden markkinapaikan.
     
     Hakee kaikki aktiiviset ilmoitukset market_aircraft-taulusta ja yhdistää
     aircraft_models-tauluun konemallin tietojen (mallin nimi, kapasiteetti jne.) saamiseksi.
@@ -598,6 +456,8 @@ def market_used():
                    m.purchase_price,
                    m.condition_percent,
                    m.hours_flown,
+                   m.manufactured_day,
+                   m.market_notes,
                    m.listed_day
             FROM market_aircraft m
                      JOIN aircraft_models am ON am.model_code = m.model_code
@@ -608,6 +468,12 @@ def market_used():
         )
         for row in rows:
             row["purchase_price"] = _decimal_to_string(row.get("purchase_price"))
+            row["hours_flown"] = row.get("hours_flown") or 0
+            row["condition_percent"] = row.get("condition_percent") or 100
+            # Lasketaan koneena ikä vuosina nykyisestä peliajasta
+            # Peleissa käytetään päivän muotoa; oletetaan että peli alkaa päivästä 1
+            row["age_years"] = max(0, (row.get("listed_day", 1) - row.get("manufactured_day", 1)) // 365)
+            row["notes"] = row.get("market_notes") or "Hyvä kunto"
         return jsonify({"kaytetyt_koneet": rows})
     except Exception:
         app.logger.exception("Käytettyjen koneiden haku epäonnistui")
@@ -639,15 +505,14 @@ def market_buy_stub():
 
 
 # ---------- Reitit: Kerhohuone ----------
-# [KEHITTÄJÄ 4]
-# Kerhohuone on salainen minipelien paikka, jossa pelaaja voi vetää pukuja pelikassallaan.
+# Kerhohuone on salainen minipelien paikka, jossa pelaaja voi pelata firman rahoillaan.
 # Minipelit: Coin Flip (kruuna/klaava), High/Low (noppapeli) ja Slots (yksikätinen rosvo).
 # Kaikki pelit päivittävät GameSessionin kassaa (_add_cash-metodin kautta).
 
 @app.get("/api/clubhouse")
 def clubhouse_info():
     """
-    [KEHITTÄJÄ 4] Palauttaa saatavilla olevat minipelit.
+    Palauttaa saatavilla olevat minipelit.
     
     Vastaus JSON-muodossa:
     {

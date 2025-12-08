@@ -121,20 +121,33 @@
 
     <!-- Navigointi -->
     <nav class="main-nav">
-        <button onclick="showView('laivasto')" class="nav-btn" data-view="laivasto">
-            ✈️ Laivasto
+        <button onclick="showView('dashboard')" class="nav-btn" data-view="dashboard">
+            <img src="img/dashboard.svg" alt="Kojelauta" class="nav-icon">
+            <span>Kojelauta</span>
         </button>
-        <button onclick="showView('tasks')" class="nav-btn active" data-view="tasks">
-            📋 Sopimukset
-        </button>
-        <button onclick="showView('tukikohdat')" class="nav-btn" data-view="tukikohdat">
-            🏢 Tukikohdat
+        <button onclick="showView('fleet')" class="nav-btn" data-view="fleet">
+            <img src="img/fleet.svg" alt="Laivasto" class="nav-icon">
+            <span>Laivasto</span>
         </button>
         <button onclick="showView('market')" class="nav-btn" data-view="market">
-            🛒 Kauppa
+            <img src="img/shop.svg" alt="Kauppa" class="nav-icon">
+            <span>Kauppa</span>
+        </button>
+        <button onclick="showView('tasks')" class="nav-btn active" data-view="tasks">
+            <img src="img/contracts.svg" alt="Sopimukset" class="nav-icon">
+            <span>Sopimukset</span>
+        </button>
+        <button onclick="showView('upgrades')" class="nav-btn" data-view="upgrades">
+            <img src="img/upgrades.svg" alt="Päivitykset" class="nav-icon">
+            <span>Päivitykset</span>
+        </button>
+        <button onclick="showView('maintenance')" class="nav-btn" data-view="maintenance">
+            <img src="img/maintenance.svg" alt="Huolto" class="nav-icon">
+            <span>Huolto</span>
         </button>
         <button onclick="showView('map')" class="nav-btn" data-view="map">
-            🗺️ Kartta
+            <img src="img/map.svg" alt="Kartta" class="nav-icon">
+            <span>Kartta</span>
         </button>
         <button onclick="advanceDay()" class="nav-btn">
             📅 Seuraava Päivä
@@ -154,6 +167,36 @@
             </div>
         </div>
     </div>
+
+    <!-- KOJELAUTA-NÄKYMÄ -->
+    <section id="dashboard-view" class="view-container hidden">
+        <div class="view-header">
+            <h2>KOJELAUTA</h2>
+            <div class="subtitle">// HALLINTAPANEELI</div>
+        </div>
+        <div class="section-card">
+            <div class="section-card-body">
+                <p style="text-align: center; padding: 40px; color: #6a7282;">
+                    🚧 Kojelauta on kehitteillä...
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- LAIVASTO-NÄKYMÄ -->
+    <section id="fleet-view" class="view-container hidden">
+        <div class="view-header">
+            <h2>LAIVASTO</h2>
+            <div class="subtitle">// LENTOKONEENHALLINTA</div>
+        </div>
+        <div class="section-card">
+            <div class="section-card-body">
+                <p style="text-align: center; padding: 40px; color: #6a7282;">
+                    🚧 Laivasto on kehitteillä...
+                </p>
+            </div>
+        </div>
+    </section>
 
     <!-- TEHTÄVÄT / SOPIMUKSET -NÄKYMÄ -->
     <section id="tasks-view" class="view-container">
@@ -328,21 +371,21 @@
                     <div class="market-table-container">
                         <!-- Otsikkobanneri -->
                         <div class="market-table-header-banner">
-                            <p class="market-table-label">AVAILABLE LISTINGS</p>
+                            <p class="market-table-label">AKTIIVISET ILMOITUKSET</p>
                         </div>
                         
                         <!-- Varsinainen taulukko -->
                         <table class="market-table" id="used-aircraft-table">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>MODEL</th>
-                                    <th>PRICE</th>
-                                    <th>CONDITION</th>
-                                    <th>HOURS</th>
-                                    <th>AGE</th>
-                                    <th>NOTES</th>
-                                    <th>ACTIONS</th>
+                                    <th>TUNNUS</th>
+                                    <th>MALLI</th>
+                                    <th>HINTA</th>
+                                    <th>KUNTO</th>
+                                    <th>TUNNIT</th>
+                                    <th>IKÄ</th>
+                                    <th>HUOMIOT</th>
+                                    <th>TOIMINNOT</th>
                                 </tr>
                             </thead>
                             <tbody id="used-aircraft-list">
@@ -355,8 +398,8 @@
                     <div class="market-advisory-banner">
                         <div class="market-advisory-icon">⚠️</div>
                         <div class="market-advisory-content">
-                            <p class="market-advisory-title">MARKET ADVISORY</p>
-                            <p class="market-advisory-text">Used aircraft offer significant value but may require maintenance. Always verify condition percentage and service history before purchasing.</p>
+                            <p class="market-advisory-title">MARKKINANEUVONTA</p>
+                            <p class="market-advisory-text">Käytetyt koneet tarjoavat hyvää arvoa, mutta niiden kunto voi vaihdella. Aina kannattaa tarkistaa kunto-prosentti ja huoltohistoria ennen ostopäätöstä.</p>
                         </div>
                     </div>
                 </div>
