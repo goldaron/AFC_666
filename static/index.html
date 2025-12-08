@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Air Freight Company 666</title>
+    <link rel="icon" href="img/666_logo.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -124,7 +125,7 @@
                     </defs>
                     <g id="logout">
                         <line class="cls-1" x1="15.92" x2="28.92" y1="16" y2="16"/>
-                        <path d="M23.93,25v3h-16V4h16V7h2V3a1,1,0,0,0-1-1h-18a1,1,0,0,0-1,1V29a1,1,0,0,0,1,1h18a1,1,0,0,0,1-1V25Z"/>
+                        <path d="M23.93,25v3h-16V4h16V7h2V3a1,1,0,0,0-1-1h-18a1,1,0,0,0-1,1V29a1,1,0,0,0,1,1h18a1,1,0,0,0,1-1V25Z" stroke="currentColor" stroke-width="2" fill="none"/>
                         <line class="cls-1" x1="28.92" x2="24.92" y1="16" y2="20"/>
                         <line class="cls-1" x1="28.92" x2="24.92" y1="16" y2="12"/>
                         <line class="cls-1" x1="24.92" x2="24.92" y1="8.09" y2="6.09"/>
@@ -138,28 +139,36 @@
     <!-- Navigointi -->
     <nav class="main-nav">
         <button onclick="showView('dashboard')" class="nav-btn" data-view="dashboard">
-            <span>📊</span><span>Kojelauta</span>
+            <img src="img/dashboard.svg" alt="Kojelauta" class="nav-icon">
+            <span>Kojelauta</span>
         </button>
         <button onclick="showView('laivasto')" class="nav-btn" data-view="laivasto">
-            <span>✈️</span><span>Laivasto</span>
+            <img src="img/fleet.svg" alt="Laivasto" class="nav-icon">
+            <span>Laivasto</span>
         </button>
         <button onclick="showView('tukikohdat')" class="nav-btn" data-view="tukikohdat">
-            <span>🏢</span><span>Tukikohdat</span>
+            <img src="img/bases.svg" alt="Tukikohdat" class="nav-icon">
+            <span>Tukikohdat</span>
         </button>
         <button onclick="showView('market')" class="nav-btn" data-view="market">
-            <span>🛒</span><span>Kauppa</span>
+            <img src="img/shop.svg" alt="Kauppa" class="nav-icon">
+            <span>Kauppa</span>
         </button>
         <button onclick="showView('tasks')" class="nav-btn active" data-view="tasks">
-            <span>📋</span><span>Sopimukset</span>
+            <img src="img/contracts.svg" alt="Sopimukset" class="nav-icon">
+            <span>Sopimukset</span>
         </button>
         <button onclick="showView('upgrades')" class="nav-btn" data-view="upgrades">
-            <span>🔧</span><span>Päivitykset</span>
+            <img src="img/upgrades.svg" alt="Päivitykset" class="nav-icon">
+            <span>Päivitykset</span>
         </button>
         <button onclick="showView('maintenance')" class="nav-btn" data-view="maintenance">
-            <span>🔨</span><span>Huolto</span>
+            <img src="img/repair.svg" alt="Huolto" class="nav-icon">
+            <span>Huolto</span>
         </button>
         <button onclick="showView('map')" class="nav-btn" data-view="map">
-            <span>🗺️</span><span>Kartta</span>
+            <img src="img/mapview.svg" alt="Kartta" class="nav-icon">
+            <span>Kartta</span>
         </button>
         <div class="nav-spacer"></div>
         <button onclick="advanceDay()" class="next-day-btn">
