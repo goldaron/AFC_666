@@ -344,8 +344,52 @@ function reloadCurrentView() {
     }
 }
 
+/**
+ * Muuntaa img-tagit jotka käyttävät SVG:jä inline SVG:ksi 
+ * Sallii CSS-säännöt SVG:n sisäisille elementeille
+ */
+async function inlineSvgImages() {
+    // Hakee vain navigaation kuvakkeet, ignooraa exit-nappia
+    const imgTags = document.querySelectorAll('.nav-icon[src$=".svg"]');
+    
+    for (const img of imgTags) {
+        try {
+            const response = await fetch(img.src);
+            const svgText = await response.text();
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+            const svgElement = svgDoc.documentElement;
+            
+            // Kopioi kaikki class:it ja id:t
+            if (img.className) {
+                svgElement.setAttribute('class', img.className);
+            }
+            if (img.id) {
+                svgElement.setAttribute('id', img.id);
+            }
+            
+            // Kopioi alt-tekstin title-elementtiin
+            if (img.alt) {
+                const titleElem = svgElement.querySelector('title');
+                if (titleElem) {
+                    titleElem.textContent = img.alt;
+                }
+            }
+            
+            // Korvaa img svg:llä
+            img.parentNode.replaceChild(svgElement, img);
+            
+        } catch (error) {
+            console.warn('SVG inlining epäonnistui:', error);
+        }
+    }
+}
+
 // Sivun lataus
 document.addEventListener('DOMContentLoaded', () => {
+    // Muunna img SVG:t inline SVG:ksi CSS-tuki varten
+    inlineSvgImages();
+    
     // Start screen näkyy automaattisesti
     // Peli ladataan vasta kun käyttäjä valitsee "Aloita Uusi Peli" tai "Lataa Peli"
     

@@ -326,7 +326,7 @@ body {
     width: 48px;
     height: 48px;
     object-fit: contain;
-    filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
+    filter: brightness(0.95) drop-shadow(0 0 12px rgba(0, 212, 255, 0.5));
 }
 
 .logo-text {
@@ -435,7 +435,16 @@ body {
 .exit-icon {
     width: 36px;
     height: 36px;
-    stroke: currentColor;
+    stroke: #fb2c36;
+    fill: none;
+}
+
+.exit-icon path,
+.exit-icon line,
+.exit-icon circle,
+.exit-icon rect {
+    stroke: #fb2c36;
+    fill: none;
 }
 
 .exit-game-btn:hover {
@@ -484,8 +493,21 @@ body {
 .nav-icon {
     width: 20px;
     height: 20px;
-    fill: currentColor;
     flex-shrink: 0;
+    transition: filter 0.2s ease, stroke 0.2s ease, fill 0.2s ease;
+    stroke: #6a7282;
+    fill: #6a7282;
+    opacity: 0.8;
+}
+
+/* Poista fill ja stroke attribuutit ja käytä CSS:ä */
+.nav-icon path,
+.nav-icon circle,
+.nav-icon rect,
+.nav-icon line,
+.nav-icon polygon {
+    stroke: inherit;
+    fill: inherit;
 }
 
 .nav-btn:hover {
@@ -493,10 +515,23 @@ body {
     color: #d1d5dc;
 }
 
+.nav-btn:hover .nav-icon {
+    stroke: #d1d5dc;
+    fill: #d1d5dc;
+    opacity: 1;
+}
+
 .nav-btn.active {
     background: rgba(0, 212, 255, 0.1);
     color: #00d4ff;
     border-top-color: #00d4ff;
+}
+
+.nav-btn.active .nav-icon {
+    stroke: #00d4ff;
+    fill: #00d4ff;
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.6));
 }
 
 .nav-btn.active::after {
