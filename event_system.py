@@ -209,7 +209,8 @@ def init_events_for_seed(seed: int, total_days: int) -> bool:
     _current_flight_event = None
     _current_duration_left = 0
 
-    with get_connection() as conn:
+    conn = get_connection()
+    try:
         try:
             # mysql-connector saattaa yrittää palauttaa dict-kursoria; fallback tuplille.
             cursor = conn.cursor()
@@ -253,6 +254,11 @@ def init_events_for_seed(seed: int, total_days: int) -> bool:
                 cursor.close()
             except Exception:
                 pass
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 def get_event_for_day(
@@ -272,7 +278,8 @@ def get_event_for_day(
     if seed is None or day <= 0 or event_type != "flight":
         return None
 
-    with get_connection() as conn:
+    conn = get_connection()
+    try:
         try:
             # mysql-connector saattaa yrittää palauttaa dict-kursoria; fallback tuplille.
             cursor = conn.cursor()
@@ -323,6 +330,11 @@ def get_event_for_day(
                 cursor.close()
             except Exception:
                 pass
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 def get_event_by_id(event_id: Optional[int]) -> Optional[FlightEvent]:
@@ -333,7 +345,8 @@ def get_event_by_id(event_id: Optional[int]) -> Optional[FlightEvent]:
     if event_id is None:
         return None
 
-    with get_connection() as conn:
+    conn = get_connection()
+    try:
         try:
             # mysql-connector saattaa yrittää palauttaa dict-kursoria; fallback tuplille.
             cursor = conn.cursor()
@@ -350,6 +363,11 @@ def get_event_by_id(event_id: Optional[int]) -> Optional[FlightEvent]:
                 cursor.close()
             except Exception:
                 pass
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 __all__ = ["FlightEvent", "init_events_for_seed", "get_event_for_day", "get_event_by_id"]

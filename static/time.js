@@ -20,11 +20,13 @@ async function advanceDay() {
         const result = await apiCall("/api/game/advance-day", { method: "POST" });
         // tulokset
         displayDayAdvanceSummary(result);
-        // päivitetään
+        // päivitetään yläpalkki
         await updateGameStats();
+        // päivitetään aktiivinen näkymä
+        reloadCurrentView();
     } catch (error) {
         console.error("Päivän kelaus epäonnistui:", error);
-        showNotification("Päivän kelaus epäonnistui.", "error");
+        showNotification(`Päivän kelaus epäonnistui: ${error.message}`, "error");
     }
 }
 
@@ -38,12 +40,14 @@ async function startFastForward() {
         // kutsutaan APIa
         const result = await apiCall("/api/game/fast-forward", { method: "POST" });
         // tulokset
-        displayDayAdvanceSummary(result);
-        // päivitetään
+        displayFastForwardSummary(result); // Kutsutaan oikeaa yhteenvetofunktiota
+        // päivitetään yläpalkki
         await updateGameStats();
+        // päivitetään aktiivinen näkymä
+        reloadCurrentView();
     } catch (error) {
         console.error("Pelin kelaus epäonnistui:", error);
-        showNotification("Pelin kelaus epäonnistui.", "error");
+        showNotification(`Pelin kelaus epäonnistui: ${error.message}`, "error");
     }
 }
 
@@ -51,23 +55,24 @@ async function startFastForward() {
  * näyttää yhteenvedon päivän edistämisestä
  */
 function displayDayAdvanceSummary(result) {
-    const message = `
-        Päivä: ${result.day}
-        Saapumiset: ${result.arrivals}
-        Ansiot: ${result.earned} €
+    // Parannellaan viestiä näyttämään enemmän tietoa
+    let message = `Päivä: ${result.day}. Saapumisia: ${result.arrivals}. Ansiot: ${formatMoney(result.earned)} €`;
 
-    `;
+    if (result.events && result.events.length > 0) {
+        message += `\nTapahtumat: ${result.events.map(e => e.name).join(', ')}`;
+    }
+    if (result.bills && result.bills.length > 0) {
+        message += `\nLaskuja: ${result.bills.length}`;
+    }
+
     showNotification(message, "success", "Päivä edistynyt");
 
-    // saapumiset
     if (result.arrival_details && result.arrival_details.length > 0) {
         console.log("Saapumiset:", result.arrival_details);
     }
-    // tapahtumat
     if (result.events && result.events.length > 0) {
         console.log("Tapahtumat:", result.events);
     }
-    // laskut
     if (result.bills && result.bills.length > 0) {
         console.log("Laskut:", result.bills);
     }
@@ -77,17 +82,17 @@ function displayDayAdvanceSummary(result) {
  */
 function displayFastForwardSummary(result) {
     const messages = {
-        "arrival" : `Lentopalasi päivänä ${result.current_day}`,
+        "arrival" : `Lento palasi päivänä ${result.current_day}`,
         'bankrupt' : `Peli päättyi konkurssiin päivänä ${result.current_day}`,
         "victory" : `Voitto! Peli voitettu päivänä ${result.current_day}!`,
-        "max" : `Kelaus pysähtyi päivänä ${result.days_advanced}.`,
-        "no_flights" : `Ei lentoja`,
+        "max" : `Kelaus pysähtyi ${result.days_advanced} päivän jälkeen.`,
+        "no_flights" : `Ei lentoja kelattavaksi.`,
     };
 
     const message = `
         ${messages[result.stop_reason] || "Kelaus päättynyt."}
-        Päiviä edetty: ${result.days_advanced}
-        Ansiot yhteensä: ${result.total_earned} €
+        Päiviä edetty: ${result.days_advanced}.
+        Ansiot yhteensä: ${formatMoney(result.total_earned)} €.
     `;
     showNotification(message, "success", "Kelaus päättynyt");
 
@@ -95,4 +100,3 @@ function displayFastForwardSummary(result) {
         console.log("Päiväkohtainen yhteenveto:", result.day_summaries);
     }
 }
-
