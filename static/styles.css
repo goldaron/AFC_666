@@ -2586,7 +2586,7 @@ body {
 }
 
 .kerhohuone-slots-display {
-    font-size: 3rem;
+       font-size: 3rem;
     text-align: center;
     color: #ffb900;
     text-shadow: 0 0 20px rgba(255, 185, 0, 0.3);
@@ -2980,4 +2980,1047 @@ body {
     align-items: center;
     justify-content: center;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+/* === AIRCRAFT UPGRADE MODAL === */
+.upgrade-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upgrade-modal.hidden {
+    display: none;
+}
+
+.upgrade-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+}
+
+.upgrade-modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90vh;
+    background: linear-gradient(135deg, rgba(10, 24, 47, 0.98) 0%, rgba(16, 24, 40, 0.98) 100%);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 16px;
+    padding: 32px;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 212, 255, 0.2);
+}
+
+.upgrade-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #d1d5dc;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.upgrade-modal-close:hover {
+    background: rgba(255, 100, 103, 0.2);
+    border-color: rgba(255, 100, 103, 0.5);
+    color: #ff6467;
+}
+
+.upgrade-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.upgrade-title-block h2 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #f9fafb;
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+}
+
+.upgrade-subtitle {
+    font-size: 14px;
+    color: #6a7282;
+    letter-spacing: 0.05em;
+}
+
+.upgrade-aircraft-info {
+    text-align: right;
+}
+
+.upgrade-aircraft-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #00d4ff;
+    margin-bottom: 4px;
+}
+
+.upgrade-aircraft-reg {
+    font-size: 14px;
+    color: #99a1af;
+}
+
+.upgrade-section {
+    margin-bottom: 32px;
+}
+
+.upgrade-section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.upgrade-section-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.upgrade-section-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #f9fafb;
+    margin-bottom: 4px;
+}
+
+.upgrade-section-desc {
+    font-size: 13px;
+    color: #6a7282;
+    letter-spacing: 0.05em;
+}
+
+/* ECO Levels Grid */
+.eco-levels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+}
+
+.eco-level-card {
+    background: rgba(16, 24, 40, 0.6);
+    border: 1px solid rgba(30, 41, 57, 0.5);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.eco-level-card:hover {
+    border-color: rgba(0, 212, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 212, 255, 0.2);
+}
+
+.eco-level-card.active {
+    background: rgba(0, 212, 255, 0.08);
+    border-color: rgba(0, 212, 255, 0.6);
+}
+
+.eco-level-card.locked {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.eco-level-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.eco-level-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.eco-level-number {
+    font-size: 14px;
+    color: #6a7282;
+    letter-spacing: 0.05em;
+}
+
+.eco-level-multiplier {
+    font-size: 18px;
+    font-weight: 600;
+    color: #00d4ff;
+}
+
+.eco-level-badge {
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.eco-level-badge.active {
+    background: rgba(5, 223, 114, 0.2);
+    border: 1px solid rgba(5, 223, 114, 0.5);
+    color: #05df72;
+}
+
+.eco-level-cost {
+    margin-bottom: 16px;
+}
+
+.eco-level-cost-label {
+    font-size: 12px;
+    color: #6a7282;
+    margin-bottom: 4px;
+}
+
+.eco-level-cost-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fdc700;
+}
+
+.eco-level-cost-value.free {
+    color: #05df72;
+}
+
+.eco-level-benefits {
+    margin-bottom: 16px;
+}
+
+.eco-level-benefits-title {
+    font-size: 12px;
+    color: #6a7282;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.eco-level-benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.eco-level-benefits-list li {
+    font-size: 13px;
+    color: #d1d5dc;
+    padding: 4px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.eco-level-benefits-list li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #05df72;
+    font-weight: 600;
+}
+
+.eco-level-upgrade-btn {
+    width: 100%;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    color: #00d4ff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.eco-level-upgrade-btn:hover:not(:disabled) {
+    background: rgba(0, 212, 255, 0.2);
+    border-color: rgba(0, 212, 255, 0.8);
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+}
+
+.eco-level-upgrade-btn:disabled {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #6a7282;
+    cursor: not-allowed;
+}
+
+.eco-level-upgrade-btn.active {
+    background: rgba(5, 223, 114, 0.1);
+    border-color: rgba(5, 223, 114, 0.5);
+    color: #05df72;
+    cursor: default;
+}
+
+.eco-level-lock-icon {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 24px;
+    opacity: 0.3;
+}
+/* === FLEET ROSTER / LAIVASTO === */
+/* Sortable column indicators */
+.fleet-table .sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+    position: relative;
+}
+
+.fleet-table .sortable:hover {
+    color: #00d4ff;
+}
+
+.fleet-table .sort-arrows {
+    margin-left: 4px;
+    opacity: 0.5;
+    font-size: 12px;
+}
+
+.fleet-table .sortable.sorted-asc .sort-arrows::after {
+    content: ' ▲';
+    color: #00d4ff;
+    opacity: 1;
+}
+
+.fleet-table .sortable.sorted-desc .sort-arrows::after {
+    content: ' ▼';
+    color: #00d4ff;
+    opacity: 1;
+}
+
+/* Callsign styling */
+.fleet-table .callsign {
+    color: #00d4ff;
+    font-style: italic;
+}
+
+/* Condition Progress Bar */
+.condition-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.condition-bar {
+    width: 80px;
+    height: 8px;
+    background: rgba(30, 41, 57, 0.5);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.condition-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.condition-fill.high {
+    background: #05df72;
+    box-shadow: 0 0 8px rgba(5, 223, 114, 0.5);
+}
+
+.condition-fill.medium {
+    background: #fdc700;
+    box-shadow: 0 0 8px rgba(253, 199, 0, 0.5);
+}
+
+.condition-fill.low {
+    background: #ff6467;
+    box-shadow: 0 0 8px rgba(255, 100, 103, 0.5);
+}
+
+.condition-text {
+    font-size: 14px;
+    color: #d1d5dc;
+    min-width: 35px;
+}
+
+/* Aircraft Status Badges */
+.status-idle {
+    display: inline-block;
+    background: rgba(5, 223, 114, 0.1);
+    border: 1px solid rgba(5, 223, 114, 0.5);
+    color: #05df72;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+.status-in-flight {
+    display: inline-block;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    color: #00d4ff;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+.status-rtb {
+    display: inline-block;
+    background: rgba(253, 199, 0, 0.1);
+    border: 1px solid rgba(253, 199, 0, 0.5);
+    color: #fdc700;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+/* ECO Level styling */
+.eco-level {
+    color: #05df72;
+    white-space: nowrap;
+}
+
+/* Multiplier styling */
+.multiplier-cell {
+    color: #fdc700;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Manage button */
+.btn-manage {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    color: #00d4ff;
+    padding: 6px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.btn-manage:hover {
+    background: rgba(0, 212, 255, 0.2);
+    border-color: rgba(0, 212, 255, 0.8);
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Center the actions column */
+.fleet-table td:last-child {
+    text-align: center;
+}
+/* === AIRCRAFT FLOATING MENU === */
+.aircraft-floating-menu {
+    position: fixed;
+    background: #0a0e14;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.2s ease;
+}
+
+.aircraft-floating-menu.visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.aircraft-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: transparent;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 4px;
+    color: #00d4ff;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+}
+
+.aircraft-menu-btn:hover:not(:disabled) {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: #00d4ff;
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+.aircraft-menu-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.aircraft-menu-btn.eco-btn {
+    border-color: rgba(0, 212, 255, 0.5);
+}
+
+.aircraft-menu-btn.repair-btn {
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #ffc107;
+}
+
+.aircraft-menu-btn.repair-btn:hover:not(:disabled) {
+    border-color: #ffc107;
+    background: rgba(255, 193, 7, 0.1);
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.2);
+}
+/* Add to styles.css after the upgrade modal styles */
+
+/* Repair modal condition display */
+.repair-aircraft-condition {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #ffc107;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+/* === TUKIKOHDAT / BASES VIEW === */
+.bases-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+    gap: 24px;
+}
+
+.base-card {
+    background: #0a0e14;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.base-card:hover {
+    border-color: rgba(0, 212, 255, 0.4);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+}
+
+.base-card-header {
+    background: linear-gradient(to right, rgba(0, 212, 255, 0.1), rgba(0, 0, 0, 0));
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.base-card-icon {
+    font-size: 32px;
+    filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
+}
+
+.base-card-title-block {
+    flex: 1;
+}
+
+.base-card-name {
+    font-size: 18px;
+    font-weight: 500;
+    color: #f9fafb;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
+.base-card-ident {
+    font-size: 14px;
+    color: #6a7282;
+    letter-spacing: 0.1em;
+    font-family: monospace;
+}
+
+.base-card-body {
+    padding: 24px;
+}
+
+.base-level-section {
+    margin-bottom: 16px;
+}
+
+.base-section-label {
+    font-size: 12px;
+    color: #6a7282;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.base-level-display {
+    background: rgba(16, 24, 40, 0.5);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.base-level-display.current {
+    border-color: rgba(0, 212, 255, 0.3);
+}
+
+.base-level-display.next {
+    border-color: rgba(5, 223, 114, 0.3);
+    background: rgba(5, 223, 114, 0.05);
+}
+
+.base-level-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    border-radius: 4px;
+    color: #00d4ff;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+}
+
+.base-level-badge.next {
+    background: rgba(5, 223, 114, 0.2);
+    border-color: rgba(5, 223, 114, 0.4);
+    color: #05df72;
+}
+
+.base-level-detail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #d1d5dc;
+}
+
+.base-level-icon {
+    font-size: 16px;
+}
+
+.base-upgrade-arrow {
+    text-align: center;
+    font-size: 24px;
+    color: #00d4ff;
+    margin: 8px 0;
+}
+
+.base-upgrade-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.base-upgrade-cost {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.base-upgrade-label {
+    font-size: 12px;
+    color: #6a7282;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.base-upgrade-price {
+    font-size: 20px;
+    color: #05df72;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.base-upgrade-btn {
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #00d4ff 0%, #0088cc 100%);
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+}
+
+.base-upgrade-btn:hover {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+.base-upgrade-btn:active {
+    transform: translateY(0);
+}
+
+.base-max-level {
+    margin-top: 20px;
+    padding: 20px;
+    border-top: 1px solid rgba(0, 212, 255, 0.2);
+    text-align: center;
+}
+
+.base-max-badge {
+    display: inline-block;
+    padding: 12px 24px;
+    background: rgba(5, 223, 114, 0.1);
+    border: 1px solid rgba(5, 223, 114, 0.3);
+    border-radius: 6px;
+    color: #05df72;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+}
+/* === BASE CAPACITY WARNINGS === */
+.capacity-warnings-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.capacity-warning {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-radius: 8px;
+    border: 1px solid;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+}
+
+.capacity-warning.capacity-near-full {
+    background: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.4);
+    color: #ffc107;
+}
+
+.capacity-warning.capacity-full {
+    background: rgba(255, 59, 48, 0.1);
+    border-color: rgba(255, 59, 48, 0.4);
+    color: #ff3b30;
+}
+
+.capacity-icon {
+    font-size: 20px;
+}
+
+.capacity-text {
+    flex: 1;
+}
+
+.capacity-count {
+    font-weight: 600;
+    opacity: 0.8;
+}
+/* ...existing code... */
+
+/* === EXPAND NETWORK SECTION === */
+.expand-network-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: linear-gradient(135deg, rgba(16, 24, 40, 0.8) 0%, rgba(10, 24, 47, 0.8) 100%);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 12px;
+    padding: 24px 32px;
+    margin-bottom: 24px;
+}
+
+.expand-network-icon {
+    width: 56px;
+    height: 56px;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+}
+
+.expand-network-text {
+    flex: 1;
+}
+
+.expand-network-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f9fafb;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
+.expand-network-subtitle {
+    font-size: 13px;
+    color: #6a7282;
+    letter-spacing: 0.03em;
+}
+
+.browse-bases-btn {
+    background: rgba(0, 212, 255, 0.15);
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    color: #00d4ff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.browse-bases-btn:hover {
+    background: rgba(0, 212, 255, 0.25);
+    border-color: rgba(0, 212, 255, 0.8);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 212, 255, 0.3);
+}
+
+/* === BROWSE BASES MODAL === */
+.browse-bases-filter {
+    display: flex;
+    align-items: center;
+}
+
+.browse-bases-filter input {
+    background: rgba(16, 24, 40, 0.8);
+    border: 1px solid rgba(30, 41, 57, 0.8);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #f9fafb;
+    width: 280px;
+    transition: all 0.2s;
+}
+
+.browse-bases-filter input:focus {
+    outline: none;
+    border-color: rgba(0, 212, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+
+.browse-bases-filter input::placeholder {
+    color: #6a7282;
+}
+
+/* Available Bases Grid */
+.available-bases-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.available-bases-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.available-bases-grid::-webkit-scrollbar-track {
+    background: rgba(16, 24, 40, 0.5);
+    border-radius: 4px;
+}
+
+.available-bases-grid::-webkit-scrollbar-thumb {
+    background: rgba(0, 212, 255, 0.3);
+    border-radius: 4px;
+}
+
+.available-bases-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 212, 255, 0.5);
+}
+
+/* Available Base Card */
+.available-base-card {
+    background: rgba(16, 24, 40, 0.6);
+    border: 1px solid rgba(30, 41, 57, 0.5);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.available-base-card:hover {
+    border-color: rgba(0, 212, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 212, 255, 0.2);
+}
+
+.available-base-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.available-base-info {
+    flex: 1;
+}
+
+.available-base-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f9fafb;
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+
+.available-base-ident {
+    font-size: 12px;
+    color: #00d4ff;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+.available-base-country {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 6px;
+}
+
+.available-base-country-flag {
+    font-size: 16px;
+}
+
+.available-base-country-code {
+    font-size: 12px;
+    font-weight: 600;
+    color: #99a1af;
+    letter-spacing: 0.05em;
+}
+
+.available-base-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.available-base-detail {
+    background: rgba(10, 24, 47, 0.5);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.available-base-detail-label {
+    font-size: 11px;
+    color: #6a7282;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.available-base-detail-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f9fafb;
+}
+
+.available-base-detail-value.price {
+    color: #fdc700;
+}
+
+.available-base-detail-value.capacity {
+    color: #00d4ff;
+}
+
+.available-base-buy-btn {
+    width: 100%;
+    background: rgba(5, 223, 114, 0.15);
+    border: 1px solid rgba(5, 223, 114, 0.5);
+    color: #05df72;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.available-base-buy-btn:hover {
+    background: rgba(5, 223, 114, 0.25);
+    border-color: rgba(5, 223, 114, 0.8);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(5, 223, 114, 0.3);
+}
+
+.available-base-buy-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.no-bases-available {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 48px;
+    color: #6a7282;
+}
+
+.no-bases-available-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.no-bases-available-text {
+    font-size: 16px;
+    letter-spacing: 0.05em;
 }

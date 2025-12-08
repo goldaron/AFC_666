@@ -46,15 +46,22 @@ def fetch_player_aircrafts_with_model_info(save_id: int) -> List[dict]:
         - model_name, category
         - purchase_price_aircraft, purchase_price_model
         - eco_fee_multiplier
+        - condition_percent, hours_flown, status
+        - current_airport_ident, acquired_day
     """
     sql = """
         SELECT
             a.aircraft_id,
             a.registration,
             a.model_code,
+            a.current_airport_ident,
+            a.condition_percent,
+            a.hours_flown,
+            a.status,
+            a.acquired_day,
+            a.purchase_price  AS purchase_price_aircraft,
             am.model_name,
             am.category,
-            a.purchase_price  AS purchase_price_aircraft,
             am.purchase_price AS purchase_price_model,
             am.eco_fee_multiplier
         FROM aircraft a

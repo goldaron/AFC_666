@@ -114,3 +114,63 @@ def insert_base_upgrade(base_id: int, next_level_code: str, cost, day: int) -> N
                 float(_to_dec(cost)),
             ),
         )
+
+
+def get_base_capacity_info(save_id: int) -> List[dict]:
+    """
+    Returns capacity information for all owned bases.
+    Shows current aircraft count vs. maximum capacity based on base level.
+    
+    Returns:
+        List of dicts with:
+        - base_id, base_ident, base_name
+        - current_level (SMALL/MEDIUM/LARGE/HUGE)
+        - max_capacity (2/5/10/20)
+        - current_count (number of aircraft currently at this base)
+    """
+    from utils import get_connection
+    
+    # Base level capacities
+    LEVEL_CAPACITY = {
+        'SMALL': 2,
+        'MEDIUM': 5,
+        'LARGE': 10,
+        'HUGE': 20
+    }
+    
+    sql = """
+        SELECT 
+            ob.base_id,
+            ob.base_ident,
+            ob.base_name,
+            COALESCE(
+                (SELECT bu.upgrade_code 
+                 FROM base_upgrades bu 
+                 WHERE bu.base_id = ob.base_id 
+                 ORDER BY bu.base_upgrade_id DESC 
+                 LIMIT 1),
+                'SMALL'
+            ) AS current_level,
+            COUNT(a.aircraft_id) AS current_count
+        FROM owned_bases ob
+        LEFT JOIN aircraft a ON a.current_airport_ident = ob.base_ident 
+            AND a.save_id = ob.save_id 
+            AND (a.sold_day IS NULL OR a.sold_day = 0)
+        WHERE ob.save_id = %s
+        GROUP BY ob.base_id, ob.base_ident, ob.base_name
+        ORDER BY ob.base_name
+    """
+    
+    with get_connection() as yhteys:
+        kursori = yhteys.cursor(dictionary=True)
+        kursori.execute(sql, (save_id,))
+        results = kursori.fetchall() or []
+        
+        # Add max_capacity to each result
+        for row in results:
+            level = row.get('current_level', 'SMALL')
+            row['max_capacity'] = LEVEL_CAPACITY.get(level, 2)
+            row['is_full'] = row['current_count'] >= row['max_capacity']
+            row['is_near_full'] = row['current_count'] >= row['max_capacity'] - 1
+        
+        return results
