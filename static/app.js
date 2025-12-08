@@ -25,7 +25,7 @@ async function startNewGame() {
           method: 'POST',
         });
         if (!response.ok) {
-          throw Error('Uuden pelin luonti epäonnistui.');
+          throw new Error('Uuden pelin luonti epäonnistui.');
         }
         
         showGameScreen();
@@ -40,6 +40,34 @@ async function startNewGame() {
     }
 }
 
+async function showLoadScreen() {
+  const gameListElement = document.getElementById('saved_games_list');
+  gameListElement.innerHTML = 'Ladataan';
+
+  try {
+    const response = await fetch('/api/games');
+    if (!response.ok) {
+      throw new Error('Pelien lataus epäonnistui.');
+    }
+    const games = await response.json();
+
+    gameListElement.innerHTML = '';
+    if (games.length === 0) {
+      gameListElement.innerHTML = 'Ei tallennettuja pelejä.';
+      return;
+    }
+
+    games.forEach(game => {
+      const li = document.createElement('li');
+      li.textContent = `${game.id}: '' ${game.name || ''} (Päivä: ${game.day || ''})`;
+      li.onclick = () => loadGame(game.id); // liitetään latausfunktio
+      gameListElement.appendChild(li);
+    })
+  } catch (error) {
+    console.error(error);
+    gameListElement.innerHTML = 'Virhe ladatessa peliä.';
+  }
+}
 /**
  * Lataa tallennetun pelin
  * Näyttää load-dialogin tai lataa suoraan
@@ -48,7 +76,13 @@ async function loadGame() {
     try {
         // Tässä voidaan myöhemmin lisätä tallennusten valinta-dialogi
         // Toistaiseksi ladataan oletustallennus
-        
+        const response = await fetch(`/api/games/${gameId}/load`,{
+          method: 'POST',
+        });
+        if (!response.ok) {
+          throw new Error('Pelin lataus epäonnistui.');
+        }
+
         showGameScreen();
         showNotification('Peli ladattu!', 'success', 'TERVETULOA TAKAISIN');
         
@@ -90,6 +124,8 @@ function exitGame() {
 function showGameScreen() {
     const startScreen = document.getElementById('start-screen');
     const gameContainer = document.getElementById('game-container');
+
+
     
     // Piilota start screen ja näytä peli
     startScreen.classList.add('hidden');
