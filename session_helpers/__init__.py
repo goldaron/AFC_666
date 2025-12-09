@@ -32,6 +32,7 @@ from .bases import (
     fetch_owned_bases,
     fetch_base_current_level_map,
     insert_base_upgrade,
+    get_base_capacity_info,
 )
 
 __all__ = [
@@ -50,5 +51,6 @@ __all__ = [
     # Tukikohtien hallinta
     "fetch_owned_bases",           # Hakee pelaajan omistamat tukikohdat
     "fetch_base_current_level_map", # Palauttaa tukikohtien nykyiset tasot
-    "insert_base_upgrade",         # Lisää tukikohdan päivityksen tietokantaan
+    "insert_base_upgrade",          # Lisää tukikohdan päivityksen tietokantaan 
+    "get_base_capacity_info"         # Hakee tukikohtien kapasiteettitiedot
 ]

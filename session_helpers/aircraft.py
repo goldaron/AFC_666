@@ -46,15 +46,22 @@ def fetch_player_aircrafts_with_model_info(save_id: int) -> List[dict]:
         - model_name, category
         - purchase_price_aircraft, purchase_price_model
         - eco_fee_multiplier
+        - condition_percent, hours_flown, status
+        - current_airport_ident, acquired_day
     """
     sql = """
         SELECT
             a.aircraft_id,
             a.registration,
             a.model_code,
+            a.current_airport_ident,
+            a.condition_percent,
+            a.hours_flown,
+            a.status,
+            a.acquired_day,
+            a.purchase_price  AS purchase_price_aircraft,
             am.model_name,
             am.category,
-            a.purchase_price  AS purchase_price_aircraft,
             am.purchase_price AS purchase_price_model,
             am.eco_fee_multiplier
         FROM aircraft a
@@ -100,10 +107,16 @@ def get_current_aircraft_upgrade_state(aircraft_id: int, upgrade_code: str = UPG
         ORDER BY aircraft_upgrade_id DESC
         LIMIT 1
     """
-    with get_connection() as yhteys:
+    yhteys = get_connection()
+    kursori = None
+    try:
         kursori = yhteys.cursor(dictionary=True)
         kursori.execute(sql, (aircraft_id, upgrade_code))
         row = kursori.fetchone()
+    finally:
+        if kursori:
+            kursori.close()
+        yhteys.close()
 
     if not row:
         return {"level": 0}
@@ -206,7 +219,9 @@ def apply_aircraft_upgrade(aircraft_id: int, installed_day: int) -> int:
         VALUES
             (%s, %s, %s, %s)
     """
-    with get_connection() as yhteys:
+    yhteys = get_connection()
+    kursori = None
+    try:
         kursori = yhteys.cursor()
         kursori.execute(
             sql,
@@ -217,6 +232,11 @@ def apply_aircraft_upgrade(aircraft_id: int, installed_day: int) -> int:
                 int(installed_day),
             ),
         )
+        yhteys.commit()
+    finally:
+        if kursori:
+            kursori.close()
+        yhteys.close()
     return new_level
 
 
@@ -244,10 +264,16 @@ def get_effective_eco_for_aircraft(aircraft_id: int) -> float:
         JOIN aircraft_models am ON am.model_code = a.model_code
         WHERE a.aircraft_id = %s
     """
-    with get_connection() as yhteys:
+    yhteys = get_connection()
+    kursori = None
+    try:
         kursori = yhteys.cursor()
         kursori.execute(sql, (aircraft_id,))
         row = kursori.fetchone()
+    finally:
+        if kursori:
+            kursori.close()
+        yhteys.close()
 
     # Haetaan perus-ECO
     if row is None:

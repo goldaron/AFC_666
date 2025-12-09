@@ -17,20 +17,6 @@
  * - GET /api/tasks → aktiivisten sopimusten haku kartanäkymää varten
  */
 
-/**
- * map.js - Maailmankartan näkymä (optimoitu)
- * Näyttää VAIN tehtävällä olevat koneet, niiden lähtö ja loppupisteet, sekä reitit
- * - Lähtöpisteet: harmaa, hehkuva
- * - Loppupisteet: sininen, hehkuva  
- * - Reitit: sininen katkoviiva
- * 
- * OPTIMOINNIT:
- * - Kartan alustus vain kerran (mapInitialized flag)
- * - Välimuisti API-datalle (mapDataCache)
- * - Ei kaikkia lentokenttiä, vain tehtävän kohteet
- * - Duplikaatit poistettu drawnOrigins/drawnDestinations seteillä
- */
-
 let mapInstance = null;
 let mapMarkers = [];
 let mapPolylines = [];
@@ -71,28 +57,31 @@ async function initializeMap() {
         // Haetaan kartan tiedot
         const mapData = await apiCall('/api/map-data');
         
-        if (!mapData || !mapData.activeContracts || mapData.activeContracts.length === 0) {
-            console.warn('Ei aktiivisia lentoja');
-            const listContainer = document.getElementById('active-flights-list');
-            if (listContainer) {
-                listContainer.innerHTML = '<div class="empty-state">Ei aktiivisia lentoja</div>';
-            }
+        if (!mapData) {
+            console.warn('Karttadataa ei saatu');
             return;
         }
         
         // Tallennetaan data välimuistiin
         mapDataCache = mapData;
         
-        // Piirretään aktiiviset lennot (lähtöpisteet harmaina, loppupisteet sinisina, viivat sinisiä)
-        drawActiveFlights(mapData.activeContracts);
+        // Piirretään aktiiviset lennot (jos niitä on)
+        if (mapData.activeContracts && mapData.activeContracts.length > 0) {
+            drawActiveFlights(mapData.activeContracts);
+        } else {
+            const listContainer = document.getElementById('active-flights-list');
+            if (listContainer) {
+                listContainer.innerHTML = '<div class="empty-state">Ei aktiivisia lentoja</div>';
+            }
+        }
         
-        // Piirretään pääkotisatama erityisellä ikonilla
-        if (mapData.headquartersIdent) {
-            drawHeadquarters(mapData.airports, mapData.headquartersIdent);
+        // Piirretään tukikohdat (jos niitä on)
+        if (mapData.ownedBases && mapData.ownedBases.length > 0) {
+            drawBases(mapData.ownedBases);
         }
         
         // Päivitään alempi lista aktiivisista lennoista
-        displayActiveFlyingList(mapData.activeContracts, mapData.currentDay);
+        displayActiveFlyingList(mapData.activeContracts || [], mapData.currentDay);
         
     } catch (error) {
         console.error('Kartan lataus epäonnistui:', error);
@@ -127,7 +116,6 @@ function drawActiveFlights(activeContracts) {
     // Seurataan mitä lentokenttiä olemme jo piirtäneet (välttää duplikaatit)
     const drawnOrigins = new Set();
     const drawnDestinations = new Set();
-    const hasEventFlights = new Set();
     
     activeContracts.forEach((contract) => {
         const from = [contract.originLat, contract.originLon];
@@ -349,59 +337,59 @@ async function loadMapView() {
         return;
     }
     
-    // Alustetaan kartta
-    await initializeMap();
-    
-    // Jos kartta on jo alustettu, päivitetään koko näkymä
-    if (mapInstance) {
-        // Pieni viive varmistaa että DOM on päivitetty
-        setTimeout(() => {
+    // Odotetaan hetki, että näkymä on varmasti renderöitynyt ja näkyvissä (display: block)
+    // Tämä on kriittistä Leafletin koon laskennalle
+    requestAnimationFrame(async () => {
+        // Alustetaan kartta
+        await initializeMap();
+        
+        // Jos kartta on jo alustettu, pakotetaan koon päivitys
+        if (mapInstance) {
             mapInstance.invalidateSize();
-        }, 100);
-    }
+        }
+    });
 }
 
-// Piirretään pääkotisatama (tukikohta) kartalle erityisellä ikonilla
-function drawHeadquarters(airports, headquartersIdent) {
-    // Haetaan pääkotisataman koordinaatit
-    const headquarters = airports.find(a => a.ident === headquartersIdent);
-    
-    console.log("drawHeadquarters debug:", {
-        headquartersIdent: headquartersIdent,
-        airportsCount: airports.length,
-        found: headquarters !== undefined,
-        headquarters: headquarters
-    });
-    
-    if (!headquarters || !headquarters.latitude_deg || !headquarters.longitude_deg) {
-        console.warn("Pääkotisataman koordinaatteja ei löytynyt:", headquartersIdent);
-        return;
-    }
-    
-    // Luodaan erityinen merkki pääkotisatamalle (kultainen väri)
-    const hqMarker = L.marker(
-        [headquarters.latitude_deg, headquarters.longitude_deg],
-        {
-            icon: L.divIcon({
-                className: "headquarters-icon",
-                html: "🏢",
-                iconSize: [40, 40],
-                iconAnchor: [20, 20],
-            }),
-            title: "PÄÄKOTISATAMA"
+// Piirretään kaikki omistetut tukikohdat kartalle
+function drawBases(ownedBases) {
+    ownedBases.forEach(base => {
+        if (!base.latitude || !base.longitude) {
+            console.warn("Tukikohdan koordinaatteja ei löytynyt:", base.ident);
+            return;
         }
-    );
-    
-    // Lisätään popup
-    const popupContent = `
-        <strong>🏢 PÄÄKOTISATAMA</strong><br>
-        ${headquarters.name}<br>
-        ${headquarters.ident}
-    `;
-    hqMarker.bindPopup(popupContent);
-    
-    // Lisätään kartalle
-    hqMarker.addTo(mapInstance);
+        
+        const isHQ = base.isHeadquarters;
+        const iconHtml = isHQ ? '🏢' : '🏠';
+        const iconSize = isHQ ? 40 : 30;
+        const zIndex = isHQ ? 1000 : 900;
+        
+        // Luodaan merkki tukikohdalle
+        const baseMarker = L.marker(
+            [base.latitude, base.longitude],
+            {
+                icon: L.divIcon({
+                    className: "headquarters-icon", // Käytetään samaa tyyliä (hohde)
+                    html: iconHtml,
+                    iconSize: [iconSize, iconSize],
+                    iconAnchor: [iconSize / 2, iconSize / 2],
+                }),
+                title: base.name,
+                zIndexOffset: zIndex
+            }
+        );
+        
+        // Lisätään popup
+        const popupContent = `
+            <strong>${isHQ ? 'PÄÄKOTISATAMA' : 'TUKIKOHTA'}</strong><br>
+            ${base.name}<br>
+            <span style="font-family: monospace;">${base.ident}</span>
+        `;
+        baseMarker.bindPopup(popupContent);
+        
+        // Lisätään kartalle ja listaan
+        baseMarker.addTo(mapInstance);
+        mapMarkers.push(baseMarker);
+    });
 }
 
 // Rekisteröidään näkymän lataaja

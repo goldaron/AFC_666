@@ -1,5 +1,4 @@
 .github/*
-GEMINI.md
 
 # Kehitysympäristön ja editorin tiedostot ei kuulu peliin
 .venv/
@@ -27,9 +26,15 @@ __pycache__/
 *.sqlite
 
 # Pidetään henkilökohtaiset asetukset ja avaimet poissa reposta
-utils.py
 .playwright-mcp/page-2025-12-03T11-53-06-508Z.png
 test_minimal.py
 test_server.py
 /.playwright-mcp
 /.serena
+*.pyc
+GEMINI.md
+session_helpers/__pycache__/__init__.cpython-39.pyc
+session_helpers/__pycache__/aircraft.cpython-39.pyc
+session_helpers/__pycache__/bases.cpython-39.pyc
+session_helpers/__pycache__/common.cpython-39.pyc
+debug_db.py
