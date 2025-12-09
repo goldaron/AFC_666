@@ -64,7 +64,7 @@ import math
 import random
 import string
 import time
-from typing import List, Optional, Dict, Set
+from typing import List, Optional, Dict, Set, Any
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 from datetime import datetime
 from utils import get_connection, get_db_connection
@@ -143,6 +143,7 @@ class GameSession:
             rng_seed: Optional[int] = None,
             status: str = "ACTIVE",
             default_difficulty: str = "NORMAL",
+            interactive: bool = True,
     ) -> "GameSession":
         """
         Luo uuden tallennuksen ja käynnistää pelin.
@@ -204,7 +205,7 @@ class GameSession:
                 print(f"⚠️  Satunnaistapahtumien alustus epäonnistui: {err}")
 
         # Ensimmäinen tukikohta + lahjakone (STARTER)
-        session._first_time_base_and_gift_setup(starting_cash=_to_dec(cash))
+        session._first_time_base_and_gift_setup(starting_cash=_to_dec(cash), interactive=interactive)
 
         return session
 
@@ -236,11 +237,12 @@ class GameSession:
 
     # ---------- Ensimmäinen tukikohta + lahjakone ----------
 
-    def _first_time_base_and_gift_setup(self, starting_cash: Decimal) -> None:
+    def _first_time_base_and_gift_setup(self, starting_cash: Decimal, interactive: bool = True) -> None:
         """
         Valitse ensimmäinen tukikohta (EFHK/LFPG/KJFK).
         Hinta on 30/50/70 % aloituskassasta.
         Luodaan owned_bases ja base_upgrades(SMALL), lisätään lahjakone (STARTER: DC3FREE).
+        Kun interactive=False, valitaan automaattisesti ensimmäinen vaihtoehto.
         """
         options = [
             {"icao": "EFHK", "name": "Helsinki-Vantaa", "factor": Decimal("0.30")},
@@ -250,20 +252,24 @@ class GameSession:
         for o in options:
             o["price"] = (starting_cash * o["factor"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-        _icon_title("Ensimmäinen tukikohta")
-        for i, o in enumerate(options, start=1):
-            print(f"{i}) 🛫 {o['name']} ({o['icao']}) | 💶 Hinta: {self._fmt_money(o['price'])}")
+        if interactive:
+            _icon_title("Ensimmäinen tukikohta")
+            for i, o in enumerate(options, start=1):
+                print(f"{i}) 🛫 {o['name']} ({o['icao']}) | 💶 Hinta: {self._fmt_money(o['price'])}")
 
-        # Valinnan validointi
-        while True:
-            sel = input("Valinta numerolla (1-3): ").strip()
-            try:
-                idx = int(sel)
-                if 1 <= idx <= len(options):
-                    break
-                print("⚠️  Valitse numero 1-3.")
-            except ValueError:
-                print("⚠️  Anna numero 1-3.")
+            # Valinnan validointi
+            while True:
+                sel = input("Valinta numerolla (1-3): ").strip()
+                try:
+                    idx = int(sel)
+                    if 1 <= idx <= len(options):
+                        break
+                    print("⚠️  Valitse numero 1-3.")
+                except ValueError:
+                    print("⚠️  Anna numero 1-3.")
+        else:
+            # API-kutsuissa valitaan automaattisesti ensimmäinen tukikohta (Helsinki)
+            idx = 1
 
         chosen = options[idx - 1]
         base_ident = chosen["icao"]
@@ -291,7 +297,8 @@ class GameSession:
             nickname="Iso-isän DC-3",
         )
         print("🎁 Iso-isä lahjoitti sinulle Douglas DC-3 -koneen ja velkansa. 🫣\nOnnea matkaan, tarvitset sitä!")
-        input("↩︎ Enter jatkaa...")
+        if interactive:
+            input("↩︎ Enter jatkaa...")
 
     # ---------- Päävalikko ----------
 
@@ -3199,3 +3206,59 @@ class GameSession:
             print(f"☁️  CO2-päästöjä yhteensä: {total_emissions_kg:,.0f} kg".replace(",", " "))
 
         print("\nKiitos kun pelasit!")
+
+    def get_end_game_stats(self) -> Dict[str, Any]:
+        """
+        Palauttaa kattavan statistiikkapaketin pelin lopetusta varten (API).
+        """
+        stats = {}
+        with get_db_connection() as yhteys:
+            kursori = yhteys.cursor(dictionary=True)
+
+            # 1. Perustiedot
+            stats["player_name"] = self.player_name
+            stats["status"] = self.status
+            stats["current_day"] = self.current_day
+            stats["final_balance"] = self.cash
+
+            # 2. Laivaston koko
+            kursori.execute("SELECT COUNT(*) as cnt FROM aircraft WHERE save_id = %s AND (sold_day IS NULL OR sold_day = 0)", (self.save_id,))
+            stats["fleet_size"] = int(kursori.fetchone()["cnt"] or 0)
+
+            # 3. Lennot ja tunnit (kaikki lennot)
+            kursori.execute("SELECT COUNT(*) as cnt, SUM(distance_km) as dist FROM flights WHERE save_id = %s", (self.save_id,))
+            flight_res = kursori.fetchone()
+            stats["total_flights"] = int(flight_res["cnt"] or 0)
+            stats["total_distance_km"] = int(flight_res["dist"] or 0)
+
+            kursori.execute("SELECT SUM(hours_flown) as hrs FROM aircraft WHERE save_id = %s", (self.save_id,))
+            stats["total_hours"] = int(kursori.fetchone()["hrs"] or 0)
+
+            # 4. Rahdin määrä (valmistuneet sopimukset)
+            kursori.execute("SELECT SUM(payload_kg) as cargo FROM contracts WHERE save_id = %s AND status IN ('COMPLETED', 'COMPLETED_LATE')", (self.save_id,))
+            stats["total_cargo_kg"] = int(kursori.fetchone()["cargo"] or 0)
+
+            # 5. Kokonaistulot (palkkiot)
+            kursori.execute("SELECT SUM(final_reward) as income FROM contracts WHERE save_id = %s AND status IN ('COMPLETED', 'COMPLETED_LATE')", (self.save_id,))
+            stats["total_income"] = _to_dec(kursori.fetchone()["income"] or 0)
+            
+            # 6. Päästöt
+            kursori.execute("SELECT SUM(emission_kg_co2) as co2 FROM flights WHERE save_id = %s", (self.save_id,))
+            stats["total_co2_kg"] = float(kursori.fetchone()["co2"] or 0.0)
+
+            # 7. Achievement check (esimerkki)
+            # "TAIVAIDEN HERRA": 10+ konetta ja 2M+ rahaa
+            if stats["fleet_size"] >= 10 and stats["final_balance"] >= Decimal("2000000"):
+                stats["achievement"] = "TAIVAIDEN HERRA"
+                stats["achievement_desc"] = "Omista 10+ konetta ja ansaitse 2M€"
+            elif stats["total_cargo_kg"] >= 1000000:
+                stats["achievement"] = "RAHTIKUNINGAS"
+                stats["achievement_desc"] = "Kuljeta yli 1 000 000 kg rahtia"
+            elif stats["current_day"] >= SURVIVAL_TARGET_DAYS:
+                stats["achievement"] = "SELVIYTYJÄ"
+                stats["achievement_desc"] = f"Selviä {SURVIVAL_TARGET_DAYS} päivää"
+            else:
+                stats["achievement"] = None
+                stats["achievement_desc"] = None
+
+        return stats

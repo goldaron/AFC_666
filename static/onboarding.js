@@ -30,17 +30,11 @@ function transitionToMainMenu() {
     const splashScreen = document.getElementById('splash-screen');
     const startScreen = document.getElementById('start-screen');
     
-    // Fade out splash screen
-    splashScreen.classList.add('fade-out');
-    
-    // Näytä päävalikko (#start-screen) fade-in:lla
-    setTimeout(() => {
-        splashScreen.classList.add('hidden');
-        if (startScreen) {
-            startScreen.classList.remove('hidden');
-            startScreen.classList.add('fade-in');
-        }
-    }, 300);
+    // Piilota splash, näytä valikko
+    splashScreen.classList.add('hidden');
+    if (startScreen) {
+        startScreen.classList.remove('hidden');
+    }
 }
 
 // === PÄÄVALIKKO FUNKTIOT ===
@@ -89,7 +83,6 @@ function closeNewGameModal() {
 function openLoadGameModal() {
     const startScreen = document.getElementById('start-screen');
     const loadGameModal = document.getElementById('load-game-modal');
-    const loadGameList = document.getElementById('load-game-list');
     
     startScreen.classList.add('hidden');
     loadGameModal.classList.remove('hidden');
@@ -112,7 +105,7 @@ async function loadSavedGames() {
         if (!response.ok) throw new Error('Failed to fetch games');
         
         const data = await response.json();
-        const games = data.games || [];
+        const games = data || []; // API returns list directly based on api_server.py
         
         const loadGameList = document.getElementById('load-game-list');
         
@@ -121,20 +114,28 @@ async function loadSavedGames() {
             return;
         }
         
-        // Muodosta pelirivit
+        // Muodosta pelirivit Figman mukaan
         let html = '';
         games.forEach((game, index) => {
             const gameId = String(index + 1).padStart(3, '0'); // 001, 002, jne
-            const playerName = game.player_name || 'Tuntematon';
-            const currentDay = game.current_day || 1;
+            const playerName = game.name || 'Tuntematon';
+            const currentDay = game.day || 1;
             const cash = game.cash || 0;
-            const baseId = game.base_id || 'UNKNOWN';
             
             // Formatoi raha euroiksi
             const cashFormatted = '€' + new Intl.NumberFormat('fi-FI', {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 0
-            }).format(cash);
+            }).format(parseFloat(cash));
+            
+            // Päivämäärä muodossa "Oct 27, 2025"
+            const gameDate = new Date(game.created_at || Date.now());
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const dateStr = `${months[gameDate.getMonth()]} ${gameDate.getDate()}, ${gameDate.getFullYear()}`;
+            
+            // Kuvitteellinen sijainti (voidaan laajentaa myöhemmin tietokannasta)
+            const locations = ['New York', 'Los Angeles', 'Dubai', 'Singapore'];
+            const location = locations[index % locations.length];
             
             html += `
                 <div class="load-game-item">
@@ -144,8 +145,8 @@ async function loadSavedGames() {
                             <span class="load-game-player-icon">👤</span>
                             <span class="load-game-player-name">${playerName}</span>
                         </div>
-                        <div class="load-game-location">${baseId}</div>
-                        <div class="load-game-date">${new Date(game.created_at || Date.now()).toLocaleDateString('fi-FI')}</div>
+                        <div class="load-game-location">JFK - ${location}</div>
+                        <div class="load-game-date">${dateStr}</div>
                     </div>
                     <div class="load-game-stats">
                         <div class="load-game-stat">
@@ -183,7 +184,19 @@ async function selectGameAndLoad(gameId) {
         
         // Peli on ladattu, siirry dashboardiin
         closeLoadGameModal();
-        showView('dashboard-view');
+        if (typeof showView === 'function') {
+            showView('dashboard');
+        } else {
+            console.error('showView function not found');
+        }
+        
+        if (typeof updateGameStats === 'function') {
+            updateGameStats();
+        }
+        
+        if (typeof showGameScreen === 'function') {
+            showGameScreen();
+        }
         
     } catch (error) {
         console.error('Error loading game:', error);
@@ -192,16 +205,37 @@ async function selectGameAndLoad(gameId) {
 }
 
 function showSettings() {
-    // TODO: Implementoi asetukset-näkymä
-    alert('Asetukset tulossa...');
+    console.log('showSettings called from onboarding.js');
+    const modal = document.getElementById('settings-modal');
+    if (!modal) {
+        console.error('Could not find settings-modal element');
+        return;
+    }
+    console.log('Found modal:', modal);
+    modal.classList.remove('hidden');
+    console.log('Removed hidden class from modal');
+    
+    // Try to load settings after a short delay
+    setTimeout(() => {
+        try {
+            if (typeof loadSettingsFromStorage === 'function') {
+                loadSettingsFromStorage();
+                console.log('Settings loaded');
+            }
+        } catch (e) {
+            console.error('Error loading settings:', e);
+        }
+    }, 50);
 }
 
 function exitGame() {
-    // Sulkee selaimen tai ohjaa pois sovelluksesta
-    if (window.location.protocol === 'file:') {
-        alert('Peli suljetaan...');
-    } else {
-        window.close();
+    // Palaa aloitusnäyttöön
+    const startScreen = document.getElementById('start-screen');
+    const gameContainer = document.getElementById('game-container');
+    
+    if (gameContainer) gameContainer.classList.add('hidden');
+    if (startScreen) {
+        startScreen.classList.remove('hidden');
     }
 }
 
@@ -245,18 +279,25 @@ function updateNewGameModal() {
             </div>
         `;
         
-        // Lisää event listener
+        // Lisää event listener ja aseta napin state
         setTimeout(() => {
             const input = document.getElementById('company-name-input');
             if (input) {
                 input.focus();
-                input.addEventListener('change', function() {
-                    newGameData.name = this.value;
-                });
+                const updateButtonState = () => {
+                    newGameData.name = input.value.trim();
+                    const isValid = newGameData.name.length > 0;
+                    nextButton.disabled = !isValid;
+                };
+                input.addEventListener('input', updateButtonState);
+                input.addEventListener('change', updateButtonState);
+                updateButtonState(); // Aseta alustava state
             }
         }, 50);
         
         nextButton.textContent = 'Seuraava';
+        // Aseta nappi disabled-tilaan alusta jos input on tyhjä
+        nextButton.disabled = !newGameData.name || newGameData.name.trim().length === 0;
         
     } else if (currentNewGameStep === 2) {
         // Vaihe 2: Alkupääoma
@@ -284,13 +325,21 @@ function updateNewGameModal() {
             </div>
         `;
         
-        // Lisää event listener
+        // Lisää event listener ja validaatio
         setTimeout(() => {
             const input = document.getElementById('starting-cash-input');
             if (input) {
+                const updateButtonState = () => {
+                    const value = parseInt(input.value);
+                    const isValid = !isNaN(value) && value >= 50000 && value <= 10000000;
+                    nextButton.disabled = !isValid;
+                };
+                input.addEventListener('input', updateButtonState);
                 input.addEventListener('change', function() {
                     newGameData.startingCash = parseInt(this.value) || 300000;
+                    updateButtonState();
                 });
+                updateButtonState(); // Aseta alustava state
             }
         }, 50);
         
@@ -483,7 +532,9 @@ function closeOnboardingModal() {
     }
     
     // Siirry kojelautaan
-    showView('dashboard-view');
+    if (typeof showView === 'function') {
+        showView('dashboard');
+    }
 }
 
 function updateOnboardingModal() {

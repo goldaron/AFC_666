@@ -68,6 +68,11 @@ function displayDayAdvanceSummary(result) {
 
     showNotification(message, "success", "Päivä edistynyt");
 
+    // Soita ääni jos koneet saapuivat
+    if (result.arrivals && result.arrivals > 0) {
+        playEventSound('arrival_notification.mp3');
+    }
+
     if (result.arrival_details && result.arrival_details.length > 0) {
         console.log("Saapumiset:", result.arrival_details);
     }
@@ -96,6 +101,11 @@ function displayFastForwardSummary(result) {
         Ansiot yhteensä: ${formatMoney(result.total_earned)} €.
     `;
     showNotification(message, "success", "Kelaus päättynyt");
+
+    // Soita ääni jos saapuminen tai voitto
+    if (result.stop_reason === 'arrival' || result.stop_reason === 'victory') {
+        playEventSound('arrival_notification.mp3');
+    }
 
     if (result.day_summaries) {
         console.log("Päiväkohtainen yhteenveto:", result.day_summaries);

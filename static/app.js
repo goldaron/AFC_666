@@ -14,119 +14,28 @@ let activeSaveId = 1;
 // ============================================================
 
 /**
- * Aloittaa uuden pelin
- * Piilottaa start screenin ja näyttää pelin
+ * Aloittaa uuden pelin näyttämällä modaalin
  */
 function showNewGameInput() {
+    currentNewGameStep = 1;
+    newGameData = {
+        name: '',
+        startingCash: 300000,
+        seed: null
+    };
     document.getElementById('new-game-modal')?.classList.remove('hidden');
-}
-
-async function startNewGame() {
-    try {
-        // Tässä voidaan myöhemmin lisätä API-kutsu uuden pelin luomiseen
-        // const newGame = await apiCall('/api/game/new', { method: 'POST' });
-        const playerName = document.getElementById('new-player-name').value;
-        const rngSeed = document.getElementById('new-rng-seed').value;
-        const difficulty = document.getElementById('new-difficulty').value;
-
-        const payload = {
-            player_name: playerName || 'Ready Player One', // Oletus
-            rng_seed: rngSeed || null,
-            difficulty: difficulty
-         };
-
-        const newGame = await apiCall('/api/games',{
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-
-        activeSaveId = newGame.save_id;
-
-        if (!newGame.save_id) {
-          throw Error('Uuden pelin luonti epäonnistui.');
-        }
-        
-        showGameScreen();
-        showNotification('Uusi peli aloitettu!', 'success', 'TERVETULOA');
-        
-        // Päivitä pelin tila
-        await updateGameStats();
-        
-        // Näytä kojelauta oletusena
-        showView('dashboard');
-        
-    } catch (error) {
-        console.error('Uuden pelin aloitus epäonnistui:', error);
-        showNotification('Uuden pelin aloitus epäonnistui', 'error');
-    }
+    updateNewGameModal();
 }
 
 /**
- * Hakee tallennettujen pelien listan ja näyttää valintaikkunan.
+ * Avaa lataa peli -modaalin (delegoidaan onboarding.js:ään)
  */
-async function showLoadGameList() {
-    try {
-        const savedGames = await apiCall('/api/games');
-
-        const container = document.getElementById('load-game-list-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        if (savedGames.length === 0) {
-            container.innerHTML = '<p>Ei tallennettuja pelejä.</p>';
-            return;
-        }
-
-        savedGames.forEach(game => {
-            const row = document.createElement('div');
-            row.className = 'game-save-row';
-            row.innerHTML = `
-                <span>${game.name}</span>
-                <span>Päivä: ${game.day}</span>
-                <span>Kassa: €${formatMoney(game.cash)}</span>
-            `;
-            row.addEventListener('click', () => loadGame(game.id));
-            container.appendChild(row);
-        });
-
-        document.getElementById('load-screen-modal').classList.remove('hidden');
-
-    } catch (error) {
-        console.error('Virhe tallennusten haussa:', error);
-        showNotification(`Tallennusten haku epäonnistui: ${error.message}`, 'error');
-    }
-}
-/**
- * Lataa tallennetun pelin ID:n perusteella
- */
-async function loadGame(gameId) {
-    if (!gameId) {
-      showNotification('Virhe: Pelin ID puuttuu.')
-      return;
-    }
-
-    try {
-        // Tässä voidaan myöhemmin lisätä tallennusten valinta-dialogi -> tehty omaksi funktioksi
-        const response = await apiCall(`/api/games/${gameId}/load`, {
-            method: 'POST'
-        });
-
-        activeSaveId = gameId;
-
-        document.getElementById('load-screen-modal')?.classList.add('hidden');
-        showGameScreen();
-        showNotification(`Peli ${response.player_name} ladattu!`, 'success', 'TERVETULOA TAKAISIN');
-        
-        // Päivitä pelin tila
-        await updateGameStats();
-        
-        // Näytä kojelauta oletusena
-        showView('dashboard');
-        
-    } catch (error) {
-        console.error('Pelin lataus epäonnistui:', error);
-        showNotification('Pelin lataus epäonnistui', 'error');
+function showLoadGameList() {
+    if (typeof openLoadGameModal === 'function') {
+        openLoadGameModal();
+    } else {
+        console.error('openLoadGameModal-funktio ei ole saatavilla');
+        showNotification('Lataa peli -ominaisuus ei ole käytettävissä', 'error');
     }
 }
 
@@ -134,8 +43,109 @@ async function loadGame(gameId) {
  * Näyttää asetukset-dialogin
  */
 function showSettings() {
-    // TODO: Implementoi asetukset-dialogi
-    showNotification('Asetukset tulossa pian!', 'success', 'ASETUKSET');
+    const modal = document.getElementById('settings-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadSettingsFromStorage();
+    }
+}
+
+/**
+ * Sulkee asetukset-dialogin
+ */
+function closeSettings() {
+    const modal = document.getElementById('settings-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+/**
+ * Näyttää konkurssi-modaalin (häviö-näyttö)
+ * @param {Object} data - Pelin statistiikka (final_balance, peak_balance, flights, survival_days, reason)
+ */
+function showLoseModal(data = {}) {
+    const modal = document.getElementById('lose-modal');
+    if (modal) {
+        // Päivitä modaalin sisältö
+        const reason = data.reason || 'Kassavarat loppuivat';
+        const finalBalance = data.final_balance !== undefined ? data.final_balance : '-150000';
+        const peakBalance = data.peak_balance !== undefined ? data.peak_balance : '450000';
+        const flights = data.flights !== undefined ? data.flights : '342';
+        const survivalDays = data.survival_days !== undefined ? data.survival_days : '89 päivää';
+        
+        document.getElementById('lose-reason').textContent = reason;
+        document.getElementById('lose-final-balance').textContent = `€${formatMoney(finalBalance)}`;
+        document.getElementById('lose-peak-balance').textContent = `€${formatMoney(peakBalance)}`;
+        document.getElementById('lose-flights').textContent = flights;
+        document.getElementById('lose-survival-days').textContent = survivalDays;
+        
+        modal.classList.remove('hidden');
+    }
+}
+
+/**
+ * Sulkee konkurssi-modaalin ja palaa aloitusnäyttöön
+ */
+function closeLoseModal() {
+    const modal = document.getElementById('lose-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    
+    // Palaa aloitusnäyttöön
+    exitGame();
+}
+
+/**
+ * Näyttää voitto-modaalin (voitto-näyttö)
+ * @param {Object} data - Pelin statistiikka (final_balance, flights, total_income, days_played, achievement_text, total_cargo, total_distance, fleet_size, total_hours, total_co2)
+ */
+function showWinModal(data = {}) {
+    const modal = document.getElementById('win-modal');
+    if (modal) {
+        // Päivitä modaalin sisältö
+        const finalBalance = data.final_balance !== undefined ? data.final_balance : '2500000';
+        const flights = data.flights !== undefined ? data.flights : '1247';
+        const totalIncome = data.total_income !== undefined ? data.total_income : '8950000';
+        const daysPlayed = data.days_played !== undefined ? data.days_played : '365';
+        const achievementText = data.achievement_text || '"TAIVAIDEN HERRA" - Omista 10+ konetta ja ansaitse €2M';
+        
+        // Uudet kentät
+        const totalCargo = data.total_cargo_kg !== undefined ? data.total_cargo_kg : '-';
+        const totalDistance = data.total_distance_km !== undefined ? data.total_distance_km : '-';
+        const fleetSize = data.fleet_size !== undefined ? data.fleet_size : '-';
+        const totalHours = data.total_hours !== undefined ? data.total_hours : '-';
+        const totalCo2 = data.total_co2_kg !== undefined ? data.total_co2_kg : '-';
+
+        document.getElementById('win-final-balance').textContent = `€${formatMoney(finalBalance)}`;
+        document.getElementById('win-flights').textContent = flights;
+        document.getElementById('win-total-income').textContent = `€${formatMoney(totalIncome)}`;
+        document.getElementById('win-days-played').textContent = daysPlayed;
+        document.getElementById('win-achievement-text').textContent = achievementText;
+        
+        // Päivitä uudet kentät jos elementit löytyvät
+        if(document.getElementById('win-total-cargo')) document.getElementById('win-total-cargo').textContent = totalCargo.toLocaleString();
+        if(document.getElementById('win-total-distance')) document.getElementById('win-total-distance').textContent = totalDistance.toLocaleString();
+        if(document.getElementById('win-fleet-size')) document.getElementById('win-fleet-size').textContent = fleetSize;
+        if(document.getElementById('win-total-hours')) document.getElementById('win-total-hours').textContent = totalHours.toLocaleString();
+        if(document.getElementById('win-total-co2')) document.getElementById('win-total-co2').textContent = Math.round(totalCo2).toLocaleString();
+        
+        modal.classList.remove('hidden');
+    }
+}
+
+/**
+ * Sulkee voitto-modaalin ja palaa aloitusnäyttöön
+ */
+function closeWinModal() {
+    const modal = document.getElementById('win-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    
+    // Palaa aloitusnäyttöön
+    exitGame();
 }
 
 /**
@@ -146,9 +156,11 @@ function exitGame() {
     const startScreen = document.getElementById('start-screen');
     const gameContainer = document.getElementById('game-container');
     
-    // Näytä start screen fade-efektillä
-    gameContainer.classList.add('hidden');
-    startScreen.classList.remove('hidden');
+    // Piilota peli, näytä aloitusnäyttö
+    if (gameContainer) gameContainer.classList.add('hidden');
+    if (startScreen) {
+        startScreen.classList.remove('hidden');
+    }
     
     showNotification('Palattu aloitusnäyttöön', 'success', 'NÄKEMIIN');
 }
@@ -178,15 +190,15 @@ async function exitAndSaveGame() {
 }
 
 /**
- * Näyttää pelinäytön ja piilottaa start screenin
+ * Näyttää pelinäytön ja piilottaa päävalikon
  */
 function showGameScreen() {
     const startScreen = document.getElementById('start-screen');
     const gameContainer = document.getElementById('game-container');
     
-    // Piilota start screen ja näytä peli
-    startScreen.classList.add('hidden');
-    gameContainer.classList.remove('hidden');
+    // Piilota päävalikko ja näytä peli
+    if (startScreen) startScreen.classList.add('hidden');
+    if (gameContainer) gameContainer.classList.remove('hidden');
 }
 
 // ============================================================
@@ -264,6 +276,10 @@ function showView(viewName) {
         } else if (viewName === 'clubhouse') {
             // Kerhohuone: päivitä cash-display
             updateClubhouseCash();
+        } else if (viewName === 'blackjack') {
+            // Blackjack: näytä pelisetup
+            updateBlackjackCash();
+            showBlackjackSetupView();
         } else if (viewName === 'map') {
             // Kartta: alusta kartta ja lataa lennon tiedot
             loadMapView();
@@ -289,6 +305,37 @@ async function updateGameStats() {
         document.getElementById('current-day').textContent = data.current_day || '1';
         document.getElementById('cash-amount').textContent = `€${formatMoney(data.cash)}`;
         document.getElementById('home-base').textContent = data.home_base || '-';
+
+        // TARKISTA PELIN TILA (VOITTO / HÄVIÖ)
+        if (data.status === 'VICTORY' || data.status === 'BANKRUPT') {
+            // Hae lopputilastot ja näytä modal
+            try {
+                const statsResponse = await fetch(`${API_BASE}/api/game/stats`);
+                if (statsResponse.ok) {
+                    const stats = await statsResponse.json();
+                    
+                    if (data.status === 'VICTORY') {
+                        showWinModal({
+                            final_balance: stats.final_balance,
+                            flights: stats.total_flights,
+                            total_income: stats.total_income,
+                            days_played: stats.current_day,
+                            achievement_text: stats.achievement ? `"${stats.achievement}" - ${stats.achievement_desc}` : "Ei uusia saavutuksia."
+                        });
+                    } else {
+                        showLoseModal({
+                            reason: "Kassavarat loppuivat", // Tai muu syy, jos API palauttaa sen
+                            final_balance: stats.final_balance,
+                            peak_balance: stats.final_balance, // Placeholder, kunnes peak_balance on saatavilla
+                            flights: stats.total_flights,
+                            survival_days: `${stats.current_day} päivää`
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("Lopputilastojen haku epäonnistui:", e);
+            }
+        }
         
     } catch (error) {
         console.error('Virhe pelin tilan haussa:', error);
@@ -389,11 +436,89 @@ async function loadDashboardData() {
             upgradeCount
         });
         
+        // Lataa uutisten päivän numero myös näkymään
+        await loadNewsEvents();
+        
     } catch (error) {
         console.error('Kojelaudan tietojen lataus epäonnistui:', error);
         // Näytä virheilmoitus käyttäjälle
         showNotification('Kojelaudan tietojen lataus epäonnistui', 'error');
     }
+}
+
+/**
+ * Näyttää news-modaalin ja lataa uutiset
+ */
+async function showNewsModal() {
+    const modal = document.getElementById('news-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        await loadNewsEvents();
+    }
+}
+
+/**
+ * Sulkee news-modaalin
+ */
+function closeNewsModal() {
+    const modal = document.getElementById('news-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+/**
+ * Lataa ja näyttää viimeisimmät news-tapahtumat
+ */
+async function loadNewsEvents() {
+    try {
+        const response = await apiCall('/api/events');
+        const { current_day, events } = response;
+        
+        // Päivitä päivän numero news-kortissa
+        const dayEl = document.getElementById('dashboard-news-day');
+        if (dayEl) {
+            dayEl.textContent = current_day;
+        }
+        
+        // Näytä uutiset modaalissa
+        const newsList = document.getElementById('news-list');
+        if (!newsList) return;
+        
+        if (!events || events.length === 0) {
+            newsList.innerHTML = '<div class="loading">Ei uutisia saatavilla</div>';
+            return;
+        }
+        
+        newsList.innerHTML = events.map(event => `
+            <div class="news-item ${event.color}">
+                <div class="news-item-content">
+                    <div class="news-item-day">PÄIVÄ ${event.day}</div>
+                    <div class="news-item-title">${escapeHtml(event.event_name)}</div>
+                    <div class="news-item-weather">${escapeHtml(event.weather_description || '')}</div>
+                    <div class="news-item-description">${escapeHtml(event.description || 'Tapahtumat pelin kulussa.')}</div>
+                </div>
+                <div class="news-item-badge">${event.type.toUpperCase()}</div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Uutisten lataus epäonnistui:', error);
+        const newsList = document.getElementById('news-list');
+        if (newsList) {
+            newsList.innerHTML = '<div class="loading">Uutisten lataus epäonnistui</div>';
+        }
+    }
+}
+
+/**
+ * Turvallisesti näyttää tekstin HTML:ssä (XSS-suojaus)
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 /**
@@ -410,6 +535,181 @@ function reloadCurrentView() {
             // showView kutsuu automaattisesti oikeat lataustoiminnot
             showView(viewName);
         }
+    }
+}
+
+// ============================================================
+// ASETUKSET / SETTINGS FUNCTIONS
+// ============================================================
+
+/**
+ * Lataa ääniasetukset localStorage:sta ja päivittää UI:n
+ */
+function loadSettingsFromStorage() {
+    try {
+        // Lataa ääni-asetus
+        const soundToggle = document.getElementById('sound-toggle');
+        const soundSwitch = document.getElementById('sound-switch');
+        if (soundToggle && soundSwitch) {
+            const soundEnabled = localStorage.getItem('settings_sound_enabled');
+            const isSoundEnabled = soundEnabled === null || soundEnabled === 'true';
+            soundToggle.checked = isSoundEnabled;
+            if (isSoundEnabled) {
+                soundSwitch.classList.add('enabled');
+            } else {
+                soundSwitch.classList.remove('enabled');
+            }
+        }
+
+        // Lataa fullscreen-asetus
+        const fullscreenToggle = document.getElementById('fullscreen-toggle');
+        const fullscreenSwitch = document.getElementById('fullscreen-switch');
+        if (fullscreenToggle && fullscreenSwitch) {
+            const fullscreenEnabled = localStorage.getItem('settings_fullscreen_enabled');
+            const isFullscreenEnabled = fullscreenEnabled === 'true';
+            fullscreenToggle.checked = isFullscreenEnabled;
+            if (isFullscreenEnabled) {
+                fullscreenSwitch.classList.add('enabled');
+            } else {
+                fullscreenSwitch.classList.remove('enabled');
+            }
+        }
+
+        // Lataa ilmoitukset-asetus
+        const notificationsToggle = document.getElementById('notifications-toggle');
+        const notificationsSwitch = document.getElementById('notifications-switch');
+        if (notificationsToggle && notificationsSwitch) {
+            const notificationsEnabled = localStorage.getItem('settings_notifications_enabled');
+            const isNotificationsEnabled = notificationsEnabled === null || notificationsEnabled === 'true';
+            notificationsToggle.checked = isNotificationsEnabled;
+            if (isNotificationsEnabled) {
+                notificationsSwitch.classList.add('enabled');
+            } else {
+                notificationsSwitch.classList.remove('enabled');
+            }
+        }
+
+        // Lataa vaikeusaste
+        const difficultySelect = document.getElementById('difficulty-select');
+        if (difficultySelect) {
+            const difficulty = localStorage.getItem('settings_difficulty');
+            if (difficulty) {
+                difficultySelect.value = difficulty;
+            }
+        }
+
+        // Lataa pelin nopeus
+        const speedSelect = document.getElementById('speed-select');
+        if (speedSelect) {
+            const speed = localStorage.getItem('settings_speed');
+            if (speed) {
+                speedSelect.value = speed;
+            }
+        }
+    } catch (error) {
+        console.error('Virhe asetuksien lataamisessa:', error);
+    }
+}
+
+/**
+ * Tallentaa asetukset ja sulkee modaalin
+ */
+function saveSettingsAndClose() {
+    const soundToggle = document.getElementById('sound-toggle');
+    localStorage.setItem('settings_sound_enabled', soundToggle.checked);
+    
+    const fullscreenToggle = document.getElementById('fullscreen-toggle');
+    localStorage.setItem('settings_fullscreen_enabled', fullscreenToggle.checked);
+    
+    const notificationsToggle = document.getElementById('notifications-toggle');
+    localStorage.setItem('settings_notifications_enabled', notificationsToggle.checked);
+    
+    const difficultySelect = document.getElementById('difficulty-select');
+    localStorage.setItem('settings_difficulty', difficultySelect.value);
+    
+    const speedSelect = document.getElementById('speed-select');
+    localStorage.setItem('settings_speed', speedSelect.value);
+    
+    showNotification('Asetukset tallennettu', 'success', 'OK');
+    closeSettings();
+}
+
+/**
+ * Vaihda ääni-asetusta
+ */
+function toggleSound() {
+    const soundToggle = document.getElementById('sound-toggle');
+    const soundSwitch = document.getElementById('sound-switch');
+    soundToggle.checked = !soundToggle.checked;
+    if (soundToggle.checked) {
+        soundSwitch.classList.add('enabled');
+    } else {
+        soundSwitch.classList.remove('enabled');
+    }
+}
+
+/**
+ * Vaihda fullscreen-asetusta
+ */
+function toggleFullscreen() {
+    const fullscreenToggle = document.getElementById('fullscreen-toggle');
+    const fullscreenSwitch = document.getElementById('fullscreen-switch');
+    fullscreenToggle.checked = !fullscreenToggle.checked;
+    if (fullscreenToggle.checked) {
+        fullscreenSwitch.classList.add('enabled');
+    } else {
+        fullscreenSwitch.classList.remove('enabled');
+    }
+}
+
+/**
+ * Vaihda ilmoitukset-asetusta
+ */
+function toggleNotifications() {
+    const notificationsToggle = document.getElementById('notifications-toggle');
+    const notificationsSwitch = document.getElementById('notifications-switch');
+    notificationsToggle.checked = !notificationsToggle.checked;
+    if (notificationsToggle.checked) {
+        notificationsSwitch.classList.add('enabled');
+    } else {
+        notificationsSwitch.classList.remove('enabled');
+    }
+}
+
+/**
+ * Tarkistaa ovatko äänet käyttäjän asetuksissa enabled
+ */
+function isSoundEnabled() {
+    const soundEnabled = localStorage.getItem('settings_sound_enabled');
+    return soundEnabled === null || soundEnabled === 'true';
+}
+
+/**
+ * Soittaa event-äänitiedoston jos äänet ovat käytössä
+ * @param {string} soundFile - Äänitiedoston polku (esim. "event_arrival.mp3")
+ */
+function playEventSound(soundFile) {
+    // Tarkistetaan onko äänet käyttäjän asetuksissa käytössä
+    if (!isSoundEnabled()) {
+        console.log('Äänet pois käytöstä, ei soiteta:', soundFile);
+        return;
+    }
+    
+    // Tarkistetaan että soundFile on määritetty
+    if (!soundFile || soundFile.trim() === '') {
+        console.warn('Sound file ei määritetty');
+        return;
+    }
+    
+    // Luodaan ja soitetaan audio
+    try {
+        const audio = new Audio(`/sounds/${soundFile}`);
+        audio.volume = 0.7; // 70% äänenvoimakkuus
+        audio.play().catch(error => {
+            console.warn('Äänen soittaminen epäonnistui:', error);
+        });
+    } catch (error) {
+        console.warn('Audio objektin luominen epäonnistui:', error);
     }
 }
 
@@ -459,6 +759,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Muunna img SVG:t inline SVG:ksi CSS-tuki varten
     inlineSvgImages();
     
+    // Aseta toggle switch event listener
+    const soundToggle = document.getElementById('sound-toggle');
+    if (soundToggle) {
+        soundToggle.addEventListener('change', (e) => {
+            const toggleSwitch = e.target.closest('.toggle-switch');
+            if (e.target.checked) {
+                toggleSwitch.classList.add('enabled');
+            } else {
+                toggleSwitch.classList.remove('enabled');
+            }
+            saveSettingsToStorage();
+        });
+    }
+    
     // Start screen näkyy automaattisesti
     // Peli ladataan vasta kun käyttäjä valitsee "Aloita Uusi Peli" tai "Lataa Peli"
     
@@ -472,3 +786,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.start-btn-secondary')?.addEventListener('click', showLoadGameList);
 
 });
+
+// ============================================================
+// NEW GAME MODAL FUNCTIONS
+// ============================================================
+// Note: New Game and Onboarding logic is handled in onboarding.js
+// This prevents duplicate event listeners and logic conflicts.

@@ -154,6 +154,7 @@ def create_game():
     payload = request.get_json(silent=True) or {}
     player_name = payload.get("player_name")
     rng_seed = payload.get("rng_seed")
+    starting_cash = payload.get("starting_cash", 300000)
     difficulty = payload.get("difficulty", "NORMAL")
 
     if not player_name:
@@ -162,8 +163,11 @@ def create_game():
     try:
         session = GameSession.new_game(
             name= player_name,
+            cash=float(starting_cash),
             rng_seed= int(rng_seed) if rng_seed else None,
-            default_difficulty=difficulty
+            default_difficulty=difficulty,
+            show_intro=False,  # Ohita intro API-kutsuissa
+            interactive=False  # Valitse automaattisesti ensimmäinen tukikohta
         )
         new_save_id = session.save_id
 
@@ -238,6 +242,22 @@ def get_active_game_info():
     except Exception as e:
         app.logger.exception("Aktiivisen pelin tietojen haku epäonnistui")
         return jsonify({"virhe": f"Aktiivisen pelin tietojen haku epäonnistui: {str(e)}"}), 500
+
+@app.get("/api/game/stats")
+def get_game_stats():
+    """Palauttaa pelin lopputilastot (Game Over -näyttöä varten)."""
+    try:
+        session = GameSession(save_id=ACTIVE_SAVE_ID)
+        stats = session.get_end_game_stats()
+        
+        # Muunnetaan desimaalit stringeiksi
+        stats["final_balance"] = _decimal_to_string(stats.get("final_balance"))
+        stats["total_income"] = _decimal_to_string(stats.get("total_income"))
+        
+        return jsonify(stats)
+    except Exception as e:
+        app.logger.exception("Tilastojen haku epäonnistui")
+        return jsonify({"virhe": f"Tilastojen haku epäonnistui: {str(e)}"}), 500
 
 @app.post("/api/game/save")
 def save_game():
@@ -1088,6 +1108,46 @@ def clubhouse_play():
                 "uusi_saldo": _decimal_to_string(session.cash)
             })
         
+        elif peli == "blackjack":
+            # Blackjack: asiakas lähettää pelin tulokset
+            result = payload.get("result", "").lower()  # blackjack, win, loss, bust, push
+            player_value = payload.get("player_value", 0)
+            dealer_value = payload.get("dealer_value", 0)
+            
+            # Määritä voittosumma
+            if result == "blackjack":
+                winnings = bet * Decimal("1.5")
+                session._add_cash(winnings, context="Minipeli: Blackjack - luonnollinen blackjack")
+                viesti = f"BLACKJACK! Voitit {_decimal_to_string(winnings)}€! 🎉"
+                voitto = True
+            elif result == "bust":
+                session._add_cash(-bet, context="Minipeli: Blackjack - posahtanut")
+                viesti = f"Posahtanut! Hävisit {_decimal_to_string(bet)}€ 😢"
+                voitto = False
+            elif result == "win":
+                session._add_cash(bet, context="Minipeli: Blackjack - voitto")
+                viesti = f"Voitit {_decimal_to_string(bet)}€! 🎉"
+                voitto = True
+            elif result == "loss":
+                session._add_cash(-bet, context="Minipeli: Blackjack - tappio")
+                viesti = f"Hävisit {_decimal_to_string(bet)}€ 😢"
+                voitto = False
+            elif result == "push":
+                viesti = "Tasapeli - saldo ei muuttunut"
+                voitto = None  # Push
+            else:
+                return jsonify({"virhe": f"Tuntematon tulos: {result}"}), 400
+            
+            return jsonify({
+                "game": "blackjack",
+                "result": result,
+                "player_value": player_value,
+                "dealer_value": dealer_value,
+                "voitto": voitto,
+                "viesti": viesti,
+                "cash": _decimal_to_string(session.cash)
+            })
+        
         else:
             return jsonify({"virhe": f"Tuntematon peli: {peli}"}), 400
     
@@ -1652,6 +1712,151 @@ def get_map_data():
                 pass
         yhteys.close()
 
+
+# ---------- Reitit: Uutiset / Random Events ----------
+
+@app.get("/api/events")
+def get_recent_events():
+    """Palauttaa viimeisimmät satunnaiset tapahtumatehtävät päivittäisen news-widgetin käyttöön.
+    
+    Näyttää tapahtumia viimeisimmiltä päiviltä (max 4).
+    """
+    try:
+        from event_system import get_event_for_day
+        
+        session = GameSession(save_id=ACTIVE_SAVE_ID)
+        current_day = session.current_day
+        if current_day is None:
+            current_day = 1
+        
+        # Hae tapahtumia viimeisimmältä 4 päivältä
+        events = []
+        yhteys = get_connection()
+        kursori = None
+        
+        try:
+            kursori = yhteys.cursor(dictionary=True)
+        except TypeError:
+            kursori = yhteys.cursor()
+        
+        try:
+            # Hae random_events taulusta kaikki tapahtumat, jotta voidaan yhdistää tiedot
+            kursori.execute("""
+                SELECT event_id, event_name, description, weather_description 
+                FROM random_events
+                ORDER BY event_id ASC
+            """)
+            event_defs = {}
+            for row in kursori.fetchall():
+                if isinstance(row, dict):
+                    event_defs[row['event_name']] = {
+                        'name': row['event_name'],
+                        'description': row['description'],
+                        'weather_description': row.get('weather_description')
+                    }
+                else:
+                    event_name = row[1] if len(row) > 1 else row.get('event_name')
+                    description = row[2] if len(row) > 2 else row.get('description')
+                    weather_desc = row[3] if len(row) > 3 else row.get('weather_description')
+                    event_defs[event_name] = {
+                        'name': event_name,
+                        'description': description,
+                        'weather_description': weather_desc
+                    }
+            
+            # Hae viimeisimmät 4 päivää tapahtumistaan
+            days_to_check = min(4, current_day)
+            for day_offset in range(days_to_check):
+                check_day = current_day - day_offset
+                if check_day <= 0:
+                    break
+                    
+                kursori.execute("""
+                    SELECT event_name FROM player_fate 
+                    WHERE seed = %s AND day = %s 
+                    LIMIT 1
+                """, (session.rng_seed, check_day))
+                
+                row = kursori.fetchone()
+                if row:
+                    event_name = row[0] if not isinstance(row, dict) else row.get('event_name')
+                    if event_name is None:
+                        continue
+                        
+                    event_info = event_defs.get(event_name, {
+                        'name': event_name,
+                        'description': '',
+                        'weather_description': ''
+                    })
+                    
+                    # Määritä event-tyyppi ja väri
+                    event_type = 'normal'
+                    color_class = 'cyan'
+                    
+                    event_name_lower = str(event_name).lower()
+                    
+                    # Negatiiviset eventit
+                    if event_name in ['Volcano', 'Freezing Cold', 'Storm Clouds', 'Hurricane', 'Meteor', 'Workers Strike']:
+                        event_type = 'negative'
+                        color_class = 'red'
+                    # Positiiviset eventit
+                    elif event_name in ['Sunny Sky', 'Favorable Winds', 'Best Day Ever']:
+                        event_type = 'positive'
+                        color_class = 'green'
+                    # Neutraalit/outot eventit
+                    elif event_name in ['Aliens']:
+                        event_type = 'warning'
+                        color_class = 'amber'
+                    # Normaalit
+                    elif event_name in ['Normal Day']:
+                        event_type = 'normal'
+                        color_class = 'cyan'
+                    
+                    events.append({
+                        'day': check_day,
+                        'event_name': event_name,
+                        'description': event_info.get('description', ''),
+                        'weather_description': event_info.get('weather_description', ''),
+                        'type': event_type,
+                        'color': color_class
+                    })
+            
+            # Jos ei tapahtumia, palauta placeholder
+            if not events:
+                events.append({
+                    'day': current_day,
+                    'event_name': 'Normal Day',
+                    'description': 'Normaali lentopäivä ilman erityistä tapahtumaa',
+                    'weather_description': 'Mitään erityistä! Tavanomainen päivä operaatioissa.',
+                    'type': 'normal',
+                    'color': 'cyan'
+                })
+            
+            return jsonify({
+                'current_day': current_day,
+                'events': events
+            })
+            
+        finally:
+            if kursori:
+                try:
+                    kursori.close()
+                except:
+                    pass
+            yhteys.close()
+            
+    except Exception as e:
+        app.logger.exception("Tapahtumien haku epäonnistui")
+        return jsonify({
+            'current_day': 0,
+            'events': [{
+                'day': 0,
+                'event_name': 'Virhe',
+                'description': f'Tapahtumien haku epäonnistui: {str(e)}',
+                'type': 'error',
+                'color': 'red'
+            }]
+        }), 500
 
 
 # ---------- Staattiset tiedostot (Frontend) ----------

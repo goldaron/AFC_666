@@ -102,60 +102,100 @@
         </div>
     </div>
     <!-- ALOITUSNÄYTTÖ / MAIN MENU -->
-    <section id="start-screen" class="start-screen">
-        <!-- Taustakuva ja efektit -->
-        <div class="start-bg-container">
+    <!-- PÄÄVALIKKO (Start Screen) -->
+    <section id="start-screen" class="start-screen hidden">
+        <!-- Tausta-elementit Figman mukaan -->
+        <div class="start-bg">
+            <!-- Taustakuva opacity 20% -->
             <div class="start-bg-image"></div>
+            
+            <!-- Vertical gradient (top-to-bottom) -->
             <div class="start-bg-gradient-vertical"></div>
+            
+            <!-- Horizontal gradient (left-to-right) -->
             <div class="start-bg-gradient-horizontal"></div>
+            
+            <!-- Cyan gradient background glow -->
+            <div class="start-bg-glow-cyan"></div>
+            
+            <!-- Kaksi blur-efekti palloa -->
+            <div class="start-bg-blur-left"></div>
+            <div class="start-bg-blur-right"></div>
         </div>
-        <div class="start-cyan-glow"></div>
-        <div class="start-glow-left"></div>
-        <div class="start-glow-right"></div>
 
-        <!-- Sisältö -->
-        <div class="start-content">
-            <!-- Logo ja otsikko -->
+        <!-- Näkymän sisältö - keskitetty vertikaalisesti ja horisontaalisesti -->
+        <div class="start-container">
+            <!-- Logo-osio -->
             <div class="start-logo-section">
-                <div class="start-logo-icon">
+                <!-- Logo with glow -->
+                <div class="start-logo-wrapper">
                     <div class="start-logo-glow"></div>
                     <img src="img/666_logo.svg" alt="AFC 666 Logo" class="start-logo-image">
                 </div>
-                <h1 class="start-title">LENTORAHTIYHTIÖ</h1>
-                <div class="start-title-underline"></div>
-                <div class="start-company-number">
-                    <div class="start-line"></div>
-                    <div class="start-number-container">
-                        <div class="start-dot"></div>
-                        <span class="start-number">666</span>
-                        <div class="start-dot"></div>
-                    </div>
-                    <div class="start-line"></div>
+                
+                <!-- Pääotsikko: LENTORAHTIYHTIÖ -->
+                <h1 class="start-heading">LENTORAHTIYHTIÖ</h1>
+                
+                <!-- Otsikon alla oleva viiva -->
+                <div class="start-heading-underline"></div>
+                
+                <!-- Numero-osio: — ● 666 ● — -->
+                <div class="start-number-section">
+                    <div class="start-number-line"></div>
+                    <div class="start-number-dot"></div>
+                    <span class="start-number">666</span>
+                    <div class="start-number-dot"></div>
+                    <div class="start-number-line"></div>
                 </div>
-                <p class="start-subtitle">Strateginen lentorahtisimulaatio</p>
+                
+                <!-- Alaotsikko: Strateginen lentorahtisimulaatio -->
+                <p class="start-subheading">Strateginen lentorahtisimulaatio</p>
             </div>
 
             <!-- Menu-painikkeet -->
-            <div class="start-menu">
-                <button class="start-btn start-btn-primary" onclick="startNewGame()">
-                    <span>▶️</span> Aloita Uusi Peli
+            <div class="start-buttons-section">
+                <!-- Ensimmäinen nappi: Aloita Uusi Peli (primääri, gradient) -->
+                <button class="start-btn start-btn-primary" onclick="showNewGameInput()">
+                    <svg class="start-btn-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M2 2L14 8L2 14V2Z" fill="currentColor"/>
+                    </svg>
+                    <span>Aloita Uusi Peli</span>
                 </button>
-                <button class="start-btn start-btn-secondary" onclick="loadGame()">
-                    <span>💾</span> Lataa Peli
+                
+                <!-- Toinen nappi: Lataa Peli (secondary, cyan border) -->
+                <button class="start-btn start-btn-secondary" onclick="showLoadGameList()">
+                    <svg class="start-btn-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 1V10M3 8L8 13L13 8M2 15H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Lataa Peli</span>
                 </button>
+                
+                <!-- Kolmas nappi: Asetukset (tertiary) -->
                 <button class="start-btn start-btn-tertiary" onclick="showSettings()">
-                    <span>⚙️</span> Asetukset
+                    <svg class="start-btn-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 10C9.10457 10 10 9.10457 10 8C10 6.89543 9.10457 6 8 6C6.89543 6 6 6.89543 6 8C6 9.10457 6.89543 10 8 10Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M8 2V3M8 13V14M14 8H13M3 8H2M12.1213 3.87868L11.4142 4.58579M4.58579 11.4142L3.87868 12.1213M12.1213 12.1213L11.4142 11.4142M4.58579 4.58579L3.87868 3.87868" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    <span>Asetukset</span>
                 </button>
+                
+                <!-- Neljäs nappi: Poistu (tertiary) -->
                 <button class="start-btn start-btn-tertiary" onclick="exitGame()">
-                    <span>⏹️</span> Poistu
+                    <svg class="start-btn-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M13 12L13 14C13 14.5304 12.7893 15.0391 12.4142 15.4142C12.0391 15.7893 11.5304 16 11 16L2 16C1.46957 16 0.960859 15.7893 0.585786 15.4142C0.210714 15.0391 0 14.5304 0 14V2C0 1.46957 0.210714 0.960859 0.585786 0.585786C0.960859 0.210714 1.46957 0 2 0L11 0C11.5304 0 12.0391 0.210714 12.4142 0.585786C12.7893 0.960859 13 1.46957 13 2V4M10 8L16 8M13 5L16 8L13 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Poistu</span>
                 </button>
             </div>
 
-            <!-- Versio-info -->
-            <div class="start-version">
-                <span>🛈</span>
+            <!-- Versio-info alareunaalla -->
+            <div class="start-version-info">
+                <svg class="start-version-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1"/>
+                    <path d="M6 3V6L8 7" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+                </svg>
                 <span>VERSIO 1.0.0</span>
-                <span class="start-version-dot">•</span>
+                <span class="start-version-separator">•</span>
                 <span>BUILD 666</span>
             </div>
         </div>
@@ -200,16 +240,9 @@
 
             <button onclick="exitAndSaveGame()" class="exit-game-btn" title="Lopeta peli">
                 <svg class="exit-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <style>.cls-1{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px;}</style>
-                    </defs>
                     <g id="logout">
-                        <line class="cls-1" x1="15.92" x2="28.92" y1="16" y2="16"/>
-                        <path d="M23.93,25v3h-16V4h16V7h2V3a1,1,0,0,0-1-1h-18a1,1,0,0,0-1,1V29a1,1,0,0,0,1,1h18a1,1,0,0,0,1-1V25Z" stroke="currentColor" stroke-width="2" fill="none"/>
-                        <line class="cls-1" x1="28.92" x2="24.92" y1="16" y2="20"/>
-                        <line class="cls-1" x1="28.92" x2="24.92" y1="16" y2="12"/>
-                        <line class="cls-1" x1="24.92" x2="24.92" y1="8.09" y2="6.09"/>
-                        <line class="cls-1" x1="24.92" x2="24.92" y1="26" y2="24"/>
+                        <path d="M23.93,25v3h-16V4h16V7h2V3a1,1,0,0,0-1-1h-18a1,1,0,0,0-1,1V29a1,1,0,0,0,1,1h18a1,1,0,0,0,1-1V25Z" fill="currentColor"/>
+                        <polygon points="28.92,16 24.92,12 26.33,13.41 16.92,13.41 16.92,18.59 26.33,18.59 24.92,20 28.92,16" fill="currentColor"/>
                     </g>
                 </svg>
             </button>
@@ -277,16 +310,18 @@
     <!-- Ilmoitusalue -->
     <div id="notification" class="notification hidden">
         <div class="notification-card">
-            <div class="notification-icon-wrapper">⚠️</div>
             <div class="notification-content">
-                <div class="notification-title">ILMOITUS</div>
-                <div class="notification-message">-</div>
+                <div class="notification-icon-wrapper">⚠️</div>
+                <div class="notification-text-wrapper">
+                    <div class="notification-title">ILMOITUS</div>
+                    <div class="notification-message">-</div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- KOJELAUTA-NÄKYMÄ -->
-    <section id="dashboard-view" class="view-container hidden">
+    <section id="dashboard-view" class="view-container">
         <div class="view-header">
             <h2>KOJELAUTA</h2>
             <div class="subtitle">// SEURAA LENTORAHTIYRITYSTÄSI</div>
@@ -342,19 +377,19 @@
                 </div>
             </div>
 
-            <!-- UPGRADES Card -->
-            <div class="dashboard-card upgrades-card">
+            <!-- NEWS Card -->
+            <div class="dashboard-card news-card">
                 <div class="kpi-header">
-                    <div class="kpi-icon upgrades-icon">⚙️</div>
-                    <h3>PÄIVITYKSET</h3>
+                    <div class="kpi-icon news-icon">📡</div>
+                    <h3>UUTISET</h3>
                 </div>
                 <div class="kpi-content">
-                    <div class="kpi-stat">
-                        <span class="kpi-value" id="dashboard-upgrades-count">5</span>
-                        <span class="kpi-label">SAATAVILLA</span>
+                    <div class="news-day-info">
+                        <span class="news-day-label">PÄIVÄ</span>
+                        <span class="news-day-value" id="dashboard-news-day">45</span>
                     </div>
-                    <p class="kpi-comment">// PARANNA OPERAATIOITA</p>
-                    <button class="kpi-button upgrades-btn" onclick="showView('upgrades-view')">AVAA</button>
+                    <p class="kpi-comment">// SÄÄ & TAPAHTUMAT</p>
+                    <button class="kpi-button news-btn" onclick="showNewsModal()">NÄYTÄ</button>
                 </div>
             </div>
         </div>
@@ -381,6 +416,345 @@
         </div>
     </section>
 
+    <!-- NEWS MODAL -->
+    <div id="news-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeNewsModal()"></div>
+        <div class="modal-content news-modal-content">
+            <div class="modal-header">
+                <h2>UUTISET</h2>
+                <p class="modal-subtitle">// SÄÄOLOSUHTEET JA TAPAHTUMAT</p>
+                <button class="modal-close" onclick="closeNewsModal()">✕</button>
+            </div>
+            <div class="news-list" id="news-list">
+                <div class="loading">Ladataan uutisia...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeSettings()"></div>
+        <div class="modal-content settings-modal-content">
+            <div class="modal-header">
+                <h2>⚙️ ASETUKSET</h2>
+                <p class="modal-subtitle">// HALLINNOI PELIASETUKSIA</p>
+                <button class="modal-close" onclick="closeSettings()">✕</button>
+            </div>
+            
+            <!-- ÄÄNI OSIO -->
+            <div class="settings-section">
+                <div class="settings-section-title">
+                    <span class="settings-icon">🔊</span>
+                    <div>
+                        <h3>ÄÄNI</h3>
+                        <p class="settings-section-subtitle">Hallitse ääniasetuksia</p>
+                    </div>
+                </div>
+                
+                <div class="settings-option">
+                    <label for="sound-toggle" class="settings-label">PÄÄÄÄNET</label>
+                    <div class="toggle-switch" id="sound-switch" onclick="toggleSound()">
+                        <input type="checkbox" id="sound-toggle" class="toggle-input" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+                
+                <div class="settings-sub-options">
+                    <div class="sub-option">
+                        <span class="bullet">🎵</span> Taustamusiikin äänet
+                    </div>
+                    <div class="sub-option">
+                        <span class="bullet">🔔</span> Käyttöliittymän äänet
+                    </div>
+                    <div class="sub-option">
+                        <span class="bullet">⚠️</span> Ilmoitusäänet
+                    </div>
+                </div>
+            </div>
+
+            <!-- NÄYTTÖ OSIO -->
+            <div class="settings-section">
+                <div class="settings-section-title">
+                    <span class="settings-icon">🖥️</span>
+                    <div>
+                        <h3>NÄYTTÖ</h3>
+                        <p class="settings-section-subtitle">Muuta näyttöasetuksia</p>
+                    </div>
+                </div>
+                
+                <div class="settings-option">
+                    <label for="fullscreen-toggle" class="settings-label">KOKO NÄYTTÖ</label>
+                    <div class="toggle-switch" id="fullscreen-switch" onclick="toggleFullscreen()">
+                        <input type="checkbox" id="fullscreen-toggle" class="toggle-input">
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+
+                <div class="settings-option">
+                    <label for="notifications-toggle" class="settings-label">ILMOITUKSET</label>
+                    <div class="toggle-switch" id="notifications-switch" onclick="toggleNotifications()">
+                        <input type="checkbox" id="notifications-toggle" class="toggle-input" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PELI OSIO -->
+            <div class="settings-section">
+                <div class="settings-section-title">
+                    <span class="settings-icon">🎮</span>
+                    <div>
+                        <h3>PELI</h3>
+                        <p class="settings-section-subtitle">Pelin yleisasetukset</p>
+                    </div>
+                </div>
+                
+                <div class="settings-option">
+                    <label for="difficulty-select" class="settings-label">VAIKEUSASTE</label>
+                    <select id="difficulty-select" class="settings-select">
+                        <option value="easy">HELPPO</option>
+                        <option value="normal" selected>NORMAALI</option>
+                        <option value="hard">VAIKEA</option>
+                    </select>
+                </div>
+
+                <div class="settings-option">
+                    <label for="speed-select" class="settings-label">PELIN NOPEUS</label>
+                    <select id="speed-select" class="settings-select">
+                        <option value="slow">HIDAS</option>
+                        <option value="normal" selected>NORMAALI</option>
+                        <option value="fast">NOPEA</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- INFO OSIO -->
+            <div class="settings-section">
+                <div class="settings-info">
+                    <span class="info-icon">ℹ️</span>
+                    <p>Asetukset tallennetaan automaattisesti paikallisesti ja pysyvät voimassa seuraavalla pelisessiolla.</p>
+                </div>
+            </div>
+
+            <!-- PAINIKKEET -->
+            <div class="settings-buttons">
+                <button class="modal-cancel-btn" onclick="closeSettings()">PERUUTA</button>
+                <button class="modal-next-btn" onclick="saveSettingsAndClose()">TALLENNA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOSE MODAL (KONKURSSI) -->
+    <div id="lose-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeLoseModal()"></div>
+        <div class="modal-content lose-modal-content">
+            <!-- Header background gradient -->
+            <div class="lose-modal-header-bg"></div>
+            
+            <!-- Header with title and icon -->
+            <div class="lose-modal-header">
+                <div class="lose-modal-header-content">
+                    <div class="lose-modal-icon-container">
+                        <div class="lose-modal-icon-glow"></div>
+                        <div class="lose-modal-icon">☠️</div>
+                    </div>
+                    <div class="lose-modal-title-group">
+                        <h2 class="lose-modal-title">KONKURSSI</h2>
+                        <p class="lose-modal-subtitle">PELI PÄÄTTYI</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main content -->
+            <div class="lose-modal-body">
+                <!-- Description -->
+                <div class="lose-modal-description">
+                    <p class="lose-desc-main">Lentorahtiyhtiö 666 on ajautunut konkurssiin.</p>
+                    <p class="lose-desc-sub">Taloudellinen tilanne muuttui kestämättömäksi.</p>
+                </div>
+
+                <!-- Bankruptcy reason card -->
+                <div class="lose-modal-reason-card">
+                    <div class="reason-card-icon-wrapper">
+                        <div class="reason-card-icon">⚠️</div>
+                    </div>
+                    <div class="reason-card-content">
+                        <div class="reason-card-label">KONKURSSIN SYY</div>
+                        <div class="reason-card-value" id="lose-reason">Kassavarat loppuivat</div>
+                    </div>
+                </div>
+
+                <!-- Stats grid -->
+                <div class="lose-stats-grid">
+                    <div class="lose-stat-card final-balance">
+                        <div class="lose-stat-label">
+                            <span class="lose-stat-icon">💰</span>
+                            <span>LOPPUSALDO</span>
+                        </div>
+                        <div class="lose-stat-value" id="lose-final-balance">€−150 000</div>
+                    </div>
+                    
+                    <div class="lose-stat-card peak-balance">
+                        <div class="lose-stat-label">
+                            <span class="lose-stat-icon">📈</span>
+                            <span>HUIPPUSALDO</span>
+                        </div>
+                        <div class="lose-stat-value" id="lose-peak-balance">€450 000</div>
+                    </div>
+                    
+                    <div class="lose-stat-card flights">
+                        <div class="lose-stat-label">
+                            <span class="lose-stat-icon">✈️</span>
+                            <span>LENNOT</span>
+                        </div>
+                        <div class="lose-stat-value" id="lose-flights">342</div>
+                    </div>
+                    
+                    <div class="lose-stat-card survival">
+                        <div class="lose-stat-label">
+                            <span class="lose-stat-icon">📅</span>
+                            <span>SELVIYTYI</span>
+                        </div>
+                        <div class="lose-stat-value" id="lose-survival-days">89 päivää</div>
+                    </div>
+                </div>
+
+                <!-- Tips section -->
+                <div class="lose-modal-tips-card">
+                    <div class="tips-title">VINKKEJÄ SEURAAVAAN PELIIN</div>
+                    <ul class="tips-list">
+                        <li>Seuraa kassavirtaa tarkasti ja pidä riittävä varapääoma</li>
+                        <li>Älä osta liikaa koneita kerralla - kasvata toimintaa hallitusti</li>
+                        <li>Huolla koneet säännöllisesti kalliiden korjausten välttämiseksi</li>
+                        <li>Valitse kannattavimmat reitit ja optimoi polttoainekustannukset</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Close button -->
+            <button class="lose-modal-close-btn" onclick="closeLoseModal()">SULJE</button>
+        </div>
+    </div>
+
+    <!-- WIN MODAL (VOITTO) -->
+    <div id="win-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeWinModal()"></div>
+        <div class="modal-content win-modal-content">
+            <!-- Header background gradient -->
+            <div class="win-modal-header-bg"></div>
+            
+            <!-- Header with title and icon -->
+            <div class="win-modal-header">
+                <div class="win-modal-header-content">
+                    <div class="win-modal-icon-container">
+                        <div class="win-modal-icon-glow"></div>
+                        <div class="win-modal-icon">🏆</div>
+                    </div>
+                    <div class="win-modal-title-group">
+                        <h2 class="win-modal-title">VOITTO!</h2>
+                        <p class="win-modal-subtitle">TAVOITE SAAVUTETTU</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main content -->
+            <div class="win-modal-body">
+                <!-- Description -->
+                <div class="win-modal-description">
+                    <p class="win-desc-main">Onnittelut! Olet rakentanut menestyvän lentorahtiyhtiön ja saavuttanut tavoitteesi.</p>
+                    <p class="win-desc-sub">Lentorahtiyhtiö 666 on nyt yksi markkinoiden johtavista toimijoista.</p>
+                </div>
+
+                <!-- Stats grid (expanded) -->
+                <div class="win-stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="win-stat-card final-balance">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">💰</span>
+                            <span>LOPPUSALDO</span>
+                        </div>
+                        <div class="win-stat-value" id="win-final-balance">€2 500 000</div>
+                    </div>
+                    
+                    <div class="win-stat-card total-income">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">📊</span>
+                            <span>KOKONAISTUOTOT</span>
+                        </div>
+                        <div class="win-stat-value" id="win-total-income">€8 950 000</div>
+                    </div>
+
+                    <div class="win-stat-card days-played">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">📅</span>
+                            <span>PELATUT PÄIVÄT</span>
+                        </div>
+                        <div class="win-stat-value" id="win-days-played">365</div>
+                    </div>
+                    
+                    <div class="win-stat-card flights">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">✈️</span>
+                            <span>LENNOT</span>
+                        </div>
+                        <div class="win-stat-value" id="win-flights">1247</div>
+                    </div>
+
+                    <div class="win-stat-card cargo">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">📦</span>
+                            <span>RAHTI (KG)</span>
+                        </div>
+                        <div class="win-stat-value" id="win-total-cargo">-</div>
+                    </div>
+
+                    <div class="win-stat-card distance">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">🌍</span>
+                            <span>MATKA (KM)</span>
+                        </div>
+                        <div class="win-stat-value" id="win-total-distance">-</div>
+                    </div>
+                    
+                    <div class="win-stat-card fleet">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">🛩️</span>
+                            <span>LAIVASTO</span>
+                        </div>
+                        <div class="win-stat-value" id="win-fleet-size">-</div>
+                    </div>
+
+                    <div class="win-stat-card hours">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">⏱️</span>
+                            <span>TUNNIT</span>
+                        </div>
+                        <div class="win-stat-value" id="win-total-hours">-</div>
+                    </div>
+
+                    <div class="win-stat-card co2">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">☁️</span>
+                            <span>CO2 (KG)</span>
+                        </div>
+                        <div class="win-stat-value" id="win-total-co2">-</div>
+                    </div>
+                </div>
+
+                <!-- Achievement section -->
+                <div class="win-modal-achievement-card">
+                    <div class="achievement-header">
+                        <span class="achievement-icon">⭐</span>
+                        <span class="achievement-title">SAAVUTUS AVATTU</span>
+                        <span class="achievement-icon">⭐</span>
+                    </div>
+                    <div class="achievement-content" id="win-achievement-text">"TAIVAIDEN HERRA" - Omista 10+ konetta ja ansaitse €2M</div>
+                </div>
+            </div>
+
+            <!-- Continue button -->
+            <button class="win-modal-continue-btn" onclick="closeWinModal()">JATKA PELAAMISTA</button>
+        </div>
+    </div>
 
     <!-- TEHTÄVÄT / SOPIMUKSET -NÄKYMÄ -->
     <section id="tasks-view" class="view-container">
@@ -643,6 +1017,14 @@
                     <div class="kerhohuone-card-subtitle">Peliautomaatti</div>
                     <div class="kerhohuone-card-desc">Jopa 10x voitto</div>
                 </button>
+
+                <!-- BLACKJACK -->
+                <button class="kerhohuone-game-card kerhohuone-card-blackjack" onclick="showView('blackjack')">
+                    <div class="kerhohuone-card-icon">🃏</div>
+                    <div class="kerhohuone-card-title">BLACKJACK</div>
+                    <div class="kerhohuone-card-subtitle">Korttipeli</div>
+                    <div class="kerhohuone-card-desc">Pääse 21:een</div>
+                </button>
             </div>
 
             <!-- Exit Button -->
@@ -666,6 +1048,129 @@
                 <!-- Tämä täytetään JavaScriptillä -->
             </div>
         </div>
+    </section>
+
+    <!-- BLACKJACK PELI / BLACKJACK GAME -->
+    <section id="blackjack-view" class="view-container hidden kerhohuone-view">
+        <!-- Tausta-gradientti -->
+        <div class="kerhohuone-bg"></div>
+        
+        <!-- Header -->
+        <div class="kerhohuone-header">
+            <div class="kerhohuone-header-content">
+                <div class="kerhohuone-title-block">
+                    <h1 class="kerhohuone-title">KERHOHUONE 666</h1>
+                    <p class="kerhohuone-subtitle">// JÄSENILLE VARATTU</p>
+                </div>
+                <div class="kerhohuone-cash-card">
+                    <div class="kerhohuone-cash-icon">💵</div>
+                    <div class="kerhohuone-cash-content">
+                        <div class="kerhohuone-cash-label">SALDO</div>
+                        <div class="kerhohuone-cash-value" id="blackjack-cash-display">€0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="kerhohuone-main">
+            <!-- Otsikko -->
+            <div class="kerhohuone-section-title">KERHOHUONE 666</div>
+
+            <!-- Blackjack Card -->
+            <div class="blackjack-container">
+                <!-- SETUP VIEW (Panoksen valinta) -->
+                <div id="blackjack-setup" class="blackjack-setup">
+                    <div class="blackjack-title">
+                        <h3 class="blackjack-heading">BLACKJACK</h3>
+                        <p class="blackjack-subtitle">Tavoite: Pääse lähemmäs 21:tä kuin jakaja ilman ylitystä</p>
+                    </div>
+
+                    <div class="blackjack-form">
+                        <!-- Bet Input -->
+                        <div class="blackjack-form-group">
+                            <label class="blackjack-label">PANOS</label>
+                            <input type="number" id="blackjack-bet-input" class="blackjack-input" value="1000" min="100" step="100">
+                        </div>
+
+                        <!-- Säännöt -->
+                        <div class="blackjack-rules-box">
+                            <div class="blackjack-rules-label">SÄÄNNÖT</div>
+                            <ul class="blackjack-rules-list">
+                                <li>• Ässä = 1 tai 11, Kuvakortit = 10</li>
+                                <li>• Jakaja nostaa 17:aan asti</li>
+                                <li>• Blackjack (21 kahdella kortilla) = 3:2 voitto</li>
+                                <li>• Tuplaus mahdollista ensimmäisellä kierroksella</li>
+                            </ul>
+                        </div>
+
+                        <!-- JAA KORTIT Button -->
+                        <button class="blackjack-deal-btn" onclick="startBlackjackFromInput()">JAA KORTIT</button>
+
+                        <!-- TAKAISIN PELEIHIN Button -->
+                        <button class="blackjack-back-btn" onclick="goBackToClubhouse()">TAKAISIN PELEIHIN</button>
+                    </div>
+                </div>
+
+                <!-- GAME VIEW (Pelikenttä) -->
+                <div id="blackjack-game" class="blackjack-game hidden">
+                    <div class="blackjack-game-content">
+                        <div class="blackjack-game-title">
+                            <h3 class="blackjack-heading">BLACKJACK</h3>
+                            <p class="blackjack-subtitle">Tavoite: Pääse lähemmäs 21:tä kuin jakaja ilman ylitystä</p>
+                        </div>
+
+                        <!-- Dealer Hand -->
+                        <div class="blackjack-hand-section">
+                            <div class="blackjack-hand-header">
+                                <span class="blackjack-hand-label">JAKAJAN KÄSI</span>
+                                <span class="blackjack-hand-value" id="dealer-value">0</span>
+                            </div>
+                            <div class="blackjack-cards" id="dealer-cards"></div>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="blackjack-divider"></div>
+
+                        <!-- Player Hand -->
+                        <div class="blackjack-hand-section">
+                            <div class="blackjack-hand-header">
+                                <span class="blackjack-hand-label">SINUN KÄTESI</span>
+                                <span class="blackjack-hand-value" id="player-value">0</span>
+                            </div>
+                            <div class="blackjack-cards" id="player-cards"></div>
+                        </div>
+
+                        <!-- Bet Display -->
+                        <div class="blackjack-bet-display">
+                            <span class="blackjack-bet-label">PANOS:</span>
+                            <span class="blackjack-bet-value" id="bet-amount">$1,000</span>
+                        </div>
+
+                        <!-- Result Message -->
+                        <div id="blackjack-result" class="blackjack-result-box"></div>
+
+                        <!-- Action Buttons -->
+                        <div class="blackjack-buttons" id="blackjack-actions">
+                            <button class="blackjack-hit-btn" onclick="playerHit()">NOSTA KORTTI</button>
+                            <button class="blackjack-stand-btn" onclick="playerStand()">STOP</button>
+                        </div>
+
+                        <!-- New Round Button (shown after game ends) -->
+                        <button class="blackjack-new-round-btn hidden" id="new-round-btn" onclick="newBlackjackRound()">UUSI KIERROS</button>
+
+                        <!-- Back Button -->
+                        <button class="blackjack-back-btn" onclick="goBackToClubhouse()">TAKAISIN PELEIHIN</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nurkkakoristeleet -->
+        <div class="kerhohuone-corner kerhohuone-corner-tl"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-tr"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-bl"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-br"></div>
     </section>
 
     <!-- KARTTANÄKYMÄ / MAP VIEW -->
@@ -1140,12 +1645,14 @@
 
     <!-- JavaScript-moduulit -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="onboarding.js"></script>
     <script src="app.js"></script>
     <script src="eventlog.js"></script>
     <script src="time.js"></script>
     <script src="tasks.js"></script>
     <script src="market.js"></script>
     <script src="clubhouse.js"></script>
+    <script src="blackjack.js"></script>
     <script src="map.js"></script>
     <script src="laivasto.js"></script>
     <script src="tukikohdat.js"></script>

@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Freight Company 666</title>
+    <link rel="icon" href="img/666_logo.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet karttalibrary -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Kulmaetiketit (kaikilla näkymillä) -->
+    <div class="corner-accent top-left"></div>
+    <div class="corner-accent top-right"></div>
+    <div class="corner-accent bottom-left"></div>
+    <div class="corner-accent bottom-right"></div>
+
+    <!-- SPLASH SCREEN -->
+    <section id="splash-screen" class="splash-screen">
+        <div class="splash-bg"></div>
+        <div class="splash-content">
+            <div class="splash-logo-glow"></div>
+            <img src="img/666_logo.svg" alt="AFC 666" class="splash-logo">
+            <h1 class="splash-title">LENTORAHTIYHTIÖ</h1>
+            <div class="splash-divider">
+                <span class="splash-line"></span>
+                <span class="splash-number">
+                    <span class="splash-dot">●</span>
+                    666
+                    <span class="splash-dot">●</span>
+                </span>
+                <span class="splash-line"></span>
+            </div>
+            <p class="splash-subtitle">Strateginen lentorahtisimulaatio</p>
+            <p class="splash-hint">Klikkaa jatkaaksesi...</p>
+        </div>
+    </section>
+
+    <!-- NEW GAME MODAL -->
+    <div id="new-game-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content new-game-modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="new-game-modal-title">ANNA YRITYKSEN NIMI</h2>
+                    <p class="modal-subtitle">Valitse nimi rahtiyhtiöllesi</p>
+                </div>
+                <span class="modal-step-indicator" id="new-game-step-indicator">VAIHE 1/3</span>
+                <button class="modal-close-btn" onclick="closeNewGameModal()">✕</button>
+            </div>
+            <div class="modal-body" id="new-game-modal-body">
+                <!-- Sisältö täytetään JavaScriptillä -->
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-back-btn" onclick="previousNewGameStep()" style="display: none;">← Takaisin</button>
+                <button class="modal-next-btn" onclick="nextNewGameStep()">Seuraava</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOAD GAME MODAL -->
+    <div id="load-game-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content load-game-modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="load-game-modal-title">LATAA TALLENNETTU PELI</h2>
+                    <p class="modal-subtitle">// VALITSE TALLENNUSTIEDOSTO JATKAAKSESI</p>
+                </div>
+                <button class="modal-close-btn" onclick="closeLoadGameModal()">✕</button>
+            </div>
+            <div class="modal-body load-game-list" id="load-game-list">
+                <!-- Pelit täytetään JavaScriptillä -->
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel-btn" onclick="closeLoadGameModal()">PERUUTA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ONBOARDING MODAL -->
+    <div id="onboarding-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content onboarding-modal-content">
+            <div class="modal-header">
+                <h2 id="onboarding-modal-title">LENTORAHTIYHTIÖ 666</h2>
+                <span class="modal-step-indicator" id="onboarding-step-indicator">1/5</span>
+                <button class="modal-close-btn" onclick="closeOnboardingModal()">✕</button>
+            </div>
+            <div class="modal-body" id="onboarding-content">
+                <!-- Sisältö täytetään JavaScriptillä -->
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-back-btn" onclick="previousOnboardingStep()" style="display: none;">← Takaisin</button>
+                <button class="modal-next-btn" onclick="nextOnboardingStep()">Jatka →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ALOITUSNÄYTTÖ / PÄÄVALIKKO (OLEMASSA OLEVA, piilotettu) -->
+    <section id="start-screen" class="start-screen hidden">
+        <!-- Taustakuva ja efektit -->
+        <div class="start-bg-container">
+            <div class="start-bg-image"></div>
+            <div class="start-bg-gradient-vertical"></div>
+            <div class="start-bg-gradient-horizontal"></div>
+        </div>
+        <div class="start-cyan-glow"></div>
+        <div class="start-glow-left"></div>
+        <div class="start-glow-right"></div>
+
+        <!-- Sisältö -->
+        <div class="start-content">
+            <!-- Logo ja otsikko -->
+            <div class="start-logo-section">
+                <div class="start-logo-icon">
+                    <div class="start-logo-glow"></div>
+                    <img src="img/666_logo.svg" alt="AFC 666 Logo" class="start-logo-image">
+                </div>
+                <h1 class="start-title">LENTORAHTIYHTIÖ</h1>
+                <div class="start-title-underline"></div>
+                <div class="start-company-number">
+                    <div class="start-line"></div>
+                    <div class="start-number-container">
+                        <div class="start-dot"></div>
+                        <span class="start-number">666</span>
+                        <div class="start-dot"></div>
+                    </div>
+                    <div class="start-line"></div>
+                </div>
+                <p class="start-subtitle">Strateginen lentorahtisimulaatio</p>
+            </div>
+
+            <!-- Menu-painikkeet -->
+            <div class="start-menu">
+                <button class="start-btn start-btn-primary" onclick="startNewGame()">
+                    <span>▶️</span> Aloita Uusi Peli
+                </button>
+                <button class="start-btn start-btn-secondary" onclick="loadGame()">
+                    <span>💾</span> Lataa Peli
+                </button>
+                <button class="start-btn start-btn-tertiary" onclick="showSettings()">
+                    <span>⚙️</span> Asetukset
+                </button>
+                <button class="start-btn start-btn-tertiary" onclick="exitGame()">
+                    <span>⏹️</span> Poistu
+                </button>
+            </div>
+
+            <!-- Versio-info -->
+            <div class="start-version">
+                <span>🛈</span>
+                <span>VERSIO 1.0.0</span>
+                <span class="start-version-dot">•</span>
+                <span>BUILD 666</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- PELINÄYTTÖ / GAME CONTAINER -->
+    <div id="game-container" class="game-container hidden">
+    <!-- Yläpalkki -->
+    <header class="game-header">
+        <div class="header-content">
+            <div class="logo-section" onclick="showView('clubhouse')" style="cursor: pointer;">
+                <img src="img/666_logo.svg" alt="AFC 666" class="logo-icon">
+                <div class="logo-text">
+                    <h1>LENTORAHTIYHTIÖ</h1>
+                    <div class="logo-subtitle">
+                        <div class="status-dot"></div>
+                        <span class="company-number">666</span>
+                        <span class="status-badge">● TOIMINNASSA</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="game-stats">
+                <div class="stat-item">
+                    <div class="stat-label"><span>📅</span> PÄIVÄ</div>
+                    <div class="stat-value" id="current-day">1</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label"><span>👤</span> KOMENTAJA</div>
+                    <div class="stat-value" id="player-name">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label"><span>🏢</span> TUKIKOHTA</div>
+                    <div class="stat-value" id="home-base">-</div>
+                </div>
+            </div>
+
+            <div class="stat-item" style="background: transparent; border: 1px solid rgba(0, 201, 80, 0.3); border-radius: 14px; padding: 12px 20px;">
+                <div class="stat-label"><span>💰</span>KASSA</div>
+                <div class="stat-value money" id="cash-amount">€0</div>
+            </div>
+
+            <button onclick="exitAndSaveGame()" class="exit-game-btn" title="Lopeta peli">
+                <svg class="exit-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <style>.cls-1{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px;}</style>
+                    </defs>
+                    <g id="logout">
+                        <line class="cls-1" x1="15.92" x2="28.92" y1="16" y2="16"/>
+                        <path d="M23.93,25v3h-16V4h16V7h2V3a1,1,0,0,0-1-1h-18a1,1,0,0,0-1,1V29a1,1,0,0,0,1,1h18a1,1,0,0,0,1-1V25Z" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <line class="cls-1" x1="28.92" x2="24.92" y1="16" y2="20"/>
+                        <line class="cls-1" x1="28.92" x2="24.92" y1="16" y2="12"/>
+                        <line class="cls-1" x1="24.92" x2="24.92" y1="8.09" y2="6.09"/>
+                        <line class="cls-1" x1="24.92" x2="24.92" y1="26" y2="24"/>
+                    </g>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Navigointi -->
+    <nav class="main-nav">
+        <button onclick="showView('dashboard')" class="nav-btn" data-view="dashboard">
+            <img src="img/dashboard.svg" alt="Kojelauta" class="nav-icon">
+            <span>Kojelauta</span>
+        </button>
+        <button onclick="showView('laivasto')" class="nav-btn" data-view="laivasto">
+            <img src="img/fleet.svg" alt="Laivasto" class="nav-icon">
+            <span>Laivasto</span>
+        </button>
+        <button onclick="showView('tukikohdat')" class="nav-btn" data-view="tukikohdat">
+            <img src="img/bases.svg" alt="Tukikohdat" class="nav-icon">
+            <span>Tukikohdat</span>
+        </button>
+        <button onclick="showView('market')" class="nav-btn" data-view="market">
+            <img src="img/shop.svg" alt="Kauppa" class="nav-icon">
+            <span>Kauppa</span>
+        </button>
+        <button onclick="showView('tasks')" class="nav-btn active" data-view="tasks">
+            <img src="img/contracts.svg" alt="Sopimukset" class="nav-icon">
+            <span>Sopimukset</span>
+        </button>
+        <button onclick="showView('upgrades')" class="nav-btn" data-view="upgrades">
+            <img src="img/upgrades.svg" alt="Päivitykset" class="nav-icon">
+            <span>Päivitykset</span>
+        </button>
+        <button onclick="showView('maintenance')" class="nav-btn" data-view="maintenance">
+            <img src="img/repair.svg" alt="Huolto" class="nav-icon">
+            <span>Huolto</span>
+        </button>
+        <button onclick="showView('map')" class="nav-btn" data-view="map">
+            <img src="img/mapview.svg" alt="Kartta" class="nav-icon">
+            <span>Kartta</span>
+        </button>
+        <div class="nav-spacer"></div>
+        <button onclick="advanceDay()" class="next-day-btn">
+            <span>SEURAAVA PÄIVÄ</span>
+            <svg class="next-day-icon" viewBox="0 0 284.837 284.837" xmlns="http://www.w3.org/2000/svg">
+                <path d="M85.666,284.837c-7.725,0-14.987-3.008-20.45-8.471c-5.463-5.463-8.471-12.719-8.471-20.45
+                    c0-7.731,3.014-14.987,8.471-20.45l93.054-93.054L65.216,49.371c-5.463-5.456-8.471-12.719-8.471-20.45s3.008-14.987,8.471-20.457
+                    C70.679,3.001,77.935,0,85.666,0s14.987,3.008,20.45,8.464l113.504,113.498c5.469,5.463,8.471,12.719,8.471,20.45
+                    s-3.008,14.987-8.471,20.45L106.117,276.36C100.654,281.83,93.392,284.837,85.666,284.837z M85.666,12.86
+                    c-4.293,0-8.323,1.671-11.363,4.698c-3.04,3.04-4.704,7.076-4.704,11.369s1.671,8.329,4.704,11.363l102.142,102.129
+                    L74.304,244.554c-3.04,3.04-4.704,7.07-4.704,11.363c0,4.293,1.671,8.323,4.704,11.363c6.073,6.073,16.646,6.073,22.719,0
+                    L210.81,153.499c2.847-2.995,4.422-6.915,4.422-11.08c0-4.293-1.671-8.323-4.704-11.356L97.023,17.558
+                    C93.989,14.525,89.96,12.86,85.666,12.86z" fill="currentColor"/>
+            </svg>
+        </button>
+        <button onclick="startFastForward()" class="fastforward-btn">
+            <svg class="fastforward-icon" viewBox="0 0 612 612" xmlns="http://www.w3.org/2000/svg">
+                <path d="M578,68c-18.785,0-34,15.215-34,34v146.812L238,68c-18.785,0-34,15.215-34,34v66.453L34,68C15.215,68,0,83.215,0,102
+                    v408c0,18.785,15.215,34,34,34l170-100.453V510c0,18.785,15.215,34,34,34l306-180.812V510c0,18.785,15.215,34,34,34
+                    s34-15.215,34-34V102C612,83.215,596.785,68,578,68z M204,364.565L68,444.924V167.076l136,80.359V364.565z M272,444.924V167.076
+                    L507.11,306L272,444.924z" fill="currentColor"/>
+            </svg>
+        </button>
+    </nav>
+
+    <!-- Ilmoitusalue -->
+    <div id="notification" class="notification hidden">
+        <div class="notification-card">
+            <div class="notification-icon-wrapper">⚠️</div>
+            <div class="notification-content">
+                <div class="notification-title">ILMOITUS</div>
+                <div class="notification-message">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KOJELAUTA-NÄKYMÄ -->
+    <section id="dashboard-view" class="view-container hidden">
+        <div class="view-header">
+            <h2>KOJELAUTA</h2>
+            <div class="subtitle">// SEURAA LENTORAHTIYRITYSTÄSI</div>
+        </div>
+
+        <!-- KPI CARDS - 4 kortilla näkymä -->
+        <div class="dashboard-kpi-grid">
+            <!-- FLEET Card -->
+            <div class="dashboard-card fleet-card">
+                <div class="kpi-header">
+                    <div class="kpi-icon fleet-icon">✈️</div>
+                    <h3>LAIVASTO</h3>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-stat">
+                        <span class="kpi-value" id="dashboard-fleet-count">12</span>
+                        <span class="kpi-label">KONETTA</span>
+                    </div>
+                    <p class="kpi-comment">// HALLINNOI OPERAATIOITA</p>
+                    <button class="kpi-button fleet-btn" onclick="showView('laivasto-view')">AVAA</button>
+                </div>
+            </div>
+
+            <!-- CONTRACTS Card -->
+            <div class="dashboard-card contracts-card">
+                <div class="kpi-header">
+                    <div class="kpi-icon contracts-icon">📋</div>
+                    <h3>SOPIMUKSET</h3>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-stat">
+                        <span class="kpi-value" id="dashboard-contracts-count">8</span>
+                        <span class="kpi-label">AKTIIVISTA</span>
+                    </div>
+                    <p class="kpi-comment">// SELAA TEHTÄVIÄ</p>
+                    <button class="kpi-button contracts-btn" onclick="showView('tasks-view')">AVAA</button>
+                </div>
+            </div>
+
+            <!-- MAINTENANCE Card -->
+            <div class="dashboard-card maintenance-card">
+                <div class="kpi-header">
+                    <div class="kpi-icon maintenance-icon">🔧</div>
+                    <h3>HUOLTO</h3>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-stat">
+                        <span class="kpi-value" id="dashboard-maintenance-count">3</span>
+                        <span class="kpi-label">VAATII HUOLTOA</span>
+                    </div>
+                    <p class="kpi-comment">// KORJAA LAIVASTO</p>
+                    <button class="kpi-button maintenance-btn" onclick="showView('maintenance-view')">AVAA</button>
+                </div>
+            </div>
+
+            <!-- UPGRADES Card -->
+            <div class="dashboard-card upgrades-card">
+                <div class="kpi-header">
+                    <div class="kpi-icon upgrades-icon">⚙️</div>
+                    <h3>PÄIVITYKSET</h3>
+                </div>
+                <div class="kpi-content">
+                    <div class="kpi-stat">
+                        <span class="kpi-value" id="dashboard-upgrades-count">5</span>
+                        <span class="kpi-label">SAATAVILLA</span>
+                    </div>
+                    <p class="kpi-comment">// PARANNA OPERAATIOITA</p>
+                    <button class="kpi-button upgrades-btn" onclick="showView('upgrades-view')">AVAA</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MISSION LOG -->
+        <div class="dashboard-mission-log">
+            <div class="log-header">
+                <h3>TAPAHTUMALOKIN</h3>
+            </div>
+            <div class="log-container">
+                <div class="log-header-row">
+                    <div class="log-status-indicators">
+                        <span class="log-indicator alert"></span>
+                        <span class="log-indicator warning"></span>
+                        <span class="log-indicator success"></span>
+                    </div>
+                    <span class="log-label">VIIMEAIKAINEN AKTIVITEETTI</span>
+                </div>
+
+                <!-- Log entries -->
+                <div class="log-entry log-entry-cyan">
+                    <div class="log-content">
+                        <span class="log-time">12:34:56</span>
+                        <span class="log-message">Boeing 747-400F "Sky Titan" valmistui reitti LAX → NRT</span>
+                    </div>
+                    <span class="log-amount positive">+€145,000</span>
+                </div>
+
+                <div class="log-entry log-entry-green">
+                    <div class="log-content">
+                        <span class="log-time">09:21:43</span>
+                        <span class="log-message">Sopimuksen maksu vastaanotettu</span>
+                    </div>
+                    <span class="log-amount positive">+€145,000</span>
+                </div>
+
+                <div class="log-entry log-entry-amber">
+                    <div class="log-content">
+                        <span class="log-time">05:47:19</span>
+                        <span class="log-message">Airbus A330-200F "Cargo Master" vaatii huoltoa</span>
+                    </div>
+                    <span class="log-amount warning">VAROITUS</span>
+                </div>
+
+                <div class="log-entry log-entry-cyan">
+                    <div class="log-content">
+                        <span class="log-time">02:15:08</span>
+                        <span class="log-message">Uusi lentokone ostettu: McDonnell Douglas MD-11F</span>
+                    </div>
+                    <span class="log-amount neutral">VALMIS</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- TEHTÄVÄT / SOPIMUKSET -NÄKYMÄ -->
+    <section id="tasks-view" class="view-container">
+        <div class="view-header">
+            <h2>SOPIMUSMARKKINA</h2>
+            <div class="subtitle">// TEHTÄVÄBRIEFING-TERMINAALI</div>
+        </div>
+
+        <!-- Statistiikka-kortit -->
+        <div class="stats-grid">
+            <div class="stat-card cyan">
+                <div class="stat-card-content">
+                    <div class="stat-icon cyan">📋</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">SAATAVILLA</div>
+                        <div class="stat-text-value" id="available-count">8</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-card-content">
+                    <div class="stat-icon green">💰</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">KESKIM. PALKKIO</div>
+                        <div class="stat-text-value green" id="avg-reward">€182 500</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card cyan">
+                <div class="stat-card-content">
+                    <div class="stat-icon cyan">🛫</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">KESKIM. ETÄISYYS</div>
+                        <div class="stat-text-value" id="avg-distance">5 397 KM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-card-content">
+                    <div class="stat-icon red">⚠️</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">KIIREELLISET</div>
+                        <div class="stat-text-value red" id="urgent-count">2</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Suodattimet -->
+        <div class="filter-section">
+            <div class="filter-header">
+                <h3>SUODATA SOPIMUKSIA</h3>
+            </div>
+            <div class="filter-body">
+                <div class="filter-row">
+                    <label for="difficulty-filter">VAIKEUSTASO:</label>
+                    <select id="difficulty-filter">
+                        <option value="">KAIKKI TASOT</option>
+                        <option value="easy">● Helppo</option>
+                        <option value="medium">●● Keskitaso</option>
+                        <option value="hard">●●● Vaikea</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Uuden sopimuksen hyväksyntä -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h3>🆕 OTA UUSI SOPIMUS</h3>
+                <span class="section-card-count">TARJOUKSET</span>
+            </div>
+            <div class="section-card-body">
+                <div class="offer-selection">
+                    <div class="offer-controls">
+                        <label for="task-aircraft-select">Valitse kone:</label>
+                        <select id="task-aircraft-select" onchange="loadTaskOffersForAircraft()">
+                            <option value="">-- Valitse kone --</option>
+                        </select>
+                    </div>
+                    <div id="task-offers-list" class="offers-container">
+                        <p class="info">Valitse ensin kone yllä olevasta listasta.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aktiiviset sopimukset -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h3>AKTIIVISET SOPIMUKSET</h3>
+                <span class="section-card-count" id="contracts-count">8 SAATAVILLA</span>
+            </div>
+            <div class="section-card-body">
+                <table class="contracts-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>LÄHTÖ</th>
+                            <th>KOHDE</th>
+                            <th>RAHTI</th>
+                            <th>ETÄISYYS</th>
+                            <th>PALKKIO</th>
+                            <th>SAKKO</th>
+                            <th>DEADLINE</th>
+                            <th>VAIKEUSTASO</th>
+                            <th>STATUS/TILANNE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="active-tasks-list">
+                        <tr>
+                            <td colspan="10" class="loading">Ladataan sopimuksia...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Varoitus -->
+        <div class="warning-card">
+            <div class="warning-icon">⚠️</div>
+            <div class="warning-content">
+                <div class="warning-title">TEHTÄVÄVAROITUS</div>
+                <div class="warning-message">Sopimusten määräaikojen laiminlyönti johtaa sakkoihin. Suunnittele reitit huolellisesti ja varmista, että koneet ovat kunnossa ennen lähtöä.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- KAUPPAPAIKKA-NÄKYMÄ -->
+    <!-- KAUPPA-NÄKYMÄ -->
+    <section id="market-view" class="view-container hidden market-view">
+        <!-- Tausta-gradientti -->
+        <div class="market-bg"></div>
+
+        <!-- Kulmaetiketit -->
+        <div class="market-corner market-corner-tl"></div>
+        <div class="market-corner market-corner-tr"></div>
+        <div class="market-corner market-corner-bl"></div>
+        <div class="market-corner market-corner-br"></div>
+
+        <!-- Sisältö -->
+        <div class="market-main">
+            <!-- Otsikko -->
+            <div class="view-header">
+                <h2>LENTOKONEMARKKINA</h2>
+                <div class="subtitle">// HANKINTATERMINAALI</div>
+            </div>
+
+            <!-- Välilehdet -->
+            <div class="market-tabs">
+                <button onclick="showMarketTab('new')" class="market-tab-btn market-tab-btn-active" id="tab-new">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="4" width="12" height="2" rx="1"/><rect x="2" y="8" width="12" height="2" rx="1"/><rect x="2" y="12" width="12" height="2" rx="1"/></svg>
+                    <span>UUDET KONEET</span>
+                </button>
+                <button onclick="showMarketTab('used')" class="market-tab-btn" id="tab-used">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6"/></svg>
+                    <span>KÄYTETYT KONEET</span>
+                </button>
+            </div>
+
+            <!-- Koneiden ruudikko -->
+            <div class="market-grid-wrapper">
+                <!-- Uudet koneet -->
+                <div id="market-new" class="market-tab-content">
+                    <div class="market-grid" id="new-aircraft-list">
+                        <p class="market-loading">Ladataan...</p>
+                    </div>
+                </div>
+
+                <!-- Käytetyt koneet (taulu-muoto) -->
+                <div id="market-used" class="market-tab-content hidden">
+                    <div class="market-table-container">
+                        <!-- Otsikkobanneri -->
+                        <div class="market-table-header-banner">
+                            <p class="market-table-label">AKTIIVISET ILMOITUKSET</p>
+                        </div>
+                        
+                        <!-- Varsinainen taulukko -->
+                        <table class="market-table" id="used-aircraft-table">
+                            <thead>
+                                <tr>
+                                    <th>TUNNUS</th>
+                                    <th>MALLI</th>
+                                    <th>HINTA</th>
+                                    <th>KUNTO</th>
+                                    <th>TUNNIT</th>
+                                    <th>IKÄ</th>
+                                    <th>HUOMIOT</th>
+                                    <th>TOIMINNOT</th>
+                                </tr>
+                            </thead>
+                            <tbody id="used-aircraft-list">
+                                <tr><td colspan="8" class="market-table-loading">Ladataan...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Markkina-neuvonta banneri -->
+                    <div class="market-advisory-banner">
+                        <div class="market-advisory-icon">⚠️</div>
+                        <div class="market-advisory-content">
+                            <p class="market-advisory-title">MARKKINANEUVONTA</p>
+                            <p class="market-advisory-text">Käytetyt koneet tarjoavat hyvää arvoa, mutta niiden kunto voi vaihdella. Aina kannattaa tarkistaa kunto-prosentti ja huoltohistoria ennen ostopäätöstä.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- KERHOHUONE-NÄKYMÄ -->
+    <section id="clubhouse-view" class="view-container hidden kerhohuone-view">
+        <!-- Tausta-gradientti -->
+        <div class="kerhohuone-bg"></div>
+        
+        <!-- Header -->
+        <div class="kerhohuone-header">
+            <div class="kerhohuone-header-content">
+                <div class="kerhohuone-title-block">
+                    <h1 class="kerhohuone-title">KERHOHUONE 666</h1>
+                    <p class="kerhohuone-subtitle">// JÄSENILLE VARATTU</p>
+                </div>
+                <div class="kerhohuone-cash-card">
+                    <div class="kerhohuone-cash-icon">💵</div>
+                    <div class="kerhohuone-cash-content">
+                        <div class="kerhohuone-cash-label">SALDO</div>
+                        <div class="kerhohuone-cash-value" id="clubhouse-cash-display">€0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="kerhohuone-main">
+            <!-- Otsikko -->
+            <div class="kerhohuone-section-title">KERHOHUONE 666</div>
+
+            <!-- 3 Pelikorttia Grid -->
+            <div class="kerhohuone-games-grid">
+                <!-- KRUUNA VAI KLAAVA -->
+                <button class="kerhohuone-game-card kerhohuone-card-coin" onclick="showCoinFlipGame()">
+                    <div class="kerhohuone-card-icon">🪙</div>
+                    <div class="kerhohuone-card-title">KRUUNA VAI KLAAVA</div>
+                    <div class="kerhohuone-card-subtitle">Kolikon heitto</div>
+                    <div class="kerhohuone-card-desc">2x voitto</div>
+                </button>
+
+                <!-- SUUREMPI VAI PIENEMPI -->
+                <button class="kerhohuone-game-card kerhohuone-card-dice" onclick="showHighLowGame()">
+                    <div class="kerhohuone-card-icon">🎲</div>
+                    <div class="kerhohuone-card-title">SUUREMPI VAI PIENEMPI</div>
+                    <div class="kerhohuone-card-subtitle">Nopan arvaus</div>
+                    <div class="kerhohuone-card-desc">Kahden nopan vertailu</div>
+                </button>
+
+                <!-- YKSIKÄTINEN ROSVO -->
+                <button class="kerhohuone-game-card kerhohuone-card-slots" onclick="showSlotsGame()">
+                    <div class="kerhohuone-card-icon">🎰</div>
+                    <div class="kerhohuone-card-title">YKSIKÄTINEN ROSVO</div>
+                    <div class="kerhohuone-card-subtitle">Peliautomaatti</div>
+                    <div class="kerhohuone-card-desc">Jopa 10x voitto</div>
+                </button>
+            </div>
+
+            <!-- Exit Button -->
+            <div class="kerhohuone-button-container">
+                <button class="kerhohuone-exit-btn" onclick="showView('tasks')">
+                    <span class="kerhohuone-btn-icon">⏎</span>
+                    <span>POISTU TAKAISIN TOIMISTOLLE</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Nurkkakoristeleet -->
+        <div class="kerhohuone-corner kerhohuone-corner-tl"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-tr"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-bl"></div>
+        <div class="kerhohuone-corner kerhohuone-corner-br"></div>
+
+        <!-- Pelin modal (näkyy kun pelaaja klikkaa peliä) -->
+        <div id="game-modal" class="kerhohuone-game-modal hidden">
+            <div class="kerhohuone-game-modal-content">
+                <!-- Tämä täytetään JavaScriptillä -->
+            </div>
+        </div>
+    </section>
+
+    <!-- KARTTANÄKYMÄ / MAP VIEW -->
+    <section id="map-view" class="view-container hidden">
+        <div style="padding: 24px; width: 100%;">
+            <!-- Otsikko -->
+            <div class="map-view-header" style="margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 4px;">
+                    <div style="width: 4px; height: 62px; background: linear-gradient(to bottom, transparent, #00d4ff, transparent); opacity: 0.5;"></div>
+                    <div>
+                        <h2 class="map-view-title">MAAILMAN KARTTA</h2>
+                        <p class="map-view-subtitle">// GLOBAALIT OPERAATIOT</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="map-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #888888; border-radius: 50%; width: 12px; height: 12px;"></div>
+                    <span>LÄHTÖPISTE</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00d4ff; border-radius: 50%; width: 12px; height: 12px; box-shadow: 0 0 4px #00d4ff;"></div>
+                    <span>MÄÄRÄPISTE</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="border: 2px dashed #00d4ff; width: 16px; height: 2px;"></div>
+                    <span>LENTORATA</span>
+                </div>
+                <div class="legend-item">
+                    <div style="font-size: 18px;">✈️</div>
+                    <span>LENTOKONEEN PAIKKA</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff6467; border-radius: 50%; width: 12px; height: 12px; box-shadow: 0 0 4px #ff6467;"></div>
+                    <span>LENTO-EVENT</span>
+                </div>
+            </div>
+
+            <!-- Karttataso -->
+            <div id="map-container" style="border-radius: 14px; margin-bottom: 24px;"></div>
+
+            <!-- Aktiivisten lentojen otsikko ja lista -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                <p style="color: #6a7282; font-size: 14px; text-transform: uppercase; letter-spacing: 0.4875px; font-weight: 500;">AKTIIVISET LENNOT</p>
+                <p id="flights-count" style="color: #00d4ff; font-size: 14px; text-transform: uppercase; letter-spacing: 0.4875px; font-weight: 500;">0 LENTÄÄ</p>
+            </div>
+
+            <!-- Lentojen lista -->
+            <div id="active-flights-list" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Täytetään JavaScriptillä -->
+            </div>
+        </div>
+    </section>
+
+    <!-- LAIVASTO / FLEET ROSTER -NÄKYMÄ -->
+    <section id="laivasto-view" class="view-container hidden">
+        <div class="view-header">
+            <h2>LAIVASTO</h2>
+            <div class="subtitle">// LENTOKONEENHALLINTA</div>
+        </div>
+
+        <!-- Haku ja suodatus -->
+        <div class="section-card" style="margin-bottom: 24px;">
+            <div class="section-card-header">
+                <h3>🔍 HAKU JA SUODATUS</h3>
+            </div>
+            <div class="section-card-body">
+                <div style="display: flex; gap: 16px; align-items: center;padding: 5px;">
+                    <input 
+                        type="text" 
+                        id="fleet-search" 
+                        placeholder="Hae mallin tai ilmoitusnumeron perusteella..." 
+                        style="flex: 1; background: rgba(16, 24, 40, 0.8); border: 1px solid rgba(0, 212, 255, 0.3); 
+                               border-radius: 8px; padding: 10px 16px; color: #d1d5dc; font-size: 14px;"
+                        oninput="filterFleet()"
+                    >
+                    <select id="fleet-status-filter" 
+                            style="width: 200px; background: rgba(16, 24, 40, 0.8); border: 1px solid rgba(0, 212, 255, 0.3); 
+                                   border-radius: 8px; padding: 10px 16px; color: #d1d5dc; font-size: 14px;"
+                            onchange="filterFleet()">
+                        <option value="all">KAIKKI TILAT</option>
+                        <option value="IDLE">IDLE</option>
+                        <option value="IN_FLIGHT">IN FLIGHT</option>
+                        <option value="RTB">RTB</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Laivasto-taulu -->
+        <div class="section-card">
+            <div class="section-card-header">
+                <h3>LAIVASTO</h3>
+                <span class="section-card-count" id="fleet-count">0 KONETTA</span>
+            </div>
+            <div class="section-card-body">
+                <table class="contracts-table fleet-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="sortFleetTable('model_name')">
+                                MALLI <span class="sort-arrows">⇅</span>
+                            </th>
+                            <th class="sortable" onclick="sortFleetTable('registration')">
+                                ILMOITUSNUMERO <span class="sort-arrows">⇅</span>
+                            </th>
+                            <th class="sortable" onclick="sortFleetTable('nickname')">
+                                LEMPINIMI <span class="sort-arrows">⇅</span>
+                            </th>
+                            <th>SIJAINTI</th>
+                            <th>TILA</th>
+                            <th class="sortable" onclick="sortFleetTable('condition_percent')">
+                                KUNTO <span class="sort-arrows">⇅</span>
+                            </th>
+                            <th>TALOUDELLISUUS</th>
+                            <th>KERROIN</th>
+                            <th>TOIMINNOT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fleet-roster-list">
+                        <tr><td colspan="9" class="loading">Ladataan...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Fleet Statistics -->
+        <div class="stats-grid" style="margin-top: 24px;">
+            <div class="stat-card cyan">
+                <div class="stat-card-content">
+                    <div class="stat-icon cyan">✈️</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">YHTEENSÄ LAIVASTO</div>
+                        <div class="stat-text-value" id="total-fleet">0 KONETTA</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-card-content">
+                    <div class="stat-icon green">✓</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">IDLE</div>
+                        <div class="stat-text-value green" id="idle-count">0 VALMIINA</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card cyan">
+                <div class="stat-card-content">
+                    <div class="stat-icon cyan">🛫</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">IN FLIGHT</div>
+                        <div class="stat-text-value" id="inflight-count">0 LENNOLLA</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-card-content">
+                    <div class="stat-icon red">📊</div>
+                    <div class="stat-text">
+                        <div class="stat-text-label">KESKIMÄÄRIN KUNTO</div>
+                        <div class="stat-text-value" id="avg-condition">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TUKIKOHDAT / BASES VIEW -->
+    <section id="tukikohdat-view" class="view-container hidden">
+        <div class="view-header">
+            <h2>TUKIKOHDAT</h2>
+            <div class="subtitle">// VERKOSTONHALLINTAPANEELI</div>
+        </div>
+
+        <!-- Expand Network Section -->
+        <div class="expand-network-section">
+            <div class="expand-network-icon">🏢</div>
+            <div class="expand-network-text">
+                <div class="expand-network-title">LAAJENNA VERKOSTOASI</div>
+                <div class="expand-network-subtitle">// OSTA UUSI TUKIKOHTA LAAJENTAAKSESI TOIMINTA-ALUETTA</div>
+            </div>
+            <button class="browse-bases-btn" onclick="openBrowseBasesModal()">
+                🔍 SELAA SIJAINTEJA
+            </button>
+        </div>
+
+        <!-- Bases Grid -->
+        <div id="bases-grid" class="bases-grid">
+            <div class="loading">Ladataan tukikohtia...</div>
+        </div>
+    </section>
+
+    <!-- BROWSE BASES MODAL -->
+    <div id="browse-bases-modal" class="upgrade-modal hidden">
+        <div class="upgrade-modal-overlay" onclick="closeBrowseBasesModal()"></div>
+        <div class="upgrade-modal-content">
+            <!-- Close button -->
+            <button class="upgrade-modal-close" onclick="closeBrowseBasesModal()">✕</button>
+            
+            <!-- Header -->
+            <div class="upgrade-header">
+                <div class="upgrade-title-block">
+                    <h2>TUKIKOHDAT MYYTÄVÄNÄ</h2>
+                    <div class="upgrade-subtitle">// VALITSE UUSI TUKIKOHTA LAIVASTOLLESI</div>
+                </div>
+                <div class="browse-bases-filter">
+                    <input type="text" id="base-search-input" placeholder="🔍 Hae nimellä tai maalla..." oninput="filterAvailableBases()">
+                </div>
+            </div>
+
+            <!-- Available Bases Grid -->
+            <div class="available-bases-grid" id="available-bases-grid">
+                <div class="loading">Ladataan sijainteja...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AIRCRAFT UPGRADE MODAL -->
+    <div id="aircraft-upgrade-modal" class="upgrade-modal hidden">
+        <div class="upgrade-modal-overlay" onclick="closeUpgradeModal()"></div>
+        <div class="upgrade-modal-content">
+            <!-- Close button -->
+            <button class="upgrade-modal-close" onclick="closeUpgradeModal()">✕</button>
+            
+            <!-- Header -->
+            <div class="upgrade-header">
+                <div class="upgrade-title-block">
+                    <h2>PÄIVITYSKESKUS</h2>
+                    <div class="upgrade-subtitle">// PARANNUSTERMINAALI</div>
+                </div>
+                <div class="upgrade-aircraft-info">
+                    <div class="upgrade-aircraft-name" id="upgrade-aircraft-name">-</div>
+                    <div class="upgrade-aircraft-reg" id="upgrade-aircraft-reg">-</div>
+                </div>
+            </div>
+
+            <!-- ECO Level Upgrades Section -->
+            <div class="upgrade-section">
+                <div class="upgrade-section-header">
+                    <div class="upgrade-section-icon">⚡</div>
+                    <div>
+                        <h3>ECO-TASON PÄIVITYKSET</h3>
+                        <p class="upgrade-section-desc">// PARANNA POLTTOAINETEHOOKKUUTTA & ANSAINTAKERROINTA</p>
+                    </div>
+                </div>
+
+                <!-- ECO Levels Grid -->
+                <div class="eco-levels-grid" id="eco-levels-grid">
+                    <!-- Заполняется через JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AIRCRAFT REPAIR MODAL -->
+    <div id="aircraft-repair-modal" class="upgrade-modal hidden">
+        <div class="upgrade-modal-overlay" onclick="closeRepairModal()"></div>
+        <div class="upgrade-modal-content">
+            <!-- Close button -->
+            <button class="upgrade-modal-close" onclick="closeRepairModal()">✕</button>
+            
+            <!-- Header -->
+            <div class="upgrade-header">
+                <div class="upgrade-title-block">
+                    <h2>HUOLTO JA YLLÄPITO</h2>
+                    <div class="upgrade-subtitle">// HUOLTOTERMINAALI</div>
+                </div>
+                <div class="upgrade-aircraft-info">
+                    <div class="upgrade-aircraft-name" id="repair-aircraft-name">-</div>
+                    <div class="upgrade-aircraft-reg" id="repair-aircraft-reg">-</div>
+                    <div class="repair-aircraft-condition" id="repair-aircraft-condition">KUNTO: 0%</div>
+                </div>
+            </div>
+
+            <!-- Repair Options Section -->
+            <div class="upgrade-section">
+                <div class="upgrade-section-header">
+                    <div class="upgrade-section-icon">🔧</div>
+                    <div>
+                        <h3>KORJAUS VAIHTOEHDOT</h3>
+                        <p class="upgrade-section-desc">// PALAUTA KONEEN KUNTO</p>
+                    </div>
+                </div>
+
+                <!-- Repair Options Grid -->
+                <div class="eco-levels-grid" id="repair-options-grid">
+                    <!-- Filled by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PÄIVITYKSET NÄKYMÄ -->
+    <section id="upgrades-view" class="view-container hidden">
+        <div class="view-header">
+            <h2>🔧 PÄIVITYKSET JA PARANNUKSET</h2>
+            <p>Paranna koneitasi tehokkuuden ja ansaintakyvyn lisäämiseksi</p>
+        </div>
+
+        <div class="view-content">
+            <div class="upgrades-info-card">
+                <h3>📋 PÄIVITYSTEN HALLINTA</h3>
+                <p>
+                    Valitse laivasto-näkymästä kone ja avaa sen hallintapaneeli. 
+                    Siellä voit nähdä saatavilla olevat ECO-tason päivitykset ja niiden 
+                    hinnat sekä vaikutukset koneen ansaintakerroimiin.
+                </p>
+                <button class="upgrades-action-btn" onclick="showView('laivasto')">
+                    ➜ Siirry Laivastonäkymään
+                </button>
+            </div>
+
+            <div class="upgrades-explanation-card">
+                <h3>🚀 ECO-TASOT</h3>
+                <ul class="upgrades-list">
+                    <li><strong>ECO 1:</strong> Pohjakulutus x1.0 ansaintakerroin</li>
+                    <li><strong>ECO 2:</strong> Vähennetty polttoainekulutus, x1.1 ansaintakerroin</li>
+                    <li><strong>ECO 3:</strong> Optimoitu aerodynamiikka, x1.25 ansaintakerroin</li>
+                    <li><strong>ECO 4:</strong> Kehittyneet moottorimuutokset, x1.4 ansaintakerroin</li>
+                    <li><strong>ECO 5:</strong> Täysi optimointi, x1.6 ansaintakerroin</li>
+                </ul>
+            </div>
+
+            <div class="upgrades-tips-card">
+                <h3>💡 VINKKEJÄ</h3>
+                <ul class="upgrades-tips-list">
+                    <li>Päivitykset asennetaan yksitellen</li>
+                    <li>Jokainen päivitys maksaa enemmän kuin edellinen</li>
+                    <li>Päivitykset pidentävät koneen tuottavaa ikää merkittävästi</li>
+                    <li>Laskutat päivityksen kustannuksen jokaisen sopimuksen kautta</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- HUOLTO NÄKYMÄ -->
+    <section id="maintenance-view" class="view-container hidden">
+        <div class="view-header">
+            <h2>🔨 HUOLTO JA KORJAUS</h2>
+            <p>Pidä koneet hyvässä kunnossa optimaalisen suorituskyvyn varmistamiseksi</p>
+        </div>
+
+        <div class="maintenance-content">
+            <!-- KPI Cards -->
+            <div class="maintenance-kpi-container">
+                <!-- Needs Service Card -->
+                <div class="maintenance-kpi-card">
+                    <div class="kpi-icon-wrapper kpi-cyan">
+                        <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v20m-8-8h16"></path>
+                        </svg>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">HUOLTOA TARVITSEE</div>
+                        <div class="kpi-value" id="needs-service-count">0</div>
+                    </div>
+                </div>
+
+                <!-- Critical Card -->
+                <div class="maintenance-kpi-card">
+                    <div class="kpi-icon-wrapper kpi-red">
+                        <svg class="kpi-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 8v4m0 4v.01" stroke="white" stroke-width="2" fill="none"></path>
+                        </svg>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">KRIITTISET</div>
+                        <div class="kpi-value kpi-value-red" id="critical-count">0</div>
+                    </div>
+                </div>
+
+                <!-- Total Cost Card -->
+                <div class="maintenance-kpi-card">
+                    <div class="kpi-icon-wrapper kpi-amber">
+                        <svg class="kpi-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"></path>
+                        </svg>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">KOKONAIS HINTA</div>
+                        <div class="kpi-value kpi-value-amber" id="total-cost">€0</div>
+                    </div>
+                </div>
+
+                <!-- Operational Card -->
+                <div class="maintenance-kpi-card">
+                    <div class="kpi-icon-wrapper kpi-green">
+                        <svg class="kpi-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path>
+                        </svg>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-label">OPERATIIVINEN</div>
+                        <div class="kpi-value kpi-value-green" id="operational-count">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Maintenance Section -->
+            <div class="bulk-maintenance-card">
+                <div class="bulk-maintenance-left">
+                    <div class="bulk-icon-wrapper">
+                        <svg class="bulk-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.52l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.34.24.52.49.52h4c.25 0 .46-.18.49-.52l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"></path>
+                        </svg>
+                    </div>
+                    <div class="bulk-content">
+                        <h3>JOUKKOKORJAUS</h3>
+                        <p>// KORJAA KAIKKI KONEET 100% KUNTOON</p>
+                    </div>
+                </div>
+                <div class="bulk-maintenance-right">
+                    <div class="bulk-cost">
+                        <div class="cost-label">YHTEENSÄ</div>
+                        <div class="cost-value" id="bulk-total-cost">€0</div>
+                    </div>
+                    <button class="repair-all-btn" onclick="repairAllAircraft()">🔧 KORJAA KAIKKI</button>
+                </div>
+            </div>
+
+            <!-- Service Queue Table -->
+            <div class="service-queue-card">
+                <div class="queue-header">
+                    <h3>HUOLTOVARAUS</h3>
+                    <span class="queue-count" id="queue-aircraft-count">0 KONETTA</span>
+                </div>
+                <div class="queue-table-wrapper">
+                    <table class="queue-table">
+                        <thead>
+                            <tr>
+                                <th>MALLI</th>
+                                <th>REKISTERI</th>
+                                <th>TUNNUS</th>
+                                <th>SIJAINTI</th>
+                                <th>KUNTO</th>
+                                <th>PRIORITEETTI</th>
+                                <th>ARV. HINTA</th>
+                                <th>ARV. AIKA</th>
+                                <th>TOIMINNOT</th>
+                            </tr>
+                        </thead>
+                        <tbody id="maintenance-queue-tbody">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Maintenance Protocols -->
+            <div class="maintenance-protocols-card">
+                <div class="protocols-icon-wrapper">
+                    <svg class="protocols-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
+                    </svg>
+                </div>
+                <div class="protocols-content">
+                    <h3>HUOLTO-OHJEET</h3>
+                    <ul class="protocols-list">
+                        <li>⚠️ <strong>TÄRKEÄ:</strong> Koneet jotka eivät ole 100% kunnossa eivät voi lentää. Ne tulee korjata ennen lennolle lähettämistä.</li>
+                        <li>Koneet jotka ovat alle 70% kunnossa ovat vaarassa mekaanisesti epäonnistua operaatioiden aikana</li>
+                        <li>Säännöllinen huolto estää kalliita hätäkorjauksia ja parantaa polttoainetaloudellisuutta</li>
+                        <li>Korkeammat tukikohtatasot pienentävät merkittävästi huoltoaikaa ja kustannuksia</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- END GAME CONTAINER -->
+
+    <!-- JavaScript-moduulit -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="app.js"></script>
+    <script src="time.js"></script>
+    <script src="tasks.js"></script>
+    <script src="market.js"></script>
+    <script src="clubhouse.js"></script>
+    <script src="map.js"></script>
+    <script src="laivasto.js"></script>
+    <script src="tukikohdat.js"></script>
+    <script src="maintenance.js"></script>
+    <script src="onboarding.js"></script>
+</body>
+</html>
+
