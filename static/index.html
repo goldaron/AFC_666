@@ -120,16 +120,9 @@
 
             <button onclick="exitAndSaveGame()" class="exit-game-btn" title="Lopeta peli">
                 <svg class="exit-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <style>.cls-1{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2px;}</style>
-                    </defs>
                     <g id="logout">
-                        <line class="cls-1" x1="15.92" x2="28.92" y1="16" y2="16"/>
-                        <path d="M23.93,25v3h-16V4h16V7h2V3a1,1,0,0,0-1-1h-18a1,1,0,0,0-1,1V29a1,1,0,0,0,1,1h18a1,1,0,0,0,1-1V25Z" stroke="currentColor" stroke-width="2" fill="none"/>
-                        <line class="cls-1" x1="28.92" x2="24.92" y1="16" y2="20"/>
-                        <line class="cls-1" x1="28.92" x2="24.92" y1="16" y2="12"/>
-                        <line class="cls-1" x1="24.92" x2="24.92" y1="8.09" y2="6.09"/>
-                        <line class="cls-1" x1="24.92" x2="24.92" y1="26" y2="24"/>
+                        <path d="M23.93,25v3h-16V4h16V7h2V3a1,1,0,0,0-1-1h-18a1,1,0,0,0-1,1V29a1,1,0,0,0,1,1h18a1,1,0,0,0,1-1V25Z" fill="currentColor"/>
+                        <polygon points="28.92,16 24.92,12 26.33,13.41 16.92,13.41 16.92,18.59 26.33,18.59 24.92,20 28.92,16" fill="currentColor"/>
                     </g>
                 </svg>
             </button>
@@ -262,19 +255,19 @@
                 </div>
             </div>
 
-            <!-- UPGRADES Card -->
-            <div class="dashboard-card upgrades-card">
+            <!-- NEWS Card -->
+            <div class="dashboard-card news-card">
                 <div class="kpi-header">
-                    <div class="kpi-icon upgrades-icon">⚙️</div>
-                    <h3>PÄIVITYKSET</h3>
+                    <div class="kpi-icon news-icon">📡</div>
+                    <h3>UUTISET</h3>
                 </div>
                 <div class="kpi-content">
-                    <div class="kpi-stat">
-                        <span class="kpi-value" id="dashboard-upgrades-count">5</span>
-                        <span class="kpi-label">SAATAVILLA</span>
+                    <div class="news-day-info">
+                        <span class="news-day-label">PÄIVÄ</span>
+                        <span class="news-day-value" id="dashboard-news-day">45</span>
                     </div>
-                    <p class="kpi-comment">// PARANNA OPERAATIOITA</p>
-                    <button class="kpi-button upgrades-btn" onclick="showView('upgrades-view')">AVAA</button>
+                    <p class="kpi-comment">// SÄÄ & TAPAHTUMAT</p>
+                    <button class="kpi-button news-btn" onclick="showNewsModal()">NÄYTÄ</button>
                 </div>
             </div>
         </div>
@@ -301,6 +294,239 @@
         </div>
     </section>
 
+    <!-- NEWS MODAL -->
+    <div id="news-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeNewsModal()"></div>
+        <div class="modal-content news-modal-content">
+            <div class="modal-header">
+                <h2>UUTISET</h2>
+                <p class="modal-subtitle">// SÄÄOLOSUHTEET JA TAPAHTUMAT</p>
+                <button class="modal-close" onclick="closeNewsModal()">✕</button>
+            </div>
+            <div class="news-list" id="news-list">
+                <div class="loading">Ladataan uutisia...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeSettings()"></div>
+        <div class="modal-content settings-modal-content">
+            <div class="modal-header">
+                <h2>⚙️ ASETUKSET</h2>
+                <p class="modal-subtitle">// HALLINNOI PELIASETUKSIA</p>
+                <button class="modal-close" onclick="closeSettings()">✕</button>
+            </div>
+            
+            <div class="settings-section">
+                <div class="settings-section-title">
+                    <span class="settings-icon">🔊</span>
+                    <div>
+                        <h3>ÄÄNI</h3>
+                        <p class="settings-section-subtitle">Hallitse ääniasetuksia</p>
+                    </div>
+                </div>
+                
+                <div class="settings-option">
+                    <label for="sound-toggle" class="settings-label">ÄÄNET JA MUSIIKKI</label>
+                    <div class="toggle-switch" onclick="document.getElementById('sound-toggle').click()">
+                        <input type="checkbox" id="sound-toggle" class="toggle-input" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+                
+                <div class="settings-sub-options">
+                    <div class="sub-option">
+                        <span class="bullet">●</span> Taustamusiikin äänet
+                    </div>
+                    <div class="sub-option">
+                        <span class="bullet">●</span> Käyttöliittymän äänet
+                    </div>
+                    <div class="sub-option">
+                        <span class="bullet">●</span> Ilmoitusäänet
+                    </div>
+                </div>
+                
+                <div class="settings-info">
+                    <span class="info-icon">ℹ️</span>
+                    <p>Ääniasetukset tallennetaan automaattisesti ja pysyvät voimassa seuraavalla pelisessiolla.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOSE MODAL (KONKURSSI) -->
+    <div id="lose-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeLoseModal()"></div>
+        <div class="modal-content lose-modal-content">
+            <!-- Header background gradient -->
+            <div class="lose-modal-header-bg"></div>
+            
+            <!-- Header with title and icon -->
+            <div class="lose-modal-header">
+                <div class="lose-modal-header-content">
+                    <div class="lose-modal-icon-container">
+                        <div class="lose-modal-icon-glow"></div>
+                        <div class="lose-modal-icon">☠️</div>
+                    </div>
+                    <div class="lose-modal-title-group">
+                        <h2 class="lose-modal-title">KONKURSSI</h2>
+                        <p class="lose-modal-subtitle">PELI PÄÄTTYI</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main content -->
+            <div class="lose-modal-body">
+                <!-- Description -->
+                <div class="lose-modal-description">
+                    <p class="lose-desc-main">Lentorahtiyhtiö 666 on ajautunut konkurssiin.</p>
+                    <p class="lose-desc-sub">Taloudellinen tilanne muuttui kestämättömäksi.</p>
+                </div>
+
+                <!-- Bankruptcy reason card -->
+                <div class="lose-modal-reason-card">
+                    <div class="reason-card-icon-wrapper">
+                        <div class="reason-card-icon">⚠️</div>
+                    </div>
+                    <div class="reason-card-content">
+                        <div class="reason-card-label">KONKURSSIN SYY</div>
+                        <div class="reason-card-value" id="lose-reason">Kassavarat loppuivat</div>
+                    </div>
+                </div>
+
+                <!-- Stats grid -->
+                <div class="lose-stats-grid">
+                    <div class="lose-stat-card final-balance">
+                        <div class="lose-stat-label">
+                            <span class="lose-stat-icon">💰</span>
+                            <span>LOPPUSALDO</span>
+                        </div>
+                        <div class="lose-stat-value" id="lose-final-balance">€−150 000</div>
+                    </div>
+                    
+                    <div class="lose-stat-card peak-balance">
+                        <div class="lose-stat-label">
+                            <span class="lose-stat-icon">📈</span>
+                            <span>HUIPPUSALDO</span>
+                        </div>
+                        <div class="lose-stat-value" id="lose-peak-balance">€450 000</div>
+                    </div>
+                    
+                    <div class="lose-stat-card flights">
+                        <div class="lose-stat-label">
+                            <span class="lose-stat-icon">✈️</span>
+                            <span>LENNOT</span>
+                        </div>
+                        <div class="lose-stat-value" id="lose-flights">342</div>
+                    </div>
+                    
+                    <div class="lose-stat-card survival">
+                        <div class="lose-stat-label">
+                            <span class="lose-stat-icon">📅</span>
+                            <span>SELVIYTYI</span>
+                        </div>
+                        <div class="lose-stat-value" id="lose-survival-days">89 päivää</div>
+                    </div>
+                </div>
+
+                <!-- Tips section -->
+                <div class="lose-modal-tips-card">
+                    <div class="tips-title">VINKKEJÄ SEURAAVAAN PELIIN</div>
+                    <ul class="tips-list">
+                        <li>Seuraa kassavirtaa tarkasti ja pidä riittävä varapääoma</li>
+                        <li>Älä osta liikaa koneita kerralla - kasvata toimintaa hallitusti</li>
+                        <li>Huolla koneet säännöllisesti kalliiden korjausten välttämiseksi</li>
+                        <li>Valitse kannattavimmat reitit ja optimoi polttoainekustannukset</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Close button -->
+            <button class="lose-modal-close-btn" onclick="closeLoseModal()">SULJE</button>
+        </div>
+    </div>
+
+    <!-- WIN MODAL (VOITTO) -->
+    <div id="win-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeWinModal()"></div>
+        <div class="modal-content win-modal-content">
+            <!-- Header background gradient -->
+            <div class="win-modal-header-bg"></div>
+            
+            <!-- Header with title and icon -->
+            <div class="win-modal-header">
+                <div class="win-modal-header-content">
+                    <div class="win-modal-icon-container">
+                        <div class="win-modal-icon-glow"></div>
+                        <div class="win-modal-icon">🏆</div>
+                    </div>
+                    <div class="win-modal-title-group">
+                        <h2 class="win-modal-title">VOITTO!</h2>
+                        <p class="win-modal-subtitle">TAVOITE SAAVUTETTU</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main content -->
+            <div class="win-modal-body">
+                <!-- Description -->
+                <div class="win-modal-description">
+                    <p class="win-desc-main">Onnittelut! Olet rakentanut menestyvän lentorahtiyhtiön ja saavuttanut tavoitteesi.</p>
+                    <p class="win-desc-sub">Lentorahtiyhtiö 666 on nyt yksi markkinoiden johtavista toimijoista.</p>
+                </div>
+
+                <!-- Stats grid (2x2) -->
+                <div class="win-stats-grid">
+                    <div class="win-stat-card final-balance">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">💰</span>
+                            <span>LOPPUSALDO</span>
+                        </div>
+                        <div class="win-stat-value" id="win-final-balance">€2 500 000</div>
+                    </div>
+                    
+                    <div class="win-stat-card flights">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">✈️</span>
+                            <span>LENNOT</span>
+                        </div>
+                        <div class="win-stat-value" id="win-flights">1247</div>
+                    </div>
+                    
+                    <div class="win-stat-card total-income">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">📊</span>
+                            <span>KOKONAISTUOTOT</span>
+                        </div>
+                        <div class="win-stat-value" id="win-total-income">€8 950 000</div>
+                    </div>
+                    
+                    <div class="win-stat-card days-played">
+                        <div class="win-stat-label">
+                            <span class="win-stat-icon">📅</span>
+                            <span>PELATUT PÄIVÄT</span>
+                        </div>
+                        <div class="win-stat-value" id="win-days-played">365</div>
+                    </div>
+                </div>
+
+                <!-- Achievement section -->
+                <div class="win-modal-achievement-card">
+                    <div class="achievement-header">
+                        <span class="achievement-icon">⭐</span>
+                        <span class="achievement-title">SAAVUTUS AVATTU</span>
+                        <span class="achievement-icon">⭐</span>
+                    </div>
+                    <div class="achievement-content" id="win-achievement-text">"TAIVAIDEN HERRA" - Omista 10+ konetta ja ansaitse €2M</div>
+                </div>
+            </div>
+
+            <!-- Continue button -->
+            <button class="win-modal-continue-btn" onclick="closeWinModal()">JATKA PELAAMISTA</button>
+        </div>
+    </div>
 
     <!-- TEHTÄVÄT / SOPIMUKSET -NÄKYMÄ -->
     <section id="tasks-view" class="view-container">

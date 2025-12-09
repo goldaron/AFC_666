@@ -103,6 +103,7 @@ CREATE TABLE random_events (
   event_id INT AUTO_INCREMENT PRIMARY KEY,
   event_name VARCHAR(100) NOT NULL,
   description TEXT,
+  weather_description TEXT,
   chance_max INT,
   package_multiplier DOUBLE,
   plane_damage INT,
@@ -238,6 +239,7 @@ CREATE TABLE market_aircraft (
 INSERT INTO random_events (
   event_name,
   description,
+  weather_description,
   chance_max,
   package_multiplier,
   plane_damage,
@@ -245,17 +247,17 @@ INSERT INTO random_events (
   duration,
   sound_file
 ) VALUES
-('Volcano', NULL, 50, 0.53, 40, 3.0, 1, 'sfx/volcano-eruption.mp3'),
-('Aliens', NULL, 100, 0.9, 10, 0.0, 7, 'sfx/the-x-files-theme.mp3'),
-('Freezing Cold', NULL, 10, 0.8, 7, 1.0, 2, 'sfx/frostpunk-generator-sound.mp3'),
-('Storm Clouds', NULL, 5, 0.7, 15, 1.0, 3, 'sfx/thunder-sound-effect.mp3'),
-('Hurricane', NULL, 15, 0.6, 25, 2.0, 1, 'sfx/49_20siren.mp3'),
-('Meteor', NULL, 70, 0.0, 100, 0.0, 1, 'sfx/impact_explosion_03.mp3'),
-('Workers Strike', NULL, 6, 0.5, 0, 2.0, 3, 'sfx/screaming-protester.mp3'),
-('Sunny Sky', NULL, 3, 1.0, 0, 0.8, 1, 'sfx/here-comes-the-sun.mp3'),
-('Favorable Winds', NULL, 7, 1.0, 0, 0.7, 2, 'sfx/yoshis-island-music-map-theme-short.mp3'),
-('Best Day Ever', NULL, 15, 1.5, 0, 0.5, 1, 'sfx/life_could_be_a_dream.mp3'),
-('Normal Day', NULL, 1, 1.0, 0, 1.0, 1, NULL);
+('Volcano', 'VULKAANI HERÄÄ ELOON! Tulivuori purkaantuu lähellä lentoreittiä. Rakeinen tuhka leijuu ilmassa – näkyvyys on huono, moottoreihin kertyy pölyä joka vahingoittaa koneen kuntoa -40%. Rahdin arvo laskee 47% (multiplier 0.53). Vältä aluetta 3 päivän ajan.', 'Tänään luvassa: TULIVUOREN PURKAANTUMINEN! Koneestasi tulee pölyinen ja moottorista kuuluu outoja ääniä. Rahti saattaa orastavasti savuuntuua. Huollosta ei mahda puuttua jälkeen!', 50, 0.53, 40, 3.0, 1, 'sfx/volcano-eruption.mp3'),
+('Aliens', 'SALAPERÄINEN UFO NÄHTÄVISSÄ! Lentoliikenneohjaajat raportoivat outoja ilmiöitä. Koneet välttävät aluetta ja muuttavat reittejä. Koneen kunto heikkenee -10%, mutta rahdin arvo vain vähenee 10% (multiplier 0.90). Pitkä tapahtuma (7 päivää).', 'Tänään luvassa: TUNTEMATON LENTÄVÄ OBJEKTI! Koneesi reitit muuttuvat mysteerisesti. Rahti saattaa kadota radariesta hetkeksi. Lentäjät tuijottavat taivasta vaiteliaina.', 100, 0.9, 10, 0.0, 7, 'sfx/the-x-files-theme.mp3'),
+('Freezing Cold', 'ÄÄRIMMÄINEN PAKKANEN! Lämpötila putoaa alle -40 asteen. Jää kertyy siipiin ja lentokoneen ilma-aineet jäätyvät. Koneen kunto heikkenee -7%. Rahdin arvo vähenee 20% (multiplier 0.80). 2 päivän kovaa sää.', 'Tänään luvassa: SILEÄVIIKAINEN LASKEUTUMINEN! Koneesi siivistä löytyy jääkerroksia ja moottoreiden teho heikkenee. Keula-ikkunan huureet päälle! Rahti säilötään lämmitetysti.', 10, 0.8, 7, 1.0, 2, 'sfx/frostpunk-generator-sound.mp3'),
+('Storm Clouds', 'RAJU UKKOSKELLO MUODOSTUU! Voimakas turbulenssi heiluttelee konetta. Koneen kunto kärsii -15%, pakelit saavat ryystöjä. Rahdin arvo vähenee 30% (multiplier 0.70). 3 päivän kovaa sää.', 'Tänään luvassa: TURBULENSSIAALTO! Koneesta tulee kärpäsenä säkissä lentävä objekti. Pakelit heiluvat lavassa ja jotkut saattavat revetä. Pilotit kuvittelevat seuraavansa reittiä, kun taas todellisuudessa kone heilii kuin juopunut laulaja.', 5, 0.7, 15, 1.0, 3, 'sfx/thunder-sound-effect.mp3'),
+('Hurricane', 'HURRIKAANI LÄHESTYY! Tuulen nopeus ylittää 150 solmua, sade lyö pystysuoraan. Koneet heiluvat vaarallisesti – siivissä syntyy merkittäviä vaurioita (-25% kuntoa). Rahdin arvo laskee 40% (multiplier 0.60). 1 päivä poikkeuksellisen vaarallista säätä.', 'Tänään luvassa: HURRIKAANIN TÄYSTUULESSA LENTÄMINEN! Koneen siivissä alkaa kolina ja kolina. Pilotit roikkuvat paikoillaan turvavaljailla. Rahti saattaa singota yli lentokoneen laitojen. Tämä ei ole tutoriaalitehtävä!', 15, 0.6, 25, 2.0, 1, 'sfx/49_20siren.mp3'),
+('Meteor', 'METEORIITTI PUTOAA TAIVAALTA! Räjähdys lähellä ilmareittiä. Ilmaiskun shokki paljaa konetta – koneen runko saa täydet vauriot (-100% kuntoa, kone tuhoutunut). Rahti on täysin tuhottu (multiplier 0.00). Hirveä päivä.', 'Tänään luvassa: METEORISATEESSA LENTÄMINEN! Koneestasi tulee varmasti reikäjuusto, rahdista puhumattakaan. Tervetuloa vakuutusyhtiöiden suosikkisäähän! Kyllä, tämä oli se paha päivä.', 70, 0.0, 100, 0.0, 1, 'sfx/impact_explosion_03.mp3'),
+('Workers Strike', 'LAKKO ALKAA! Lentoyhtiön henkilökunnan lakko pysäyttää kaikki maapalvelut – lastaus, purkaus ja huolto lopetetaan. Rahti jää odottamaan, arvo vähenee 50% (multiplier 0.50). Koneet seisovat käyttökelpoina. 3 päivän taloudellinen isku.', 'Tänään luvassa: KOKO KONEISTOSTON LAKKO! Konettasi ei pureta kenelläkään olevalla halulla. Rahti istuu lentokentällä ja tulee yhä kalliimmaksi jokaisen istuneen tunnin mukaan. Konetta ei voi lähettää minnekään.', 6, 0.5, 0, 2.0, 3, 'sfx/screaming-protester.mp3'),
+('Sunny Sky', 'KAUNIS, KIRKKAASSA SÄÄSSÄ LENNETÄÄN! Taivas on pilvetön, näkyvyys erinomainen. Lentäjät ovat iloisia, pakelit kunnossa. Rahdin arvo pysyy samana (multiplier 1.0), koneen kunto ei heikenny. Pienempi riskialtistus päivän aikana.', 'Tänään luvassa: PARATIISIN LENTOKAUDET! Taivas on sininen ja pilvetön. Lentäjät laulaa keulassa. Rahti on turvassa oikeasti. Koneeseesi käy hyvin. Tämä on sellainen päivä, jolla voit unohtaa kaikki ongelmat.', 3, 1.0, 0, 0.8, 1, 'sfx/here-comes-the-sun.mp3'),
+('Favorable Winds', 'MYÖTÄTUULI PUHALTAA! Jet stream auttaa lentokoneen menoa. Polttoaineen kulutus vähenee, rahti kulkee sileästi (multiplier 1.0). Koneen kunto ei heikenny. Kahden päivän loistava sää ilman negatiivisia vaikutuksia.', 'Tänään luvassa: JET STREAMISSÄ LIUKUMINEN! Tuuli on täydellisesti sinussa. Polttoainekulutus laskee ja pakelit slidaavat sileiden säiden johdosta. Koneeseesi ei käy poikkeuksellisen pahasti. Loistava päivä lentämiseen!', 7, 1.0, 0, 0.7, 2, 'sfx/yoshis-island-music-map-theme-short.mp3'),
+('Best Day Ever', 'TÄYDELLINEN PÄIVÄ LENTÄMISEEN! Sää on loistava, tuuli on sopiva, näkyvyys erinomainen ja maapalvelut ovat huippukunnossa. Rahtin arvo nousee 50% (multiplier 1.5)! Koneen kunto ei heikenny. Lyhyt mutta loistava tapahtuma.', 'Tänään luvassa: DEUS EX MACHINA! Jumalat suosivat sinua. Rahti käsitellään hoivavilla käsillä ja sen arvo nousee väkisinään. Koneeseesi ei tapahdu mitään pahaa. Jopa lentäjät näyttävät hyväkuntoisilta! Tämä on paras päivä vuoteen!', 15, 1.5, 0, 0.5, 1, 'sfx/life_could_be_a_dream.mp3'),
+('Normal Day', 'Tavallinen päivä ilmaliikenteessä. Sää on kohtuullinen, maapalvelut toimivat normaalisti. Rahdin arvo pysyy samana (multiplier 1.0), koneen kunto ei heikenny. Ei poikkeamia, ei bonuksia – vain normaali päivän työ.', 'Tänään luvassa: MITÄÄN ERITYISTÄ! Sää on normaali, lentäminen on normaalia ja rahti käsitellään normaaleasti. Tuotto on normaali. Eli: tavanomainen päivä operaatioissa.', 1, 1.0, 0, 1.0, 1, NULL);
 
 -- --------------------------------------------------------
 -- Lentokonemallit - Vähän koitettu balansoida

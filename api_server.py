@@ -1643,6 +1643,151 @@ def get_map_data():
         yhteys.close()
 
 
+# ---------- Reitit: Uutiset / Random Events ----------
+
+@app.get("/api/events")
+def get_recent_events():
+    """Palauttaa viimeisimmät satunnaiset tapahtumatehtävät päivittäisen news-widgetin käyttöön.
+    
+    Näyttää tapahtumia viimeisimmiltä päiviltä (max 4).
+    """
+    try:
+        from event_system import get_event_for_day
+        
+        session = GameSession(save_id=ACTIVE_SAVE_ID)
+        current_day = session.current_day
+        if current_day is None:
+            current_day = 1
+        
+        # Hae tapahtumia viimeisimmältä 4 päivältä
+        events = []
+        yhteys = get_connection()
+        kursori = None
+        
+        try:
+            kursori = yhteys.cursor(dictionary=True)
+        except TypeError:
+            kursori = yhteys.cursor()
+        
+        try:
+            # Hae random_events taulusta kaikki tapahtumat, jotta voidaan yhdistää tiedot
+            kursori.execute("""
+                SELECT event_id, event_name, description, weather_description 
+                FROM random_events
+                ORDER BY event_id ASC
+            """)
+            event_defs = {}
+            for row in kursori.fetchall():
+                if isinstance(row, dict):
+                    event_defs[row['event_name']] = {
+                        'name': row['event_name'],
+                        'description': row['description'],
+                        'weather_description': row.get('weather_description')
+                    }
+                else:
+                    event_name = row[1] if len(row) > 1 else row.get('event_name')
+                    description = row[2] if len(row) > 2 else row.get('description')
+                    weather_desc = row[3] if len(row) > 3 else row.get('weather_description')
+                    event_defs[event_name] = {
+                        'name': event_name,
+                        'description': description,
+                        'weather_description': weather_desc
+                    }
+            
+            # Hae viimeisimmät 4 päivää tapahtumistaan
+            days_to_check = min(4, current_day)
+            for day_offset in range(days_to_check):
+                check_day = current_day - day_offset
+                if check_day <= 0:
+                    break
+                    
+                kursori.execute("""
+                    SELECT event_name FROM player_fate 
+                    WHERE seed = %s AND day = %s 
+                    LIMIT 1
+                """, (session.rng_seed, check_day))
+                
+                row = kursori.fetchone()
+                if row:
+                    event_name = row[0] if not isinstance(row, dict) else row.get('event_name')
+                    if event_name is None:
+                        continue
+                        
+                    event_info = event_defs.get(event_name, {
+                        'name': event_name,
+                        'description': '',
+                        'weather_description': ''
+                    })
+                    
+                    # Määritä event-tyyppi ja väri
+                    event_type = 'normal'
+                    color_class = 'cyan'
+                    
+                    event_name_lower = str(event_name).lower()
+                    
+                    # Negatiiviset eventit
+                    if event_name in ['Volcano', 'Freezing Cold', 'Storm Clouds', 'Hurricane', 'Meteor', 'Workers Strike']:
+                        event_type = 'negative'
+                        color_class = 'red'
+                    # Positiiviset eventit
+                    elif event_name in ['Sunny Sky', 'Favorable Winds', 'Best Day Ever']:
+                        event_type = 'positive'
+                        color_class = 'green'
+                    # Neutraalit/outot eventit
+                    elif event_name in ['Aliens']:
+                        event_type = 'warning'
+                        color_class = 'amber'
+                    # Normaalit
+                    elif event_name in ['Normal Day']:
+                        event_type = 'normal'
+                        color_class = 'cyan'
+                    
+                    events.append({
+                        'day': check_day,
+                        'event_name': event_name,
+                        'description': event_info.get('description', ''),
+                        'weather_description': event_info.get('weather_description', ''),
+                        'type': event_type,
+                        'color': color_class
+                    })
+            
+            # Jos ei tapahtumia, palauta placeholder
+            if not events:
+                events.append({
+                    'day': current_day,
+                    'event_name': 'Normal Day',
+                    'description': 'Normaali lentopäivä ilman erityistä tapahtumaa',
+                    'weather_description': 'Mitään erityistä! Tavanomainen päivä operaatioissa.',
+                    'type': 'normal',
+                    'color': 'cyan'
+                })
+            
+            return jsonify({
+                'current_day': current_day,
+                'events': events
+            })
+            
+        finally:
+            if kursori:
+                try:
+                    kursori.close()
+                except:
+                    pass
+            yhteys.close()
+            
+    except Exception as e:
+        app.logger.exception("Tapahtumien haku epäonnistui")
+        return jsonify({
+            'current_day': 0,
+            'events': [{
+                'day': 0,
+                'event_name': 'Virhe',
+                'description': f'Tapahtumien haku epäonnistui: {str(e)}',
+                'type': 'error',
+                'color': 'red'
+            }]
+        }), 500
+
 
 # ---------- Staattiset tiedostot (Frontend) ----------
 

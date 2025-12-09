@@ -65,8 +65,95 @@ async function loadGame() {
  * Näyttää asetukset-dialogin
  */
 function showSettings() {
-    // TODO: Implementoi asetukset-dialogi
-    showNotification('Asetukset tulossa pian!', 'success', 'ASETUKSET');
+    const modal = document.getElementById('settings-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        loadSettingsFromStorage();
+    }
+}
+
+/**
+ * Sulkee asetukset-dialogin
+ */
+function closeSettings() {
+    const modal = document.getElementById('settings-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+/**
+ * Näyttää konkurssi-modaalin (häviö-näyttö)
+ * @param {Object} data - Pelin statistiikka (final_balance, peak_balance, flights, survival_days, reason)
+ */
+function showLoseModal(data = {}) {
+    const modal = document.getElementById('lose-modal');
+    if (modal) {
+        // Päivitä modaalin sisältö
+        const reason = data.reason || 'Kassavarat loppuivat';
+        const finalBalance = data.final_balance !== undefined ? data.final_balance : '-150000';
+        const peakBalance = data.peak_balance !== undefined ? data.peak_balance : '450000';
+        const flights = data.flights !== undefined ? data.flights : '342';
+        const survivalDays = data.survival_days !== undefined ? data.survival_days : '89 päivää';
+        
+        document.getElementById('lose-reason').textContent = reason;
+        document.getElementById('lose-final-balance').textContent = `€${formatMoney(finalBalance)}`;
+        document.getElementById('lose-peak-balance').textContent = `€${formatMoney(peakBalance)}`;
+        document.getElementById('lose-flights').textContent = flights;
+        document.getElementById('lose-survival-days').textContent = survivalDays;
+        
+        modal.classList.remove('hidden');
+    }
+}
+
+/**
+ * Sulkee konkurssi-modaalin ja palaa aloitusnäyttöön
+ */
+function closeLoseModal() {
+    const modal = document.getElementById('lose-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    
+    // Palaa aloitusnäyttöön
+    exitGame();
+}
+
+/**
+ * Näyttää voitto-modaalin (voitto-näyttö)
+ * @param {Object} data - Pelin statistiikka (final_balance, flights, total_income, days_played, achievement_text)
+ */
+function showWinModal(data = {}) {
+    const modal = document.getElementById('win-modal');
+    if (modal) {
+        // Päivitä modaalin sisältö
+        const finalBalance = data.final_balance !== undefined ? data.final_balance : '2500000';
+        const flights = data.flights !== undefined ? data.flights : '1247';
+        const totalIncome = data.total_income !== undefined ? data.total_income : '8950000';
+        const daysPlayed = data.days_played !== undefined ? data.days_played : '365';
+        const achievementText = data.achievement_text || '"TAIVAIDEN HERRA" - Omista 10+ konetta ja ansaitse €2M';
+        
+        document.getElementById('win-final-balance').textContent = `€${formatMoney(finalBalance)}`;
+        document.getElementById('win-flights').textContent = flights;
+        document.getElementById('win-total-income').textContent = `€${formatMoney(totalIncome)}`;
+        document.getElementById('win-days-played').textContent = daysPlayed;
+        document.getElementById('win-achievement-text').textContent = achievementText;
+        
+        modal.classList.remove('hidden');
+    }
+}
+
+/**
+ * Sulkee voitto-modaalin ja palaa aloitusnäyttöön
+ */
+function closeWinModal() {
+    const modal = document.getElementById('win-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    
+    // Palaa aloitusnäyttöön
+    exitGame();
 }
 
 /**
@@ -320,11 +407,89 @@ async function loadDashboardData() {
             upgradeCount
         });
         
+        // Lataa uutisten päivän numero myös näkymään
+        await loadNewsEvents();
+        
     } catch (error) {
         console.error('Kojelaudan tietojen lataus epäonnistui:', error);
         // Näytä virheilmoitus käyttäjälle
         showNotification('Kojelaudan tietojen lataus epäonnistui', 'error');
     }
+}
+
+/**
+ * Näyttää news-modaalin ja lataa uutiset
+ */
+async function showNewsModal() {
+    const modal = document.getElementById('news-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        await loadNewsEvents();
+    }
+}
+
+/**
+ * Sulkee news-modaalin
+ */
+function closeNewsModal() {
+    const modal = document.getElementById('news-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+/**
+ * Lataa ja näyttää viimeisimmät news-tapahtumat
+ */
+async function loadNewsEvents() {
+    try {
+        const response = await apiCall('/api/events');
+        const { current_day, events } = response;
+        
+        // Päivitä päivän numero news-kortissa
+        const dayEl = document.getElementById('dashboard-news-day');
+        if (dayEl) {
+            dayEl.textContent = current_day;
+        }
+        
+        // Näytä uutiset modaalissa
+        const newsList = document.getElementById('news-list');
+        if (!newsList) return;
+        
+        if (!events || events.length === 0) {
+            newsList.innerHTML = '<div class="loading">Ei uutisia saatavilla</div>';
+            return;
+        }
+        
+        newsList.innerHTML = events.map(event => `
+            <div class="news-item ${event.color}">
+                <div class="news-item-content">
+                    <div class="news-item-day">PÄIVÄ ${event.day}</div>
+                    <div class="news-item-title">${escapeHtml(event.event_name)}</div>
+                    <div class="news-item-weather">${escapeHtml(event.weather_description || '')}</div>
+                    <div class="news-item-description">${escapeHtml(event.description || 'Tapahtumat pelin kulussa.')}</div>
+                </div>
+                <div class="news-item-badge">${event.type.toUpperCase()}</div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Uutisten lataus epäonnistui:', error);
+        const newsList = document.getElementById('news-list');
+        if (newsList) {
+            newsList.innerHTML = '<div class="loading">Uutisten lataus epäonnistui</div>';
+        }
+    }
+}
+
+/**
+ * Turvallisesti näyttää tekstin HTML:ssä (XSS-suojaus)
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 /**
@@ -341,6 +506,74 @@ function reloadCurrentView() {
             // showView kutsuu automaattisesti oikeat lataustoiminnot
             showView(viewName);
         }
+    }
+}
+
+// ============================================================
+// ASETUKSET / SETTINGS FUNCTIONS
+// ============================================================
+
+/**
+ * Lataa ääniasetukset localStorage:sta ja päivittää UI:n
+ */
+function loadSettingsFromStorage() {
+    const soundToggle = document.getElementById('sound-toggle');
+    const toggleSwitch = soundToggle.closest('.toggle-switch');
+    
+    // Lataa ääni-asetus (oletuksena true)
+    const soundEnabled = localStorage.getItem('settings_sound_enabled');
+    const isSoundEnabled = soundEnabled === null || soundEnabled === 'true';
+    
+    soundToggle.checked = isSoundEnabled;
+    if (isSoundEnabled) {
+        toggleSwitch.classList.add('enabled');
+    } else {
+        toggleSwitch.classList.remove('enabled');
+    }
+}
+
+/**
+ * Tallentaa ääniasetukset localStorage:iin
+ */
+function saveSettingsToStorage() {
+    const soundToggle = document.getElementById('sound-toggle');
+    localStorage.setItem('settings_sound_enabled', soundToggle.checked);
+}
+
+/**
+ * Tarkistaa ovatko äänet käyttäjän asetuksissa enabled
+ */
+function isSoundEnabled() {
+    const soundEnabled = localStorage.getItem('settings_sound_enabled');
+    return soundEnabled === null || soundEnabled === 'true';
+}
+
+/**
+ * Soittaa event-äänitiedoston jos äänet ovat käytössä
+ * @param {string} soundFile - Äänitiedoston polku (esim. "event_arrival.mp3")
+ */
+function playEventSound(soundFile) {
+    // Tarkistetaan onko äänet käyttäjän asetuksissa käytössä
+    if (!isSoundEnabled()) {
+        console.log('Äänet pois käytöstä, ei soiteta:', soundFile);
+        return;
+    }
+    
+    // Tarkistetaan että soundFile on määritetty
+    if (!soundFile || soundFile.trim() === '') {
+        console.warn('Sound file ei määritetty');
+        return;
+    }
+    
+    // Luodaan ja soitetaan audio
+    try {
+        const audio = new Audio(`/sounds/${soundFile}`);
+        audio.volume = 0.7; // 70% äänenvoimakkuus
+        audio.play().catch(error => {
+            console.warn('Äänen soittaminen epäonnistui:', error);
+        });
+    } catch (error) {
+        console.warn('Audio objektin luominen epäonnistui:', error);
     }
 }
 
@@ -389,6 +622,20 @@ async function inlineSvgImages() {
 document.addEventListener('DOMContentLoaded', () => {
     // Muunna img SVG:t inline SVG:ksi CSS-tuki varten
     inlineSvgImages();
+    
+    // Aseta toggle switch event listener
+    const soundToggle = document.getElementById('sound-toggle');
+    if (soundToggle) {
+        soundToggle.addEventListener('change', (e) => {
+            const toggleSwitch = e.target.closest('.toggle-switch');
+            if (e.target.checked) {
+                toggleSwitch.classList.add('enabled');
+            } else {
+                toggleSwitch.classList.remove('enabled');
+            }
+            saveSettingsToStorage();
+        });
+    }
     
     // Start screen näkyy automaattisesti
     // Peli ladataan vasta kun käyttäjä valitsee "Aloita Uusi Peli" tai "Lataa Peli"
