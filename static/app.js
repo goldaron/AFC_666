@@ -17,14 +17,32 @@ let activeSaveId = 1;
  * Aloittaa uuden pelin
  * Piilottaa start screenin ja näyttää pelin
  */
+function showNewGameInput() {
+    document.getElementById('new-game-modal')?.classList.remove('hidden');
+}
+
 async function startNewGame() {
     try {
         // Tässä voidaan myöhemmin lisätä API-kutsu uuden pelin luomiseen
         // const newGame = await apiCall('/api/game/new', { method: 'POST' });
-        const response = await fetch('/api/games',{
+        const playerName = document.getElementById('new-player-name').value;
+        const rngSeed = document.getElementById('new-rng-seed').value;
+        const difficulty = document.getElementById('new-difficulty').value;
+
+        const payload = {
+            player_name: playerName || 'Ready Player One', // Oletus
+            rng_seed: rngSeed || null,
+            difficulty: difficulty
+         };
+
+        const newGame = await apiCall('/api/games',{
           method: 'POST',
+          body: JSON.stringify(payload)
         });
-        if (!response.ok) {
+
+        activeSaveId = newGame.save_id;
+
+        if (!newGame.save_id) {
           throw Error('Uuden pelin luonti epäonnistui.');
         }
         
@@ -41,16 +59,61 @@ async function startNewGame() {
 }
 
 /**
- * Lataa tallennetun pelin
- * Näyttää load-dialogin tai lataa suoraan
+ * Hakee tallennettujen pelien listan ja näyttää valintaikkunan.
  */
-async function loadGame() {
+async function showLoadGameList() {
     try {
-        // Tässä voidaan myöhemmin lisätä tallennusten valinta-dialogi
-        // Toistaiseksi ladataan oletustallennus
-        
+        const savedGames = await apiCall('/api/games');
+
+        const container = document.getElementById('load-game-list-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        if (savedGames.length === 0) {
+            container.innerHTML = '<p>Ei tallennettuja pelejä.</p>';
+            return;
+        }
+
+        savedGames.forEach(game => {
+            const row = document.createElement('div');
+            row.className = 'game-save-row';
+            row.innerHTML = `
+                <span>${game.name}</span>
+                <span>Päivä: ${game.day}</span>
+                <span>Kassa: €${formatMoney(game.cash)}</span>
+            `;
+            row.addEventListener('click', () => loadGame(game.id));
+            container.appendChild(row);
+        });
+
+        document.getElementById('load-screen-modal').classList.remove('hidden');
+
+    } catch (error) {
+        console.error('Virhe tallennusten haussa:', error);
+        showNotification(`Tallennusten haku epäonnistui: ${error.message}`, 'error');
+    }
+}
+/**
+ * Lataa tallennetun pelin ID:n perusteella
+ */
+async function loadGame(gameId) {
+    if (!gameId) {
+      showNotification('Virhe: Pelin ID puuttuu.')
+      return;
+    }
+
+    try {
+        // Tässä voidaan myöhemmin lisätä tallennusten valinta-dialogi -> tehty omaksi funktioksi
+        const response = await apiCall(`/api/games/${gameId}/load`, {
+            method: 'POST'
+        });
+
+        activeSaveId = gameId;
+
+        document.getElementById('load-screen-modal')?.classList.add('hidden');
         showGameScreen();
-        showNotification('Peli ladattu!', 'success', 'TERVETULOA TAKAISIN');
+        showNotification(`Peli ${response.player_name} ladattu!`, 'success', 'TERVETULOA TAKAISIN');
         
         // Päivitä pelin tila
         await updateGameStats();
@@ -247,4 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gameContainer) {
         gameContainer.classList.add('hidden');
     }
+
+    // Start Screen - load game listener
+    document.querySelector('.start-btn-secondary')?.addEventListener('click', showLoadGameList);
+
 });

@@ -19,7 +19,66 @@
     <div class="corner-accent top-right"></div>
     <div class="corner-accent bottom-left"></div>
     <div class="corner-accent bottom-right"></div>
+    <!-- NEW GAME MODAL -->
+    <div id="new-game-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content new-game-modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="new-game-modal-title">ANNA YRITYKSEN NIMI</h2>
+                    <p class="modal-subtitle">Valitse nimi rahtiyhtiöllesi</p>
+                </div>
+                <span class="modal-step-indicator" id="new-game-step-indicator">VAIHE 1/3</span>
+                <button class="modal-close-btn" onclick="closeNewGameModal()">✕</button>
+            </div>
+            <div class="modal-body" id="new-game-modal-body">
+                <!-- Sisältö täytetään JavaScriptillä -->
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-back-btn" onclick="previousNewGameStep()" style="display: none;">← Takaisin</button>
+                <button class="modal-next-btn" onclick="nextNewGameStep()">Seuraava</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- LOAD GAME MODAL -->
+    <div id="load-game-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content load-game-modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="load-game-modal-title">LATAA TALLENNETTU PELI</h2>
+                    <p class="modal-subtitle">// VALITSE TALLENNUSTIEDOSTO JATKAAKSESI</p>
+                </div>
+                <button class="modal-close-btn" onclick="closeLoadGameModal()">✕</button>
+            </div>
+            <div class="modal-body load-game-list" id="load-game-list">
+                <!-- Pelit täytetään JavaScriptillä -->
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-cancel-btn" onclick="closeLoadGameModal()">PERUUTA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ONBOARDING MODAL -->
+    <div id="onboarding-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content onboarding-modal-content">
+            <div class="modal-header">
+                <h2 id="onboarding-modal-title">LENTORAHTIYHTIÖ 666</h2>
+                <span class="modal-step-indicator" id="onboarding-step-indicator">1/5</span>
+                <button class="modal-close-btn" onclick="closeOnboardingModal()">✕</button>
+            </div>
+            <div class="modal-body" id="onboarding-content">
+                <!-- Sisältö täytetään JavaScriptillä -->
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-back-btn" onclick="previousOnboardingStep()" style="display: none;">← Takaisin</button>
+                <button class="modal-next-btn" onclick="nextOnboardingStep()">Jatka →</button>
+            </div>
+        </div>
+    </div>
     <!-- ALOITUSNÄYTTÖ / MAIN MENU -->
     <section id="start-screen" class="start-screen">
         <!-- Taustakuva ja efektit -->
@@ -56,10 +115,10 @@
 
             <!-- Menu-painikkeet -->
             <div class="start-menu">
-                <button class="start-btn start-btn-primary" onclick="startNewGame()">
+                <button class="start-btn start-btn-primary" onclick="showNewGameInput()">
                     <span>▶</span> Aloita Uusi Peli
                 </button>
-                <button class="start-btn start-btn-secondary" onclick="showLoadScreen()">
+                <button class="start-btn start-btn-secondary" onclick="loadGame()">
                     <span>💾</span> Lataa Peli
                 </button>
                 <button class="start-btn start-btn-tertiary" onclick="showSettings()">
