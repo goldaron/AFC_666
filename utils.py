@@ -8,9 +8,9 @@ db_pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="mypool",
     pool_size=10,
     host="127.0.0.1",
-    user="golda",
-    password="GoldaKoodaa",
-    database="airway666",
+    user="miikka",
+    password="1234",
+    database="lentopeli",
     autocommit=True
 )
 
@@ -36,3 +36,16 @@ def get_db_connection():
             conn.close()
         except Exception:
             pass
+
+# Taulu pelitapahtumien tallentamista varten
+CREATE_TABLE_SAVE_EVENT_LOG = """
+CREATE TABLE IF NOT EXISTS save_event_log (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    save_id INT NOT NULL,
+    event_day INT DEFAULT 0,
+    event_type VARCHAR(50) NOT NULL,
+    payload TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (save_id) REFERENCES game_saves(save_id)
+);
+"""

@@ -61,6 +61,18 @@ def _query_dicts(sql: str, params: Optional[tuple] = None) -> List[Dict[str, Any
                 pass
         yhteys.close()
 
+def _get_recent_events(limit: int = 10) -> List[Dict[str, Any]]:
+    """Hakee viimeisimmät pelitapahtumat."""
+    return _query_dicts(
+        """
+        SELECT log_id, event_day, event_type, payload, created_at
+        FROM save_event_log
+        WHERE save_id = %s
+        ORDER BY log_id DESC
+        LIMIT %s
+        """,
+        (ACTIVE_SAVE_ID, limit),
+    )
 
 def _fetch_one_dict(sql: str, params: tuple) -> Optional[Dict[str, Any]]:
     """Hakee yhden rivin (tai None)."""
@@ -266,6 +278,23 @@ def save_game():
     except Exception as e:
         app.logger.exception(f"Pelin {ACTIVE_SAVE_ID} tallennus epäonnistui")
         return jsonify({"virhe": f"Pelin tallennus epäonnistui: {str(e)}"}), 500
+    
+@app.get("/api/game/events")
+def get_game_events():
+    """Hakee viimeisimmät tapahtumat"""
+    try:
+        limit = request.args.get("limit", default=10, type=int)
+        limit = max(1, min(limit, 100))
+        events = _get_recent_events(limit)
+        for event in events:
+            event["created_at"] = str(event.get("created_at"))
+        return jsonify({
+            "events": events,
+            "count" : len(events),
+        }), 200
+    except Exception as e:
+        app.logger.exception("Tapahtumien haku epäonnistui")
+        return jsonify({"virhe": f"Tapahtumien haku epäonnistui: {str(e)}"}), 500
     
 #----------- Reitit: Päivän siirto ----------
 
@@ -1632,5 +1661,4 @@ def serve_static(filename):
 
 
 if __name__ == "__main__":
-    # Kehityskäyttöön sopiva debug-palvelin.
     app.run(debug=True, port=3000)
