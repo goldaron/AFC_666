@@ -39,10 +39,16 @@ def fetch_owned_bases(save_id: int) -> List[dict]:
         WHERE save_id = %s
         ORDER BY base_name
     """
-    with get_connection() as yhteys:
+    yhteys = get_connection()
+    kursori = None
+    try:
         kursori = yhteys.cursor(dictionary=True)
         kursori.execute(sql, (save_id,))
         return kursori.fetchall() or []
+    finally:
+        if kursori:
+            kursori.close()
+        yhteys.close()
 
 
 def fetch_base_current_level_map(base_ids: List[int]) -> Dict[int, str]:
@@ -75,10 +81,16 @@ def fetch_base_current_level_map(base_ids: List[int]) -> Dict[int, str]:
             GROUP BY base_id
         ) x ON x.base_id = bu.base_id AND x.maxid = bu.base_upgrade_id
     """
-    with get_connection() as yhteys:
+    yhteys = get_connection()
+    kursori = None
+    try:
         kursori = yhteys.cursor(dictionary=True)
         kursori.execute(sql, tuple(base_ids))
         rows = kursori.fetchall() or []
+    finally:
+        if kursori:
+            kursori.close()
+        yhteys.close()
     return {r["base_id"]: r["upgrade_code"] for r in rows}
 
 
@@ -103,7 +115,9 @@ def insert_base_upgrade(base_id: int, next_level_code: str, cost, day: int) -> N
         INSERT INTO base_upgrades (base_id, upgrade_code, installed_day, upgrade_cost)
         VALUES (%s, %s, %s, %s)
     """
-    with get_connection() as yhteys:
+    yhteys = get_connection()
+    kursori = None
+    try:
         kursori = yhteys.cursor()
         kursori.execute(
             sql,
@@ -114,6 +128,11 @@ def insert_base_upgrade(base_id: int, next_level_code: str, cost, day: int) -> N
                 float(_to_dec(cost)),
             ),
         )
+        yhteys.commit()
+    finally:
+        if kursori:
+            kursori.close()
+        yhteys.close()
 
 
 def get_base_capacity_info(save_id: int) -> List[dict]:
@@ -161,10 +180,16 @@ def get_base_capacity_info(save_id: int) -> List[dict]:
         ORDER BY ob.base_name
     """
     
-    with get_connection() as yhteys:
+    yhteys = get_connection()
+    kursori = None
+    try:
         kursori = yhteys.cursor(dictionary=True)
         kursori.execute(sql, (save_id,))
         results = kursori.fetchall() or []
+    finally:
+        if kursori:
+            kursori.close()
+        yhteys.close()
         
         # Add max_capacity to each result
         for row in results:
