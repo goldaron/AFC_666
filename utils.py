@@ -8,9 +8,9 @@ db_pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="mypool",
     pool_size=10,
     host="127.0.0.1",
-    user="miikka",
-    password="1234",
-    database="lentopeli",
+    user="golda",
+    password="GoldaKoodaa",
+    database="airway666",
     autocommit=True
 )
 

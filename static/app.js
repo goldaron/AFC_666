@@ -190,7 +190,7 @@ function closeLoseModal() {
 
 /**
  * Näyttää voitto-modaalin (voitto-näyttö)
- * @param {Object} data - Pelin statistiikka (final_balance, flights, total_income, days_played, achievement_text)
+ * @param {Object} data - Pelin statistiikka (final_balance, flights, total_income, days_played, achievement_text, total_cargo, total_distance, fleet_size, total_hours, total_co2)
  */
 function showWinModal(data = {}) {
     const modal = document.getElementById('win-modal');
@@ -202,11 +202,25 @@ function showWinModal(data = {}) {
         const daysPlayed = data.days_played !== undefined ? data.days_played : '365';
         const achievementText = data.achievement_text || '"TAIVAIDEN HERRA" - Omista 10+ konetta ja ansaitse €2M';
         
+        // Uudet kentät
+        const totalCargo = data.total_cargo_kg !== undefined ? data.total_cargo_kg : '-';
+        const totalDistance = data.total_distance_km !== undefined ? data.total_distance_km : '-';
+        const fleetSize = data.fleet_size !== undefined ? data.fleet_size : '-';
+        const totalHours = data.total_hours !== undefined ? data.total_hours : '-';
+        const totalCo2 = data.total_co2_kg !== undefined ? data.total_co2_kg : '-';
+
         document.getElementById('win-final-balance').textContent = `€${formatMoney(finalBalance)}`;
         document.getElementById('win-flights').textContent = flights;
         document.getElementById('win-total-income').textContent = `€${formatMoney(totalIncome)}`;
         document.getElementById('win-days-played').textContent = daysPlayed;
         document.getElementById('win-achievement-text').textContent = achievementText;
+        
+        // Päivitä uudet kentät jos elementit löytyvät
+        if(document.getElementById('win-total-cargo')) document.getElementById('win-total-cargo').textContent = totalCargo.toLocaleString();
+        if(document.getElementById('win-total-distance')) document.getElementById('win-total-distance').textContent = totalDistance.toLocaleString();
+        if(document.getElementById('win-fleet-size')) document.getElementById('win-fleet-size').textContent = fleetSize;
+        if(document.getElementById('win-total-hours')) document.getElementById('win-total-hours').textContent = totalHours.toLocaleString();
+        if(document.getElementById('win-total-co2')) document.getElementById('win-total-co2').textContent = Math.round(totalCo2).toLocaleString();
         
         modal.classList.remove('hidden');
     }
@@ -351,6 +365,10 @@ function showView(viewName) {
         } else if (viewName === 'clubhouse') {
             // Kerhohuone: päivitä cash-display
             updateClubhouseCash();
+        } else if (viewName === 'blackjack') {
+            // Blackjack: näytä pelisetup
+            updateBlackjackCash();
+            showBlackjackSetupView();
         } else if (viewName === 'map') {
             // Kartta: alusta kartta ja lataa lennon tiedot
             loadMapView();
@@ -376,6 +394,37 @@ async function updateGameStats() {
         document.getElementById('current-day').textContent = data.current_day || '1';
         document.getElementById('cash-amount').textContent = `€${formatMoney(data.cash)}`;
         document.getElementById('home-base').textContent = data.home_base || '-';
+
+        // TARKISTA PELIN TILA (VOITTO / HÄVIÖ)
+        if (data.status === 'VICTORY' || data.status === 'BANKRUPT') {
+            // Hae lopputilastot ja näytä modal
+            try {
+                const statsResponse = await fetch(`${API_BASE}/api/game/stats`);
+                if (statsResponse.ok) {
+                    const stats = await statsResponse.json();
+                    
+                    if (data.status === 'VICTORY') {
+                        showWinModal({
+                            final_balance: stats.final_balance,
+                            flights: stats.total_flights,
+                            total_income: stats.total_income,
+                            days_played: stats.current_day,
+                            achievement_text: stats.achievement ? `"${stats.achievement}" - ${stats.achievement_desc}` : "Ei uusia saavutuksia."
+                        });
+                    } else {
+                        showLoseModal({
+                            reason: "Kassavarat loppuivat", // Tai muu syy, jos API palauttaa sen
+                            final_balance: stats.final_balance,
+                            peak_balance: stats.final_balance, // Placeholder, kunnes peak_balance on saatavilla
+                            flights: stats.total_flights,
+                            survival_days: `${stats.current_day} päivää`
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("Lopputilastojen haku epäonnistui:", e);
+            }
+        }
         
     } catch (error) {
         console.error('Virhe pelin tilan haussa:', error);

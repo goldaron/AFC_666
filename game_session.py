@@ -64,7 +64,7 @@ import math
 import random
 import string
 import time
-from typing import List, Optional, Dict, Set
+from typing import List, Optional, Dict, Set, Any
 from decimal import Decimal, ROUND_HALF_UP, getcontext
 from datetime import datetime
 from utils import get_connection, get_db_connection
@@ -3199,3 +3199,59 @@ class GameSession:
             print(f"☁️  CO2-päästöjä yhteensä: {total_emissions_kg:,.0f} kg".replace(",", " "))
 
         print("\nKiitos kun pelasit!")
+
+    def get_end_game_stats(self) -> Dict[str, Any]:
+        """
+        Palauttaa kattavan statistiikkapaketin pelin lopetusta varten (API).
+        """
+        stats = {}
+        with get_db_connection() as yhteys:
+            kursori = yhteys.cursor(dictionary=True)
+
+            # 1. Perustiedot
+            stats["player_name"] = self.player_name
+            stats["status"] = self.status
+            stats["current_day"] = self.current_day
+            stats["final_balance"] = self.cash
+
+            # 2. Laivaston koko
+            kursori.execute("SELECT COUNT(*) as cnt FROM aircraft WHERE save_id = %s AND (sold_day IS NULL OR sold_day = 0)", (self.save_id,))
+            stats["fleet_size"] = int(kursori.fetchone()["cnt"] or 0)
+
+            # 3. Lennot ja tunnit (kaikki lennot)
+            kursori.execute("SELECT COUNT(*) as cnt, SUM(distance_km) as dist FROM flights WHERE save_id = %s", (self.save_id,))
+            flight_res = kursori.fetchone()
+            stats["total_flights"] = int(flight_res["cnt"] or 0)
+            stats["total_distance_km"] = int(flight_res["dist"] or 0)
+
+            kursori.execute("SELECT SUM(hours_flown) as hrs FROM aircraft WHERE save_id = %s", (self.save_id,))
+            stats["total_hours"] = int(kursori.fetchone()["hrs"] or 0)
+
+            # 4. Rahdin määrä (valmistuneet sopimukset)
+            kursori.execute("SELECT SUM(payload_kg) as cargo FROM contracts WHERE save_id = %s AND status IN ('COMPLETED', 'COMPLETED_LATE')", (self.save_id,))
+            stats["total_cargo_kg"] = int(kursori.fetchone()["cargo"] or 0)
+
+            # 5. Kokonaistulot (palkkiot)
+            kursori.execute("SELECT SUM(final_reward) as income FROM contracts WHERE save_id = %s AND status IN ('COMPLETED', 'COMPLETED_LATE')", (self.save_id,))
+            stats["total_income"] = _to_dec(kursori.fetchone()["income"] or 0)
+            
+            # 6. Päästöt
+            kursori.execute("SELECT SUM(emission_kg_co2) as co2 FROM flights WHERE save_id = %s", (self.save_id,))
+            stats["total_co2_kg"] = float(kursori.fetchone()["co2"] or 0.0)
+
+            # 7. Achievement check (esimerkki)
+            # "TAIVAIDEN HERRA": 10+ konetta ja 2M+ rahaa
+            if stats["fleet_size"] >= 10 and stats["final_balance"] >= Decimal("2000000"):
+                stats["achievement"] = "TAIVAIDEN HERRA"
+                stats["achievement_desc"] = "Omista 10+ konetta ja ansaitse 2M€"
+            elif stats["total_cargo_kg"] >= 1000000:
+                stats["achievement"] = "RAHTIKUNINGAS"
+                stats["achievement_desc"] = "Kuljeta yli 1 000 000 kg rahtia"
+            elif stats["current_day"] >= SURVIVAL_TARGET_DAYS:
+                stats["achievement"] = "SELVIYTYJÄ"
+                stats["achievement_desc"] = f"Selviä {SURVIVAL_TARGET_DAYS} päivää"
+            else:
+                stats["achievement"] = None
+                stats["achievement_desc"] = None
+
+        return stats

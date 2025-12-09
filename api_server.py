@@ -239,6 +239,22 @@ def get_active_game_info():
         app.logger.exception("Aktiivisen pelin tietojen haku epäonnistui")
         return jsonify({"virhe": f"Aktiivisen pelin tietojen haku epäonnistui: {str(e)}"}), 500
 
+@app.get("/api/game/stats")
+def get_game_stats():
+    """Palauttaa pelin lopputilastot (Game Over -näyttöä varten)."""
+    try:
+        session = GameSession(save_id=ACTIVE_SAVE_ID)
+        stats = session.get_end_game_stats()
+        
+        # Muunnetaan desimaalit stringeiksi
+        stats["final_balance"] = _decimal_to_string(stats.get("final_balance"))
+        stats["total_income"] = _decimal_to_string(stats.get("total_income"))
+        
+        return jsonify(stats)
+    except Exception as e:
+        app.logger.exception("Tilastojen haku epäonnistui")
+        return jsonify({"virhe": f"Tilastojen haku epäonnistui: {str(e)}"}), 500
+
 @app.post("/api/game/save")
 def save_game():
     """Tallentaa aktiivisen pelin sen hetkisen tilan"""
@@ -1086,6 +1102,46 @@ def clubhouse_play():
                 "voitto": voitto,
                 "viesti": viesti,
                 "uusi_saldo": _decimal_to_string(session.cash)
+            })
+        
+        elif peli == "blackjack":
+            # Blackjack: asiakas lähettää pelin tulokset
+            result = payload.get("result", "").lower()  # blackjack, win, loss, bust, push
+            player_value = payload.get("player_value", 0)
+            dealer_value = payload.get("dealer_value", 0)
+            
+            # Määritä voittosumma
+            if result == "blackjack":
+                winnings = bet * Decimal("1.5")
+                session._add_cash(winnings, context="Minipeli: Blackjack - luonnollinen blackjack")
+                viesti = f"BLACKJACK! Voitit {_decimal_to_string(winnings)}€! 🎉"
+                voitto = True
+            elif result == "bust":
+                session._add_cash(-bet, context="Minipeli: Blackjack - posahtanut")
+                viesti = f"Posahtanut! Hävisit {_decimal_to_string(bet)}€ 😢"
+                voitto = False
+            elif result == "win":
+                session._add_cash(bet, context="Minipeli: Blackjack - voitto")
+                viesti = f"Voitit {_decimal_to_string(bet)}€! 🎉"
+                voitto = True
+            elif result == "loss":
+                session._add_cash(-bet, context="Minipeli: Blackjack - tappio")
+                viesti = f"Hävisit {_decimal_to_string(bet)}€ 😢"
+                voitto = False
+            elif result == "push":
+                viesti = "Tasapeli - saldo ei muuttunut"
+                voitto = None  # Push
+            else:
+                return jsonify({"virhe": f"Tuntematon tulos: {result}"}), 400
+            
+            return jsonify({
+                "game": "blackjack",
+                "result": result,
+                "player_value": player_value,
+                "dealer_value": dealer_value,
+                "voitto": voitto,
+                "viesti": viesti,
+                "cash": _decimal_to_string(session.cash)
             })
         
         else:

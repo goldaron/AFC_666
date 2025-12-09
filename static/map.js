@@ -2,7 +2,8 @@
  * map.js - Maailmankartan näkymä (Developer 4 / Kehittäjä 4)
  * 
  * Näyttää karttanäkymän, jossa visualisoidaan:
- * - Lennolla olevat koneet ja niiden reitit
+ * - Lennolla olevat koneet ja niiden reitit (interpoloituna päivän edetessä)
+ * - Maassa olevat koneet (idlenä tai huollossa)
  * - Lähtökohta (harmaa merkki)
  * - Loppukohta (sininen merkki)
  * - Reitin viiva (sininen katkoviiva)
@@ -14,7 +15,7 @@
  * - Duplikaatit poistetaan drawnOrigins/drawnDestinations seteillä
  * 
  * Endpointit:
- * - GET /api/tasks → aktiivisten sopimusten haku kartanäkymää varten
+ * - GET /api/map-data → aktiivisten koneiden ja reittien haku
  */
 
 let mapInstance = null;
@@ -65,13 +66,13 @@ async function initializeMap() {
         // Tallennetaan data välimuistiin
         mapDataCache = mapData;
         
-        // Piirretään aktiiviset lennot (jos niitä on)
-        if (mapData.activeContracts && mapData.activeContracts.length > 0) {
-            drawActiveFlights(mapData.activeContracts);
+        // Piirretään koneet (lennot ja idle)
+        if (mapData.aircrafts && mapData.aircrafts.length > 0) {
+            drawAircrafts(mapData.aircrafts);
         } else {
             const listContainer = document.getElementById('active-flights-list');
             if (listContainer) {
-                listContainer.innerHTML = '<div class="empty-state">Ei aktiivisia lentoja</div>';
+                listContainer.innerHTML = '<div class="empty-state">Ei koneita</div>';
             }
         }
         
@@ -80,8 +81,15 @@ async function initializeMap() {
             drawBases(mapData.ownedBases);
         }
         
-        // Päivitään alempi lista aktiivisista lennoista
-        displayActiveFlyingList(mapData.activeContracts || [], mapData.currentDay);
+        // Päivitään alempi lista aktiivisista lennoista (vain ne jotka lentää)
+        const activeFlights = mapData.aircrafts.filter(a => a.isFlying);
+        displayActiveFlyingList(activeFlights, mapData.currentDay);
+        
+        // Päivitetään headerin laskuri
+        const flightCountEl = document.getElementById('flights-count');
+        if(flightCountEl) {
+            flightCountEl.textContent = `${activeFlights.length} LENTÄÄ`;
+        }
         
     } catch (error) {
         console.error('Kartan lataus epäonnistui:', error);
@@ -106,219 +114,227 @@ function clearMapMarkers() {
 }
 
 /**
- * Piirtää aktiiviset lennot kartalle viivaina ja päätepisteinä
- * Optimoitu: näyttää VAIN tehtävällä olevien koneiden reitit
- * @param {Array} activeContracts - Lista aktiivisista sopimuksista
+ * Piirtää kaikki koneet kartalle.
+ * - Jos lentää: piirtää reitin, lähtö/määräpään ja koneen interpoloidun sijainnin
+ * - Jos maassa: piirtää koneen nykyiselle kentälle
  */
-function drawActiveFlights(activeContracts) {
-    if (!activeContracts || activeContracts.length === 0) return;
+function drawAircrafts(aircrafts) {
+    if (!aircrafts || aircrafts.length === 0) return;
     
     // Seurataan mitä lentokenttiä olemme jo piirtäneet (välttää duplikaatit)
     const drawnOrigins = new Set();
     const drawnDestinations = new Set();
     
-    activeContracts.forEach((contract) => {
-        const from = [contract.originLat, contract.originLon];
-        const to = [contract.destLat, contract.destLon];
+    aircrafts.forEach((aircraft) => {
         
-        // Piirretään lähtöpiste (harmaa, hehkuva)
-        if (!drawnOrigins.has(contract.originIdent)) {
-            const originMarker = L.circleMarker(from, {
-                radius: 7,
-                fillColor: '#888888', // Harmaa lähtöpiste
-                fillOpacity: 0.9,
-                stroke: true,
+        if (aircraft.isFlying) {
+            // --- KONE ON LENNOLLA ---
+            const from = [aircraft.originLat, aircraft.originLon];
+            const to = [aircraft.destLat, aircraft.destLon];
+            
+            // 1. Piirretään lähtöpiste
+            if (!drawnOrigins.has(aircraft.originIdent)) {
+                const originMarker = L.circleMarker(from, {
+                    radius: 6,
+                    fillColor: '#888888',
+                    fillOpacity: 0.8,
+                    stroke: true,
+                    weight: 1,
+                    color: '#666666'
+                }).bindPopup(`<b>${aircraft.originIdent}</b><br>${aircraft.originName}`);
+                originMarker.addTo(mapInstance);
+                mapMarkers.push(originMarker);
+                drawnOrigins.add(aircraft.originIdent);
+            }
+            
+            // 2. Piirretään määräpiste
+            if (!drawnDestinations.has(aircraft.destIdent)) {
+                const destMarker = L.circleMarker(to, {
+                    radius: 7,
+                    fillColor: '#00d4ff',
+                    fillOpacity: 0.9,
+                    stroke: true,
+                    weight: 2,
+                    color: '#00a8cc'
+                }).bindPopup(`<b>${aircraft.destIdent}</b><br>${aircraft.destName}`);
+                destMarker.addTo(mapInstance);
+                mapMarkers.push(destMarker);
+                drawnDestinations.add(aircraft.destIdent);
+            }
+            
+            // 3. Piirretään lentoreitti
+            const polyline = L.polyline([from, to], {
+                color: '#00d4ff',
                 weight: 2,
-                color: '#666666',
-                className: 'marker-origin'
+                opacity: 0.6,
+                dashArray: '5, 5'
+            });
+            polyline.addTo(mapInstance);
+            mapPolylines.push(polyline);
+            
+            // 4. Lasketaan koneen sijainti viivalla (progress 0..100)
+            const pct = Math.min(Math.max(aircraft.progressPercent, 0), 100) / 100.0;
+            const currentLat = from[0] + (to[0] - from[0]) * pct;
+            const currentLon = from[1] + (to[1] - from[1]) * pct;
+            
+            // 5. Piirretään koneen ikoni oikeaan kohtaan
+            const iconHtml = getAircraftIconHtml(aircraft.status, true); 
+            const planeMarker = L.marker([currentLat, currentLon], {
+                icon: L.divIcon({
+                    html: iconHtml,
+                    className: 'aircraft-marker-icon', // tyhjä luokka, tyylit iconHtml:ssa
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                }),
+                zIndexOffset: 1000
             });
             
-            const originPopup = `
+            const popupContent = `
                 <div class="flight-popup">
-                    <strong>${contract.originIdent}</strong><br>
-                    ${contract.originName}<br>
-                    <span style="font-size: 12px; color: #aaa;">Lähtöpiste</span>
+                    <strong>${aircraft.registration}</strong> (${aircraft.status})<br>
+                    Reitti: ${aircraft.originIdent} → ${aircraft.destIdent}<br>
+                    Edistyminen: ${aircraft.progressPercent}%
                 </div>
             `;
-            originMarker.bindPopup(originPopup);
-            originMarker.addTo(mapInstance);
-            mapMarkers.push(originMarker);
+            planeMarker.bindPopup(popupContent);
+            planeMarker.addTo(mapInstance);
+            mapMarkers.push(planeMarker);
             
-            drawnOrigins.add(contract.originIdent);
-        }
-        
-        // Piirretään loppupiste (sininen, hehkuva)
-        if (!drawnDestinations.has(contract.destIdent)) {
-            const destMarker = L.circleMarker(to, {
-                radius: 8,
-                fillColor: '#00d4ff', // Syaani/sininen loppupiste
-                fillOpacity: 0.95,
-                stroke: true,
-                weight: 2.5,
-                color: '#00a8cc',
-                className: 'marker-destination'
+        } else {
+            // --- KONE ON MAASSA (IDLE/HUOLTO) ---
+            if (!aircraft.locationLat || !aircraft.locationLon) return;
+            
+            const pos = [aircraft.locationLat, aircraft.locationLon];
+            
+            // Piirretään koneen ikoni kentälle
+            const iconHtml = getAircraftIconHtml(aircraft.status, false);
+            
+            // Jos samalla kentällä on monta konetta, voisi harkita klusterointia,
+            // mutta tässä yksinkertainen toteutus (pieni satunnainen heitto jotta eivät ole täysin päällekkäin)
+            const jitterLat = (Math.random() - 0.5) * 0.05;
+            const jitterLon = (Math.random() - 0.5) * 0.05;
+            
+            const planeMarker = L.marker([pos[0] + jitterLat, pos[1] + jitterLon], {
+                icon: L.divIcon({
+                    html: iconHtml,
+                    className: 'aircraft-marker-icon',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                })
             });
             
-            const destPopup = `
+            const popupContent = `
                 <div class="flight-popup">
-                    <strong>${contract.destIdent}</strong><br>
-                    ${contract.destName}<br>
-                    <span style="font-size: 12px; color: #00d4ff;">Määräpiste</span>
+                    <strong>${aircraft.registration}</strong><br>
+                    Status: ${aircraft.status}<br>
+                    Sijainti: ${aircraft.locationIdent}
                 </div>
             `;
-            destMarker.bindPopup(destPopup);
-            destMarker.addTo(mapInstance);
-            mapMarkers.push(destMarker);
-            
-            drawnDestinations.add(contract.destIdent);
+            planeMarker.bindPopup(popupContent);
+            planeMarker.addTo(mapInstance);
+            mapMarkers.push(planeMarker);
         }
-        
-        // Piirretään viiva (sininen katkoviiva, hehkuva)
-        const polyline = L.polyline([from, to], {
-            color: '#00d4ff', // Hehkuva sininen
-            weight: 2.5,
-            opacity: 0.8,
-            dashArray: '6, 4', // Katkoviiva
-            lineCap: 'round',
-            lineJoin: 'round'
-        });
-        
-        const linePopup = `
-            <div class="flight-popup">
-                <strong>${contract.aircraft}</strong><br>
-                ${contract.originIdent} → ${contract.destIdent}<br>
-                Edistyminen: ${contract.progressPercent}%
-            </div>
-        `;
-        polyline.bindPopup(linePopup);
-        polyline.addTo(mapInstance);
-        mapPolylines.push(polyline);
-        
-        // Piirretään lentokoneen ikoni viivalla progressin mukaiselle kohdalle
-        const progressRatio = Math.min(Math.max(contract.progressPercent / 100, 0), 1);
-        const aircraftLat = from[0] + (to[0] - from[0]) * progressRatio;
-        const aircraftLon = from[1] + (to[1] - from[1]) * progressRatio;
-        
-        const aircraftMarker = L.marker([aircraftLat, aircraftLon], {
-            icon: L.divIcon({
-                html: '<div style="font-size: 24px; filter: drop-shadow(0 0 4px #00d4ff);">✈️</div>',
-                iconSize: [24, 24],
-                className: 'aircraft-icon'
-            })
-        });
-        
-        const aircraftPopup = `
-            <div class="flight-popup">
-                <strong>${contract.aircraft}</strong><br>
-                <strong>${contract.progressPercent}%</strong> lentää<br>
-                ${contract.originIdent} → ${contract.destIdent}
-            </div>
-        `;
-        aircraftMarker.bindPopup(aircraftPopup);
-        aircraftMarker.addTo(mapInstance);
-        mapMarkers.push(aircraftMarker);
-        
-        // Tarkistetaan onko lennolla event ja näytetään varoitus
-        checkFlightEvent(contract, aircraftLat, aircraftLon);
     });
 }
 
 /**
- * Tarkistaa lennolla olevan eventin ja näyttää varoitusmerkkerin
- * @param {Object} contract - Lentosopimus
- * @param {Number} aircraftLat - Lentokoneen leveysaste
- * @param {Number} aircraftLon - Lentokoneen pituusaste
+ * Palauttaa oikean värisen/tyylisen ikonin statuksen perusteella
+ * @param {string} status - Koneen status (IDLE, BUSY, MAINTENANCE, jne.)
+ * @param {boolean} isFlying - Onko kone ilmassa
  */
-function checkFlightEvent(contract, aircraftLat, aircraftLon) {
-    // Tarkistaan onko lennolla event_id
-    if (contract.event_id && contract.event_id > 0) {
-        // Näytetään punainen varoitusmerkki
-        const eventMarker = L.marker([aircraftLat, aircraftLon], {
-            icon: L.divIcon({
-                html: '<div style="font-size: 20px; filter: drop-shadow(0 0 6px #ff6467); animation: pulse 1.5s infinite;">🚨</div>',
-                iconSize: [20, 20],
-                className: 'event-alert-icon'
-            })
-        });
-        
-        const eventPopup = `
-            <div class="flight-popup" style="border: 2px solid #ff6467;">
-                <strong style="color: #ff6467;">⚠️ LENTO-EVENT!</strong><br>
-                ${contract.aircraft}<br>
-                ${contract.originIdent} → ${contract.destIdent}<br>
-                <span style="font-size: 12px; color: #ff6467;">Tapahtuma aktiivillä lennolla</span>
-            </div>
-        `;
-        eventMarker.bindPopup(eventPopup);
-        eventMarker.addTo(mapInstance);
-        mapMarkers.push(eventMarker);
-        
-        // Näytetään varoitus pelaajalle
-        showNotification(`⚠️ Lento-event lennolla ${contract.aircraft}!`, 'warning');
-        
-        return true;
+function getAircraftIconHtml(status, isFlying) {
+    let color = '#ffffff'; // oletus
+    let shadowColor = 'rgba(255,255,255,0.5)';
+    let icon = '✈️';
+    
+    // Normalisoidaan status
+    const s = (status || '').toUpperCase();
+    
+    if (s.includes('BUSY') || s === 'ENROUTE' || isFlying) {
+        // Lennolla -> Syaani
+        color = '#00d4ff';
+        shadowColor = 'rgba(0, 212, 255, 0.8)';
+    } else if (s === 'IDLE') {
+        // Vapaa -> Vihreä
+        color = '#05df72';
+        shadowColor = 'rgba(5, 223, 114, 0.6)';
+    } else if (s === 'MAINTENANCE' || s === 'BROKEN') {
+        // Huolto/Rikki -> Punainen/Oranssi
+        color = '#ff6467';
+        shadowColor = 'rgba(255, 100, 103, 0.8)';
+        icon = '🛠️';
+    } else if (s.includes('RTB')) {
+        // Return To Base -> Keltainen/Oranssi
+        color = '#f0b100';
+        shadowColor = 'rgba(240, 177, 0, 0.8)';
     }
-    return false;
+    
+    // Luodaan SVG- tai div-pohjainen ikoni, jossa on hehku
+    // Käytetään drop-shadow filtteriä hehkun luomiseen
+    return `
+        <div style="
+            font-size: ${isFlying ? '24px' : '18px'};
+            color: ${color};
+            filter: drop-shadow(0 0 6px ${shadowColor});
+            transition: all 0.3s ease;
+            transform: ${isFlying ? 'rotate(-45deg)' : 'rotate(0deg)'};
+        ">
+            ${icon}
+        </div>
+    `;
 }
 
 /**
  * Näyttää aktiivisten lentojen listan kartan alapuolella
- * @param {Array} activeContracts - Lista aktiivisista sopimuksista
+ * @param {Array} activeFlights - Lista lentävistä koneista
  * @param {Number} currentDay - Nykyinen päivä pelissa
  */
-function displayActiveFlyingList(activeContracts, currentDay) {
+function displayActiveFlyingList(activeFlights, currentDay) {
     const listContainer = document.getElementById('active-flights-list');
     
-    if (!listContainer) {
-        console.warn('Active flights list container ei löytynyt');
-        return;
-    }
+    if (!listContainer) return;
     
-    // Puhdista vanha lista
     listContainer.innerHTML = '';
     
-    if (activeContracts.length === 0) {
+    if (!activeFlights || activeFlights.length === 0) {
         listContainer.innerHTML = '<div class="empty-state">Ei aktiivisia lentoja</div>';
         return;
     }
     
-    // Luo kortti jokaiselle aktiiVelle lennolle
-    activeContracts.forEach(contract => {
+    activeFlights.forEach(aircraft => {
         const card = document.createElement('div');
         card.className = 'flight-card';
         
-        // Määritellään väri edistymisen mukaan
         let statusColor = 'status-progress';
-        if (contract.progressPercent > 70) {
-            statusColor = 'status-critical';
-        }
+        if (aircraft.progressPercent > 80) statusColor = 'status-success';
+        
+        const isRTB = (aircraft.status || '').includes('RTB');
+        const statusText = isRTB ? '🏠 PALUU' : '✈️ LENTÄÄ';
         
         card.innerHTML = `
             <div class="flight-card-header">
                 <div class="flight-info">
-                    <div class="aircraft-name">${contract.aircraft}</div>
-                    <div class="flight-route">${contract.originIdent} → ${contract.destIdent}</div>
+                    <div class="aircraft-name">${aircraft.registration}</div>
+                    <div class="flight-route">${aircraft.originIdent} → ${aircraft.destIdent}</div>
                 </div>
                 <div class="flight-status ${statusColor}">
-                    ${contract.status === 'IN_PROGRESS' ? '✈️ LENTÄÄ' : '📋 HYVÄKSYTTY'}
+                    ${statusText}
                 </div>
             </div>
             
             <div class="flight-progress">
                 <div class="progress-label">
-                    <span>Päivä ${contract.startDay}</span>
-                    <span>Päivä ${currentDay}</span>
-                    <span>Est. ${contract.estimatedDay}</span>
+                    <span>Lähtö: pv ${aircraft.startDay}</span>
+                    <span>Nyt: pv ${currentDay}</span>
+                    <span>ETA: pv ${aircraft.arrivalDay}</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${contract.progressPercent}%"></div>
+                    <div class="progress-fill" style="width: ${aircraft.progressPercent}%"></div>
                 </div>
-                <div class="progress-percent">${contract.progressPercent}%</div>
+                <div class="progress-percent">${aircraft.progressPercent}%</div>
             </div>
             
-            <div class="flight-reward">
-                <span>Palkinto:</span> <span class="reward-amount">€${formatMoney(contract.reward)}</span>
-            </div>
+            ${!isRTB ? `<div class="flight-reward"><span>Palkkio:</span> <span class="reward-amount">€${formatMoney(aircraft.reward)}</span></div>` : ''}
         `;
         
         listContainer.appendChild(card);
@@ -354,14 +370,13 @@ async function loadMapView() {
 function drawBases(ownedBases) {
     ownedBases.forEach(base => {
         if (!base.latitude || !base.longitude) {
-            console.warn("Tukikohdan koordinaatteja ei löytynyt:", base.ident);
             return;
         }
         
         const isHQ = base.isHeadquarters;
         const iconHtml = isHQ ? '🏢' : '🏠';
         const iconSize = isHQ ? 40 : 30;
-        const zIndex = isHQ ? 1000 : 900;
+        const zIndex = isHQ ? 500 : 400; // Alle koneiden (1000)
         
         // Luodaan merkki tukikohdalle
         const baseMarker = L.marker(
@@ -369,7 +384,7 @@ function drawBases(ownedBases) {
             {
                 icon: L.divIcon({
                     className: "headquarters-icon", // Käytetään samaa tyyliä (hohde)
-                    html: iconHtml,
+                    html: `<div style="font-size:${iconSize}px; filter: drop-shadow(0 0 8px #f0b100);">${iconHtml}</div>`,
                     iconSize: [iconSize, iconSize],
                     iconAnchor: [iconSize / 2, iconSize / 2],
                 }),
