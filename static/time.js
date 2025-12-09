@@ -13,20 +13,21 @@
  * siirtää pelia yhdellä päivällä eteenpäin
  */
 async function advanceDay() {
-    showNotification("Siirrytään 1 päivä eteenpäin.", "info");
-
+    showNotification('Siirretään päivää...', 'info');
+    
     try {
-        // kutsutaan APIa
-        const result = await apiCall("/api/game/advance-day", { method: "POST" });
-        // tulokset
+        const result = await apiCall('/api/game/advance-day', { method: 'POST' });
         displayDayAdvanceSummary(result);
-        // päivitetään yläpalkki
         await updateGameStats();
-        // päivitetään aktiivinen näkymä
-        reloadCurrentView();
+        
+        // Päivitä tapahtumaloki
+        const response = await fetch('/api/game/events?limit=10');
+        const data = await response.json();
+        displayEventLog(data.events);
+        
     } catch (error) {
-        console.error("Päivän kelaus epäonnistui:", error);
-        showNotification(`Päivän kelaus epäonnistui: ${error.message}`, "error");
+        console.error('Päivän siirto epäonnistui:', error);
+        showNotification('Päivän siirto epäonnistui', 'error');
     }
 }
 
@@ -34,20 +35,21 @@ async function advanceDay() {
  * siirtää pelia eteenpäin siihen asti että eka lento palannut
  */
 async function startFastForward() {
-    showNotification("Kelaus käynnissä. Odota...", "info");
-
+    showNotification('Pikakelaus käynnissä...', 'info');
+    
     try {
-        // kutsutaan APIa
-        const result = await apiCall("/api/game/fast-forward", { method: "POST" });
-        // tulokset
-        displayFastForwardSummary(result); // Kutsutaan oikeaa yhteenvetofunktiota
-        // päivitetään yläpalkki
+        const result = await apiCall('/api/game/fast-forward', { method: 'POST' });
+        displayFastForwardSummary(result);
         await updateGameStats();
-        // päivitetään aktiivinen näkymä
-        reloadCurrentView();
+        
+        // Päivitä tapahtumaloki
+        const response = await fetch('/api/game/events?limit=10');
+        const data = await response.json();
+        displayEventLog(data.events);
+        
     } catch (error) {
-        console.error("Pelin kelaus epäonnistui:", error);
-        showNotification(`Pelin kelaus epäonnistui: ${error.message}`, "error");
+        console.error('Pikakelaus epäonnistui:', error);
+        showNotification('Pikakelaus epäonnistui', 'error');
     }
 }
 
@@ -55,7 +57,6 @@ async function startFastForward() {
  * näyttää yhteenvedon päivän edistämisestä
  */
 function displayDayAdvanceSummary(result) {
-    // Parannellaan viestiä näyttämään enemmän tietoa
     let message = `Päivä: ${result.day}. Saapumisia: ${result.arrivals}. Ansiot: ${formatMoney(result.earned)} €`;
 
     if (result.events && result.events.length > 0) {
