@@ -154,6 +154,7 @@ def create_game():
     payload = request.get_json(silent=True) or {}
     player_name = payload.get("player_name")
     rng_seed = payload.get("rng_seed")
+    starting_cash = payload.get("starting_cash", 300000)
     difficulty = payload.get("difficulty", "NORMAL")
 
     if not player_name:
@@ -162,8 +163,11 @@ def create_game():
     try:
         session = GameSession.new_game(
             name= player_name,
+            cash=float(starting_cash),
             rng_seed= int(rng_seed) if rng_seed else None,
-            default_difficulty=difficulty
+            default_difficulty=difficulty,
+            show_intro=False,  # Ohita intro API-kutsuissa
+            interactive=False  # Valitse automaattisesti ensimmäinen tukikohta
         )
         new_save_id = session.save_id
 

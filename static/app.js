@@ -14,119 +14,28 @@ let activeSaveId = 1;
 // ============================================================
 
 /**
- * Aloittaa uuden pelin
- * Piilottaa start screenin ja näyttää pelin
+ * Aloittaa uuden pelin näyttämällä modaalin
  */
 function showNewGameInput() {
+    currentNewGameStep = 1;
+    newGameData = {
+        name: '',
+        startingCash: 300000,
+        seed: null
+    };
     document.getElementById('new-game-modal')?.classList.remove('hidden');
-}
-
-async function startNewGame() {
-    try {
-        // Tässä voidaan myöhemmin lisätä API-kutsu uuden pelin luomiseen
-        // const newGame = await apiCall('/api/game/new', { method: 'POST' });
-        const playerName = document.getElementById('new-player-name').value;
-        const rngSeed = document.getElementById('new-rng-seed').value;
-        const difficulty = document.getElementById('new-difficulty').value;
-
-        const payload = {
-            player_name: playerName || 'Ready Player One', // Oletus
-            rng_seed: rngSeed || null,
-            difficulty: difficulty
-         };
-
-        const newGame = await apiCall('/api/games',{
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-
-        activeSaveId = newGame.save_id;
-
-        if (!newGame.save_id) {
-          throw Error('Uuden pelin luonti epäonnistui.');
-        }
-        
-        showGameScreen();
-        showNotification('Uusi peli aloitettu!', 'success', 'TERVETULOA');
-        
-        // Päivitä pelin tila
-        await updateGameStats();
-        
-        // Näytä kojelauta oletusena
-        showView('dashboard');
-        
-    } catch (error) {
-        console.error('Uuden pelin aloitus epäonnistui:', error);
-        showNotification('Uuden pelin aloitus epäonnistui', 'error');
-    }
+    updateNewGameModal();
 }
 
 /**
- * Hakee tallennettujen pelien listan ja näyttää valintaikkunan.
+ * Avaa lataa peli -modaalin (delegoidaan onboarding.js:ään)
  */
-async function showLoadGameList() {
-    try {
-        const savedGames = await apiCall('/api/games');
-
-        const container = document.getElementById('load-game-list-container');
-        if (!container) return;
-
-        container.innerHTML = '';
-
-        if (savedGames.length === 0) {
-            container.innerHTML = '<p>Ei tallennettuja pelejä.</p>';
-            return;
-        }
-
-        savedGames.forEach(game => {
-            const row = document.createElement('div');
-            row.className = 'game-save-row';
-            row.innerHTML = `
-                <span>${game.name}</span>
-                <span>Päivä: ${game.day}</span>
-                <span>Kassa: €${formatMoney(game.cash)}</span>
-            `;
-            row.addEventListener('click', () => loadGame(game.id));
-            container.appendChild(row);
-        });
-
-        document.getElementById('load-screen-modal').classList.remove('hidden');
-
-    } catch (error) {
-        console.error('Virhe tallennusten haussa:', error);
-        showNotification(`Tallennusten haku epäonnistui: ${error.message}`, 'error');
-    }
-}
-/**
- * Lataa tallennetun pelin ID:n perusteella
- */
-async function loadGame(gameId) {
-    if (!gameId) {
-      showNotification('Virhe: Pelin ID puuttuu.')
-      return;
-    }
-
-    try {
-        // Tässä voidaan myöhemmin lisätä tallennusten valinta-dialogi -> tehty omaksi funktioksi
-        const response = await apiCall(`/api/games/${gameId}/load`, {
-            method: 'POST'
-        });
-
-        activeSaveId = gameId;
-
-        document.getElementById('load-screen-modal')?.classList.add('hidden');
-        showGameScreen();
-        showNotification(`Peli ${response.player_name} ladattu!`, 'success', 'TERVETULOA TAKAISIN');
-        
-        // Päivitä pelin tila
-        await updateGameStats();
-        
-        // Näytä kojelauta oletusena
-        showView('dashboard');
-        
-    } catch (error) {
-        console.error('Pelin lataus epäonnistui:', error);
-        showNotification('Pelin lataus epäonnistui', 'error');
+function showLoadGameList() {
+    if (typeof openLoadGameModal === 'function') {
+        openLoadGameModal();
+    } else {
+        console.error('openLoadGameModal-funktio ei ole saatavilla');
+        showNotification('Lataa peli -ominaisuus ei ole käytettävissä', 'error');
     }
 }
 
@@ -247,9 +156,11 @@ function exitGame() {
     const startScreen = document.getElementById('start-screen');
     const gameContainer = document.getElementById('game-container');
     
-    // Näytä start screen fade-efektillä
-    gameContainer.classList.add('hidden');
-    startScreen.classList.remove('hidden');
+    // Piilota peli, näytä aloitusnäyttö
+    if (gameContainer) gameContainer.classList.add('hidden');
+    if (startScreen) {
+        startScreen.classList.remove('hidden');
+    }
     
     showNotification('Palattu aloitusnäyttöön', 'success', 'NÄKEMIIN');
 }
@@ -279,15 +190,15 @@ async function exitAndSaveGame() {
 }
 
 /**
- * Näyttää pelinäytön ja piilottaa start screenin
+ * Näyttää pelinäytön ja piilottaa päävalikon
  */
 function showGameScreen() {
     const startScreen = document.getElementById('start-screen');
     const gameContainer = document.getElementById('game-container');
     
-    // Piilota start screen ja näytä peli
-    startScreen.classList.add('hidden');
-    gameContainer.classList.remove('hidden');
+    // Piilota päävalikko ja näytä peli
+    if (startScreen) startScreen.classList.add('hidden');
+    if (gameContainer) gameContainer.classList.remove('hidden');
 }
 
 // ============================================================
@@ -635,27 +546,134 @@ function reloadCurrentView() {
  * Lataa ääniasetukset localStorage:sta ja päivittää UI:n
  */
 function loadSettingsFromStorage() {
-    const soundToggle = document.getElementById('sound-toggle');
-    const toggleSwitch = soundToggle.closest('.toggle-switch');
-    
-    // Lataa ääni-asetus (oletuksena true)
-    const soundEnabled = localStorage.getItem('settings_sound_enabled');
-    const isSoundEnabled = soundEnabled === null || soundEnabled === 'true';
-    
-    soundToggle.checked = isSoundEnabled;
-    if (isSoundEnabled) {
-        toggleSwitch.classList.add('enabled');
-    } else {
-        toggleSwitch.classList.remove('enabled');
+    try {
+        // Lataa ääni-asetus
+        const soundToggle = document.getElementById('sound-toggle');
+        const soundSwitch = document.getElementById('sound-switch');
+        if (soundToggle && soundSwitch) {
+            const soundEnabled = localStorage.getItem('settings_sound_enabled');
+            const isSoundEnabled = soundEnabled === null || soundEnabled === 'true';
+            soundToggle.checked = isSoundEnabled;
+            if (isSoundEnabled) {
+                soundSwitch.classList.add('enabled');
+            } else {
+                soundSwitch.classList.remove('enabled');
+            }
+        }
+
+        // Lataa fullscreen-asetus
+        const fullscreenToggle = document.getElementById('fullscreen-toggle');
+        const fullscreenSwitch = document.getElementById('fullscreen-switch');
+        if (fullscreenToggle && fullscreenSwitch) {
+            const fullscreenEnabled = localStorage.getItem('settings_fullscreen_enabled');
+            const isFullscreenEnabled = fullscreenEnabled === 'true';
+            fullscreenToggle.checked = isFullscreenEnabled;
+            if (isFullscreenEnabled) {
+                fullscreenSwitch.classList.add('enabled');
+            } else {
+                fullscreenSwitch.classList.remove('enabled');
+            }
+        }
+
+        // Lataa ilmoitukset-asetus
+        const notificationsToggle = document.getElementById('notifications-toggle');
+        const notificationsSwitch = document.getElementById('notifications-switch');
+        if (notificationsToggle && notificationsSwitch) {
+            const notificationsEnabled = localStorage.getItem('settings_notifications_enabled');
+            const isNotificationsEnabled = notificationsEnabled === null || notificationsEnabled === 'true';
+            notificationsToggle.checked = isNotificationsEnabled;
+            if (isNotificationsEnabled) {
+                notificationsSwitch.classList.add('enabled');
+            } else {
+                notificationsSwitch.classList.remove('enabled');
+            }
+        }
+
+        // Lataa vaikeusaste
+        const difficultySelect = document.getElementById('difficulty-select');
+        if (difficultySelect) {
+            const difficulty = localStorage.getItem('settings_difficulty');
+            if (difficulty) {
+                difficultySelect.value = difficulty;
+            }
+        }
+
+        // Lataa pelin nopeus
+        const speedSelect = document.getElementById('speed-select');
+        if (speedSelect) {
+            const speed = localStorage.getItem('settings_speed');
+            if (speed) {
+                speedSelect.value = speed;
+            }
+        }
+    } catch (error) {
+        console.error('Virhe asetuksien lataamisessa:', error);
     }
 }
 
 /**
- * Tallentaa ääniasetukset localStorage:iin
+ * Tallentaa asetukset ja sulkee modaalin
  */
-function saveSettingsToStorage() {
+function saveSettingsAndClose() {
     const soundToggle = document.getElementById('sound-toggle');
     localStorage.setItem('settings_sound_enabled', soundToggle.checked);
+    
+    const fullscreenToggle = document.getElementById('fullscreen-toggle');
+    localStorage.setItem('settings_fullscreen_enabled', fullscreenToggle.checked);
+    
+    const notificationsToggle = document.getElementById('notifications-toggle');
+    localStorage.setItem('settings_notifications_enabled', notificationsToggle.checked);
+    
+    const difficultySelect = document.getElementById('difficulty-select');
+    localStorage.setItem('settings_difficulty', difficultySelect.value);
+    
+    const speedSelect = document.getElementById('speed-select');
+    localStorage.setItem('settings_speed', speedSelect.value);
+    
+    showNotification('Asetukset tallennettu', 'success', 'OK');
+    closeSettings();
+}
+
+/**
+ * Vaihda ääni-asetusta
+ */
+function toggleSound() {
+    const soundToggle = document.getElementById('sound-toggle');
+    const soundSwitch = document.getElementById('sound-switch');
+    soundToggle.checked = !soundToggle.checked;
+    if (soundToggle.checked) {
+        soundSwitch.classList.add('enabled');
+    } else {
+        soundSwitch.classList.remove('enabled');
+    }
+}
+
+/**
+ * Vaihda fullscreen-asetusta
+ */
+function toggleFullscreen() {
+    const fullscreenToggle = document.getElementById('fullscreen-toggle');
+    const fullscreenSwitch = document.getElementById('fullscreen-switch');
+    fullscreenToggle.checked = !fullscreenToggle.checked;
+    if (fullscreenToggle.checked) {
+        fullscreenSwitch.classList.add('enabled');
+    } else {
+        fullscreenSwitch.classList.remove('enabled');
+    }
+}
+
+/**
+ * Vaihda ilmoitukset-asetusta
+ */
+function toggleNotifications() {
+    const notificationsToggle = document.getElementById('notifications-toggle');
+    const notificationsSwitch = document.getElementById('notifications-switch');
+    notificationsToggle.checked = !notificationsToggle.checked;
+    if (notificationsToggle.checked) {
+        notificationsSwitch.classList.add('enabled');
+    } else {
+        notificationsSwitch.classList.remove('enabled');
+    }
 }
 
 /**
@@ -768,3 +786,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.start-btn-secondary')?.addEventListener('click', showLoadGameList);
 
 });
+
+// ============================================================
+// NEW GAME MODAL FUNCTIONS
+// ============================================================
+// Note: New Game and Onboarding logic is handled in onboarding.js
+// This prevents duplicate event listeners and logic conflicts.

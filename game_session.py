@@ -143,6 +143,7 @@ class GameSession:
             rng_seed: Optional[int] = None,
             status: str = "ACTIVE",
             default_difficulty: str = "NORMAL",
+            interactive: bool = True,
     ) -> "GameSession":
         """
         Luo uuden tallennuksen ja käynnistää pelin.
@@ -204,7 +205,7 @@ class GameSession:
                 print(f"⚠️  Satunnaistapahtumien alustus epäonnistui: {err}")
 
         # Ensimmäinen tukikohta + lahjakone (STARTER)
-        session._first_time_base_and_gift_setup(starting_cash=_to_dec(cash))
+        session._first_time_base_and_gift_setup(starting_cash=_to_dec(cash), interactive=interactive)
 
         return session
 
@@ -236,11 +237,12 @@ class GameSession:
 
     # ---------- Ensimmäinen tukikohta + lahjakone ----------
 
-    def _first_time_base_and_gift_setup(self, starting_cash: Decimal) -> None:
+    def _first_time_base_and_gift_setup(self, starting_cash: Decimal, interactive: bool = True) -> None:
         """
         Valitse ensimmäinen tukikohta (EFHK/LFPG/KJFK).
         Hinta on 30/50/70 % aloituskassasta.
         Luodaan owned_bases ja base_upgrades(SMALL), lisätään lahjakone (STARTER: DC3FREE).
+        Kun interactive=False, valitaan automaattisesti ensimmäinen vaihtoehto.
         """
         options = [
             {"icao": "EFHK", "name": "Helsinki-Vantaa", "factor": Decimal("0.30")},
@@ -250,20 +252,24 @@ class GameSession:
         for o in options:
             o["price"] = (starting_cash * o["factor"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-        _icon_title("Ensimmäinen tukikohta")
-        for i, o in enumerate(options, start=1):
-            print(f"{i}) 🛫 {o['name']} ({o['icao']}) | 💶 Hinta: {self._fmt_money(o['price'])}")
+        if interactive:
+            _icon_title("Ensimmäinen tukikohta")
+            for i, o in enumerate(options, start=1):
+                print(f"{i}) 🛫 {o['name']} ({o['icao']}) | 💶 Hinta: {self._fmt_money(o['price'])}")
 
-        # Valinnan validointi
-        while True:
-            sel = input("Valinta numerolla (1-3): ").strip()
-            try:
-                idx = int(sel)
-                if 1 <= idx <= len(options):
-                    break
-                print("⚠️  Valitse numero 1-3.")
-            except ValueError:
-                print("⚠️  Anna numero 1-3.")
+            # Valinnan validointi
+            while True:
+                sel = input("Valinta numerolla (1-3): ").strip()
+                try:
+                    idx = int(sel)
+                    if 1 <= idx <= len(options):
+                        break
+                    print("⚠️  Valitse numero 1-3.")
+                except ValueError:
+                    print("⚠️  Anna numero 1-3.")
+        else:
+            # API-kutsuissa valitaan automaattisesti ensimmäinen tukikohta (Helsinki)
+            idx = 1
 
         chosen = options[idx - 1]
         base_ident = chosen["icao"]
@@ -291,7 +297,8 @@ class GameSession:
             nickname="Iso-isän DC-3",
         )
         print("🎁 Iso-isä lahjoitti sinulle Douglas DC-3 -koneen ja velkansa. 🫣\nOnnea matkaan, tarvitset sitä!")
-        input("↩︎ Enter jatkaa...")
+        if interactive:
+            input("↩︎ Enter jatkaa...")
 
     # ---------- Päävalikko ----------
 
