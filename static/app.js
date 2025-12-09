@@ -67,7 +67,7 @@ async function startNewGame() {
  */
 async function showLoadGameList() {
     try {
-        const savedGames = await apiCall('/api/games');
+        const savedGames = await apiCall('/api/game');
 
         const container = document.getElementById('load-game-list-container');
         if (!container) return;
@@ -109,7 +109,7 @@ async function loadGame(gameId) {
 
     try {
         // Tässä voidaan myöhemmin lisätä tallennusten valinta-dialogi -> tehty omaksi funktioksi
-        const response = await apiCall(`/api/games/${gameId}/load`, {
+        const response = await apiCall(`/api/game/${gameId}/load`, {
             method: 'POST'
         });
 
