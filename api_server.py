@@ -148,7 +148,7 @@ def _list_all_saves() -> List[Dict[str, Any]]:
 
 # ---------- Reitit: Elinkaari ----------
 
-@app.post("/api/games")
+@app.post("/api/game")
 def create_game():
     """Luo uuden tallennuksen ja palauttaa sen ID:n."""
     payload = request.get_json(silent=True) or {}
@@ -183,7 +183,7 @@ def create_game():
         app.logger.exception("Pelin luonti epäonnistui")
         return jsonify({"Virhe": f"Pelin luonti epäonnistui: str{e}"}), 500
 
-@app.post("/api/games/<int:save_id>/load")
+@app.post("/api/game/<int:save_id>/load")
 def load_game(save_id: int):
     """Lataa tallennuksen ja asettaa sen aktiiviseksi"""
     try:
@@ -412,7 +412,7 @@ def fast_forward():
         return jsonify({"virhe": f"Pikakelaus epäonnistui: {str(e)}"}), 500
 
 
-@app.get("/api/games")
+@app.get("/api/game")
 def list_games():
     """Palauttaa listan tallennetuista peleistä JSON-muodossa."""
     try:

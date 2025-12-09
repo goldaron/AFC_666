@@ -35,7 +35,7 @@ async function startNewGame() {
             difficulty: difficulty
          };
 
-        const newGame = await apiCall('/api/games',{
+        const newGame = await apiCall('/api/game/new',{
           method: 'POST',
           body: JSON.stringify(payload)
         });
@@ -45,7 +45,8 @@ async function startNewGame() {
         if (!newGame.save_id) {
           throw Error('Uuden pelin luonti epäonnistui.');
         }
-        
+
+        document.getElementById('new-game-modal')?.classList.add('hidden');
         showGameScreen();
         showNotification('Uusi peli aloitettu!', 'success', 'TERVETULOA');
         
