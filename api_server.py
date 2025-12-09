@@ -12,6 +12,7 @@ from utils import get_connection
 from session_helpers.common import _to_dec
 from upgrade_config import SURVIVAL_TARGET_DAYS
 
+ACTIVE_GAME_SESSION: GameSession = None
 app = Flask(__name__, static_folder='static')
 # Tämä kertoo minkä tallennuksen tietoja API lukee; oletuksena käytetään slot 1:tä.
 ACTIVE_SAVE_ID = int(os.environ.get("AFC_ACTIVE_SAVE_ID", 1))
@@ -145,22 +146,6 @@ def _list_all_saves() -> List[Dict[str, Any]]:
         """
     )
 
-@app.get("/api/games")
-def list_games():
-    """Palauttaa listan tallennetuista peleistä JSON-muodossa."""
-    try:
-        saves = _list_all_saves()
-
-        for s in saves:
-            s["cash"] = _decimal_to_string(s.get("cash"))
-            s["created_at"] = str(s.get("created_at"))
-            s["updated_at"] = str(s.get("updated_at"))
-
-        return jsonify({"tallennukset":saves})
-    except Exception:
-        app.logger.exception("Tallennusten haku epäonnistui.")
-        return jsonify({"Virhe": "Tallennusten haku epäonnistui."}), 500
-
 # ---------- Reitit: Elinkaari ----------
 
 @app.post("/api/games")
@@ -187,7 +172,7 @@ def create_game():
         ACTIVE_SAVE_ID = new_save_id
 
         return jsonify({
-        "Viesti": "Uusi peli luotu ja asetettu aktiiviseksi",
+        "Viesti": "Uusi peli luotu",
         "save_id": new_save_id,
         "status": session.status,
         "current_day": session.current_day,
@@ -425,6 +410,31 @@ def fast_forward():
     except Exception as e:
         app.logger.exception("Pikakelaus epäonnistui")
         return jsonify({"virhe": f"Pikakelaus epäonnistui: {str(e)}"}), 500
+
+
+@app.get("/api/games")
+def list_games():
+    """Palauttaa listan tallennetuista peleistä JSON-muodossa."""
+    try:
+        saved_game_raw = _list_all_saves()
+
+        formatted_games = [
+            {
+                'id': game['save_id'],
+                'name': game['player_name'],
+                'day': game['current_day'],
+                'status': game['status'],
+                'cash': _decimal_to_string(game['cash']),
+                'created_at': game['created_at'],
+                'updated_at': game['updated_at']
+            }
+        for game in saved_game_raw
+        ]
+
+        return jsonify(formatted_games)
+    except Exception:
+        app.logger.exception("Tallennusten haku epäonnistui.")
+        return jsonify({"Virhe": "Tallennusten haku epäonnistui."}), 500
 
 # ============================================================================
 # TEHTÄVÄT JA KAUPANKÄYNTI
