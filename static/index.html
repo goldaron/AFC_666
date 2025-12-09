@@ -1061,6 +1061,7 @@
                 <div class="kerhohuone-title-block">
                     <h1 class="kerhohuone-title">KERHOHUONE 666</h1>
                     <p class="kerhohuone-subtitle">// JÄSENILLE VARATTU</p>
+                    <div id="blackjack-game-title" class="kerhohuone-game-title"></div>
                 </div>
                 <div class="kerhohuone-cash-card">
                     <div class="kerhohuone-cash-icon">💵</div>
@@ -1074,93 +1075,72 @@
 
         <!-- Main Content -->
         <div class="kerhohuone-main">
-            <!-- Otsikko -->
-            <div class="kerhohuone-section-title">KERHOHUONE 666</div>
-
             <!-- Blackjack Card -->
             <div class="blackjack-container">
                 <!-- SETUP VIEW (Panoksen valinta) -->
                 <div id="blackjack-setup" class="blackjack-setup">
-                    <div class="blackjack-title">
-                        <h3 class="blackjack-heading">BLACKJACK</h3>
-                        <p class="blackjack-subtitle">Tavoite: Pääse lähemmäs 21:tä kuin jakaja ilman ylitystä</p>
-                    </div>
-
-                    <div class="blackjack-form">
-                        <!-- Bet Input -->
-                        <div class="blackjack-form-group">
-                            <label class="blackjack-label">PANOS</label>
-                            <input type="number" id="blackjack-bet-input" class="blackjack-input" value="1000" min="100" step="100">
+                    <div class="blackjack-setup-content">
+                        <!-- Left Column: Bet Input -->
+                        <div class="blackjack-setup-left">
+                            <div class="blackjack-form-group">
+                                <label class="blackjack-label">PANOS</label>
+                                <input type="number" id="blackjack-bet-input" class="blackjack-input" value="1000" min="100" step="100">
+                            </div>
+                            <button class="blackjack-deal-btn" onclick="startBlackjackFromInput()">JAA KORTIT</button>
                         </div>
 
-                        <!-- Säännöt -->
-                        <div class="blackjack-rules-box">
-                            <div class="blackjack-rules-label">SÄÄNNÖT</div>
-                            <ul class="blackjack-rules-list">
-                                <li>• Ässä = 1 tai 11, Kuvakortit = 10</li>
-                                <li>• Jakaja nostaa 17:aan asti</li>
-                                <li>• Blackjack (21 kahdella kortilla) = 3:2 voitto</li>
-                                <li>• Tuplaus mahdollista ensimmäisellä kierroksella</li>
-                            </ul>
+                        <!-- Right Column: Rules Box -->
+                        <div class="blackjack-setup-right">
+                            <div class="blackjack-rules-header">SÄÄNNÖT</div>
+                            <div class="blackjack-rules-list">
+                                <div class="blackjack-rules-item">• Ässä = 1 tai 11, Kuvakortit = 10</div>
+                                <div class="blackjack-rules-item">• Jakaja nostaa 17:aan asti</div>
+                                <div class="blackjack-rules-item">• Blackjack (21 kahdella kortilla) = 3:2 voitto</div>
+                                <div class="blackjack-rules-item">• Tuplaus mahdollista ensimmäisellä kierroksella</div>
+                                <div class="blackjack-rules-item">• Yli 21 = välitön häviö</div>
+                            </div>
                         </div>
-
-                        <!-- JAA KORTIT Button -->
-                        <button class="blackjack-deal-btn" onclick="startBlackjackFromInput()">JAA KORTIT</button>
-
-                        <!-- TAKAISIN PELEIHIN Button -->
-                        <button class="blackjack-back-btn" onclick="goBackToClubhouse()">TAKAISIN PELEIHIN</button>
                     </div>
                 </div>
 
                 <!-- GAME VIEW (Pelikenttä) -->
                 <div id="blackjack-game" class="blackjack-game hidden">
                     <div class="blackjack-game-content">
-                        <div class="blackjack-game-title">
-                            <h3 class="blackjack-heading">BLACKJACK</h3>
-                            <p class="blackjack-subtitle">Tavoite: Pääse lähemmäs 21:tä kuin jakaja ilman ylitystä</p>
-                        </div>
-
                         <!-- Dealer Hand -->
-                        <div class="blackjack-hand-section">
+                        <div class="blackjack-hand-group">
                             <div class="blackjack-hand-header">
                                 <span class="blackjack-hand-label">JAKAJAN KÄSI</span>
                                 <span class="blackjack-hand-value" id="dealer-value">0</span>
                             </div>
-                            <div class="blackjack-cards" id="dealer-cards"></div>
+                            <div class="blackjack-cards-container" id="dealer-cards"></div>
                         </div>
 
                         <!-- Divider -->
                         <div class="blackjack-divider"></div>
 
                         <!-- Player Hand -->
-                        <div class="blackjack-hand-section">
+                        <div class="blackjack-hand-group">
                             <div class="blackjack-hand-header">
                                 <span class="blackjack-hand-label">SINUN KÄTESI</span>
                                 <span class="blackjack-hand-value" id="player-value">0</span>
                             </div>
-                            <div class="blackjack-cards" id="player-cards"></div>
-                        </div>
-
-                        <!-- Bet Display -->
-                        <div class="blackjack-bet-display">
-                            <span class="blackjack-bet-label">PANOS:</span>
-                            <span class="blackjack-bet-value" id="bet-amount">$1,000</span>
+                            <div class="blackjack-cards-container" id="player-cards"></div>
                         </div>
 
                         <!-- Result Message -->
                         <div id="blackjack-result" class="blackjack-result-box"></div>
 
                         <!-- Action Buttons -->
-                        <div class="blackjack-buttons" id="blackjack-actions">
+                        <div class="blackjack-game-buttons" id="blackjack-actions">
                             <button class="blackjack-hit-btn" onclick="playerHit()">NOSTA KORTTI</button>
                             <button class="blackjack-stand-btn" onclick="playerStand()">STOP</button>
                         </div>
 
                         <!-- New Round Button (shown after game ends) -->
-                        <button class="blackjack-new-round-btn hidden" id="new-round-btn" onclick="newBlackjackRound()">UUSI KIERROS</button>
-
-                        <!-- Back Button -->
-                        <button class="blackjack-back-btn" onclick="goBackToClubhouse()">TAKAISIN PELEIHIN</button>
+                        <div class="blackjack-endgame-buttons hidden" id="blackjack-endgame-btns">
+                            <button class="blackjack-new-round-btn" onclick="newBlackjackRound()">UUSI KIERROS</button>
+                            <button class="blackjack-back-btn" onclick="goBackToClubhouse()">TAKAISIN</button>
+                        </div>
                     </div>
                 </div>
             </div>

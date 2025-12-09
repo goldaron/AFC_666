@@ -294,7 +294,7 @@ function playerStand() {
 function updateBlackjackResult() {
     const resultElement = document.getElementById('blackjack-result');
     const actionButtons = document.getElementById('blackjack-actions');
-    const newRoundBtn = document.getElementById('new-round-btn');
+    const endgameButtons = document.getElementById('blackjack-endgame-btns');
     
     if (!resultElement) return;
     
@@ -303,7 +303,7 @@ function updateBlackjackResult() {
     if (!blackjackState.gameOver) {
         // Peli jatkuu - näytä toimintanapit
         if (actionButtons) actionButtons.style.display = 'flex';
-        if (newRoundBtn) newRoundBtn.classList.add('hidden');
+        if (endgameButtons) endgameButtons.classList.add('hidden');
         return;
     }
     
@@ -327,7 +327,7 @@ function updateBlackjackResult() {
         resultColor = '#05df72';
         winAmount = blackjackState.bet;
     } else if (blackjackState.result === 'loss') {
-        resultText = `HÄVISIT! Sinulla ${playerValue}, jakajalla ${dealerValue}`;
+        resultText = `HÄVISIT. Jakajan käsi oli parempi.`;
         resultColor = '#ff6467';
         winAmount = -blackjackState.bet;
     } else if (blackjackState.result === 'push') {
@@ -337,17 +337,17 @@ function updateBlackjackResult() {
     }
     
     resultElement.innerHTML = `
-        <div style="color: ${resultColor}; font-size: 24px; margin-bottom: 16px; font-weight: bold;">
+        <div style="color: ${resultColor}; font-size: 16px; text-align: center; line-height: 24px;">
             ${resultText}
         </div>
-        <div style="color: #d1d5dc; font-size: 24px; font-weight: bold;">
-            ${winAmount >= 0 ? '+' : ''}${winAmount} €
+        <div style="color: #d1d5dc; font-size: 18px; font-weight: normal; text-align: center; line-height: 28px;">
+            ${winAmount >= 0 ? '+' : ''}${winAmount} $
         </div>
     `;
     
-    // Peli loppui - piilota toimintanapit ja näytä "Pelaa uusi kierros" -nappi
+    // Peli loppui - piilota toimintanapit ja näytä "Uusi kierros" -nappi
     if (actionButtons) actionButtons.style.display = 'none';
-    if (newRoundBtn) newRoundBtn.classList.remove('hidden');
+    if (endgameButtons) endgameButtons.classList.remove('hidden');
 }
 
 function newBlackjackRound() {
@@ -367,6 +367,7 @@ function newBlackjackRound() {
 function showBlackjackSetupView() {
     const setupView = document.getElementById('blackjack-setup');
     const gameView = document.getElementById('blackjack-game');
+    const gameTitle = document.getElementById('blackjack-game-title');
     
     if (setupView) {
         setupView.style.display = 'block';
@@ -376,16 +377,24 @@ function showBlackjackSetupView() {
         gameView.style.display = 'none';
         gameView.classList.add('hidden');
     }
+    if (gameTitle) {
+        gameTitle.classList.remove('active');
+    }
 }
 
 function showBlackjackGameView() {
     const setupView = document.getElementById('blackjack-setup');
     const gameView = document.getElementById('blackjack-game');
+    const gameTitle = document.getElementById('blackjack-game-title');
     
     if (setupView) setupView.style.display = 'none';
     if (gameView) {
         gameView.style.display = 'block';
         gameView.classList.remove('hidden');
+    }
+    if (gameTitle) {
+        gameTitle.classList.add('active');
+        gameTitle.textContent = 'BLACKJACK';
     }
 }
 
