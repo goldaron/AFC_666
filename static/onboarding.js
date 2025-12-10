@@ -547,31 +547,31 @@ function updateOnboardingModal() {
             title: 'LENTORAHTIYHTIÖ 666',
             subtitle: 'Tarinan alku...',
             text: 'Olet nyt lentorahtiyhtiön omistaja',
-            image: 'img/story-images/step1-prolog.webp'
+            image: 'img/story-images/prologue.png'
         },
         2: {
             title: 'TEHTÄVÄ',
             subtitle: 'Tavoitteesi',
             text: 'Tehtäväsi on selviytyä 666 päivää',
-            image: 'img/story-images/step2-tavoite.webp'
+            image: 'img/story-images/bills.png'
         },
         3: {
             title: 'PERINTÖ',
             subtitle: 'Isoisäsi lahja',
             text: 'Isoisäsi antoi sinulle yhtiönsä ja Douglas DC-3 lentokoneen',
-            image: 'img/story-images/step3-perintö.webp'
+            image: 'img/story-images/isoisä_dc3_v2.png'
         },
         4: {
             title: 'HAASTE',
             subtitle: 'Mutta ei kaikki ole ruusuilla tanssimista...',
             text: 'Ja sait myös hänen velkansa, onnea!',
-            image: 'img/story-images/step4-kauppa.webp'
+            image: 'img/story-images/lentomafia_rahaa.png'
         },
         5: {
             title: 'LASKUT JA MAKSUT',
             subtitle: 'Muista erääntymispäivät',
             text: 'Jokaisen 30. päivän kohdalla kaikki laskut ja maksut erääntyvät. Varmista, että sinulla on tarpeeksi rahaa tai raha vähennetään saldostasi automaattisesti.',
-            image: 'img/story-images/step5-nousu.webp'
+            image: 'img/story-images/ohjaamo_paniikissa.png'
         }
     };
     
