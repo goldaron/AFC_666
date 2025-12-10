@@ -38,3 +38,19 @@ session_helpers/__pycache__/aircraft.cpython-39.pyc
 session_helpers/__pycache__/bases.cpython-39.pyc
 session_helpers/__pycache__/common.cpython-39.pyc
 debug_db.py
+
+# Suunnitelmat ja paikalliset dokumentit
+*_plan.md
+*_suunnitelma.md
+kerhohuone_plan.md
+
+# Väliaikaistiedostot ja testit
+test_*.py
+debug_*.py
+*.tmp
+*.bak
+
+# Playground ja henkilökohtaiset muistiinpanot
+playground.py
+notes.md
+local_*.py

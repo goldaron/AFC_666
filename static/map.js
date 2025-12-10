@@ -82,7 +82,7 @@ async function initializeMap() {
         }
         
         // Päivitään alempi lista aktiivisista lennoista (vain ne jotka lentää)
-        const activeFlights = mapData.aircrafts.filter(a => a.isFlying);
+        const activeFlights = (mapData.aircrafts || []).filter(a => a.isFlying);
         displayActiveFlyingList(activeFlights, mapData.currentDay);
         
         // Päivitetään headerin laskuri

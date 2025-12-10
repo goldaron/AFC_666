@@ -268,6 +268,9 @@ function showView(viewName) {
         } else if (viewName === 'laivasto') {
             // Laivasto: lataa lentokoneet
             loadFleetData();
+        } else if (viewName === 'tukikohdat') {
+            // Tukikohdat: lataa tukikohtien tiedot
+            loadBasesData();
         } else if (viewName === 'upgrades') {
             // Päivitykset: placeholder
         } else if (viewName === 'maintenance') {

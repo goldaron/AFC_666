@@ -1610,6 +1610,7 @@ def get_map_data():
                 o2.longitude_deg as dest_lon,
                 o2.name as dest_name,
                 a.registration,
+                a.aircraft_id,
                 f.arrival_day,
                 f.schedule_delay_min,
                 c.event_id
@@ -1618,10 +1619,10 @@ def get_map_data():
             JOIN airport o1 ON a.current_airport_ident = o1.ident
             JOIN airport o2 ON c.ident = o2.ident
             JOIN flights f ON c.contractId = f.contract_id
-            WHERE c.status IN ('ACCEPTED', 'IN_PROGRESS')
+            WHERE a.save_id = %s AND c.status IN ('ACCEPTED', 'IN_PROGRESS')
             ORDER BY c.contractId
         """
-        kursori.execute(cond_sql)
+        kursori.execute(cond_sql, (ACTIVE_SAVE_ID,))
         contracts = kursori.fetchall() or []
         
         # Haetaan kaikki lentokentät koordinaatteineen (kartanäytölle)
@@ -1673,7 +1674,7 @@ def get_map_data():
                 "reward": _decimal_to_string(contract.get("reward")),
             })
         
-        # Haetaan omien kantojen ICAO-koodit ja pääkotisatama
+        # Rakennetaan omien kantojen ICAO-koodit ja pääkotisatama
         bases_sql = "SELECT base_ident, is_headquarters FROM owned_bases WHERE save_id = %s"
         kursori.execute(bases_sql, (ACTIVE_SAVE_ID,))
         owned_bases_rows = kursori.fetchall() or []
@@ -1683,6 +1684,40 @@ def get_map_data():
             if row.get("is_headquarters"):
                 headquarters_ident = row.get("base_ident")
                 break
+        
+        # Haetaan kaikki lentokoneet idle-tilassa (ei aktiivisia sopimuksia)
+        idle_aircrafts = []
+        active_aircraft_ids = set(c.get("aircraft_id") for c in contracts if c.get("aircraft_id"))
+        
+        idle_sql = """
+            SELECT a.aircraft_id, a.registration, a.current_airport_ident, o.latitude_deg, o.longitude_deg
+            FROM aircraft a
+            JOIN airport o ON a.current_airport_ident = o.ident
+            WHERE a.save_id = %s
+        """
+        kursori.execute(idle_sql, (ACTIVE_SAVE_ID,))
+        all_aircrafts = kursori.fetchall() or []
+        
+        for aircraft in all_aircrafts:
+            aircraft_id = aircraft.get("aircraft_id")
+            # Vain idle-koneet (ei aktiivisia sopimuksia)
+            if aircraft_id not in active_aircraft_ids:
+                idle_aircrafts.append({
+                    "registration": aircraft.get("registration"),
+                    "status": "IDLE",
+                    "isFlying": False,
+                    "locationIdent": aircraft.get("current_airport_ident"),
+                    "locationLat": float(aircraft.get("latitude_deg", 0)),
+                    "locationLon": float(aircraft.get("longitude_deg", 0)),
+                    "progressPercent": 0
+                })
+        
+        # Merkitään aktiiviset sopimukset isFlying-merkinnällä
+        for contract in map_contracts:
+            contract["isFlying"] = True
+        
+        # Yhdistetään aktiiviset lennot ja idle-koneet
+        all_aircrafts_for_map = map_contracts + idle_aircrafts
         
         # Rakennetaan lentokenttälista
         all_airports_list = []
@@ -1695,9 +1730,23 @@ def get_map_data():
                 "longitude_deg": float(airport.get("longitude_deg", 0)),
             })
         
+        # Rakennetaan owned bases lista map.js:ää varten
+        owned_bases_list = []
+        for airport in all_airports:
+            ident = airport.get("ident")
+            if ident in owned_bases:
+                owned_bases_list.append({
+                    "ident": ident,
+                    "name": airport.get("name", ""),
+                    "latitude": float(airport.get("latitude_deg", 0)),
+                    "longitude": float(airport.get("longitude_deg", 0)),
+                    "isHeadquarters": ident == headquarters_ident
+                })
+        
         return jsonify({
             "currentDay": current_day,
-            "activeContracts": map_contracts,
+            "aircrafts": all_aircrafts_for_map,
+            "ownedBases": owned_bases_list,
             "airports": all_airports_list,
             "headquartersIdent": headquarters_ident,
         }), 200
