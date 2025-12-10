@@ -101,6 +101,119 @@
             </div>
         </div>
     </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeSettings()"></div>
+        <div class="modal-content settings-modal-content">
+            <div class="modal-header">
+                <h2>⚙️ ASETUKSET</h2>
+                <p class="modal-subtitle">// HALLINNOI PELIASETUKSIA</p>
+                <button class="modal-close" onclick="closeSettings()">✕</button>
+            </div>
+
+            <!-- ÄÄNI OSIO -->
+            <div class="settings-section">
+                <div class="settings-section-title">
+                    <span class="settings-icon">🔊</span>
+                    <div>
+                        <h3>ÄÄNI</h3>
+                        <p class="settings-section-subtitle">Hallitse ääniasetuksia</p>
+                    </div>
+                </div>
+
+                <div class="settings-option">
+                    <label for="sound-toggle" class="settings-label">ÄÄNET</label>
+                    <div class="toggle-switch" id="sound-switch" onclick="toggleSound()">
+                        <input type="checkbox" id="sound-toggle" class="toggle-input" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+
+                <div class="settings-sub-options">
+                    <div class="sub-option">
+                        <span class="bullet">🎵</span> Taustamusiikin äänet
+                    </div>
+                    <div class="sub-option">
+                        <span class="bullet">🔔</span> Käyttöliittymän äänet
+                    </div>
+                    <div class="sub-option">
+                        <span class="bullet">⚠️</span> Ilmoitusäänet
+                    </div>
+                </div>
+            </div>
+
+            <!-- NÄYTTÖ OSIO -->
+            <div class="settings-section">
+                <div class="settings-section-title">
+                    <span class="settings-icon">🖥️</span>
+                    <div>
+                        <h3>NÄYTTÖ</h3>
+                        <p class="settings-section-subtitle">Muuta näyttöasetuksia</p>
+                    </div>
+                </div>
+
+                <div class="settings-option">
+                    <label for="fullscreen-toggle" class="settings-label">KOKO NÄYTTÖ</label>
+                    <div class="toggle-switch" id="fullscreen-switch" onclick="toggleFullscreen()">
+                        <input type="checkbox" id="fullscreen-toggle" class="toggle-input">
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+
+                <div class="settings-option">
+                    <label for="notifications-toggle" class="settings-label">ILMOITUKSET</label>
+                    <div class="toggle-switch" id="notifications-switch" onclick="toggleNotifications()">
+                        <input type="checkbox" id="notifications-toggle" class="toggle-input" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PELI OSIO -->
+            <div class="settings-section">
+                <div class="settings-section-title">
+                    <span class="settings-icon">🎮</span>
+                    <div>
+                        <h3>PELI</h3>
+                        <p class="settings-section-subtitle">Pelin yleisasetukset</p>
+                    </div>
+                </div>
+
+                <div class="settings-option">
+                    <label for="difficulty-select" class="settings-label">VAIKEUSASTE</label>
+                    <select id="difficulty-select" class="settings-select">
+                        <option value="easy">HELPPO</option>
+                        <option value="normal" selected>NORMAALI</option>
+                        <option value="hard">VAIKEA</option>
+                    </select>
+                </div>
+
+                <div class="settings-option">
+                    <label for="speed-select" class="settings-label">PELIN NOPEUS</label>
+                    <select id="speed-select" class="settings-select">
+                        <option value="slow">HIDAS</option>
+                        <option value="normal" selected>NORMAALI</option>
+                        <option value="fast">NOPEA</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- INFO OSIO -->
+            <div class="settings-section">
+                <div class="settings-info">
+                    <span class="info-icon">ℹ️</span>
+                    <p>Asetukset tallennetaan automaattisesti paikallisesti ja pysyvät voimassa seuraavalla pelisessiolla.</p>
+                </div>
+            </div>
+
+            <!-- PAINIKKEET -->
+            <div class="settings-buttons">
+                <button class="modal-cancel-btn" onclick="closeSettings()">PERUUTA</button>
+                <button class="modal-next-btn" onclick="saveSettingsAndClose()">TALLENNA</button>
+            </div>
+        </div>
+    </div>
     <!-- ALOITUSNÄYTTÖ / MAIN MENU -->
     <!-- PÄÄVALIKKO (Start Screen) -->
     <section id="start-screen" class="start-screen hidden">
@@ -431,118 +544,6 @@
         </div>
     </div>
 
-    <!-- SETTINGS MODAL -->
-    <div id="settings-modal" class="modal hidden">
-        <div class="modal-overlay" onclick="closeSettings()"></div>
-        <div class="modal-content settings-modal-content">
-            <div class="modal-header">
-                <h2>⚙️ ASETUKSET</h2>
-                <p class="modal-subtitle">// HALLINNOI PELIASETUKSIA</p>
-                <button class="modal-close" onclick="closeSettings()">✕</button>
-            </div>
-            
-            <!-- ÄÄNI OSIO -->
-            <div class="settings-section">
-                <div class="settings-section-title">
-                    <span class="settings-icon">🔊</span>
-                    <div>
-                        <h3>ÄÄNI</h3>
-                        <p class="settings-section-subtitle">Hallitse ääniasetuksia</p>
-                    </div>
-                </div>
-                
-                <div class="settings-option">
-                    <label for="sound-toggle" class="settings-label">PÄÄÄÄNET</label>
-                    <div class="toggle-switch" id="sound-switch" onclick="toggleSound()">
-                        <input type="checkbox" id="sound-toggle" class="toggle-input" checked>
-                        <span class="toggle-slider"></span>
-                    </div>
-                </div>
-                
-                <div class="settings-sub-options">
-                    <div class="sub-option">
-                        <span class="bullet">🎵</span> Taustamusiikin äänet
-                    </div>
-                    <div class="sub-option">
-                        <span class="bullet">🔔</span> Käyttöliittymän äänet
-                    </div>
-                    <div class="sub-option">
-                        <span class="bullet">⚠️</span> Ilmoitusäänet
-                    </div>
-                </div>
-            </div>
-
-            <!-- NÄYTTÖ OSIO -->
-            <div class="settings-section">
-                <div class="settings-section-title">
-                    <span class="settings-icon">🖥️</span>
-                    <div>
-                        <h3>NÄYTTÖ</h3>
-                        <p class="settings-section-subtitle">Muuta näyttöasetuksia</p>
-                    </div>
-                </div>
-                
-                <div class="settings-option">
-                    <label for="fullscreen-toggle" class="settings-label">KOKO NÄYTTÖ</label>
-                    <div class="toggle-switch" id="fullscreen-switch" onclick="toggleFullscreen()">
-                        <input type="checkbox" id="fullscreen-toggle" class="toggle-input">
-                        <span class="toggle-slider"></span>
-                    </div>
-                </div>
-
-                <div class="settings-option">
-                    <label for="notifications-toggle" class="settings-label">ILMOITUKSET</label>
-                    <div class="toggle-switch" id="notifications-switch" onclick="toggleNotifications()">
-                        <input type="checkbox" id="notifications-toggle" class="toggle-input" checked>
-                        <span class="toggle-slider"></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PELI OSIO -->
-            <div class="settings-section">
-                <div class="settings-section-title">
-                    <span class="settings-icon">🎮</span>
-                    <div>
-                        <h3>PELI</h3>
-                        <p class="settings-section-subtitle">Pelin yleisasetukset</p>
-                    </div>
-                </div>
-                
-                <div class="settings-option">
-                    <label for="difficulty-select" class="settings-label">VAIKEUSASTE</label>
-                    <select id="difficulty-select" class="settings-select">
-                        <option value="easy">HELPPO</option>
-                        <option value="normal" selected>NORMAALI</option>
-                        <option value="hard">VAIKEA</option>
-                    </select>
-                </div>
-
-                <div class="settings-option">
-                    <label for="speed-select" class="settings-label">PELIN NOPEUS</label>
-                    <select id="speed-select" class="settings-select">
-                        <option value="slow">HIDAS</option>
-                        <option value="normal" selected>NORMAALI</option>
-                        <option value="fast">NOPEA</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- INFO OSIO -->
-            <div class="settings-section">
-                <div class="settings-info">
-                    <span class="info-icon">ℹ️</span>
-                    <p>Asetukset tallennetaan automaattisesti paikallisesti ja pysyvät voimassa seuraavalla pelisessiolla.</p>
-                </div>
-            </div>
-
-            <!-- PAINIKKEET -->
-            <div class="settings-buttons">
-                <button class="modal-cancel-btn" onclick="closeSettings()">PERUUTA</button>
-                <button class="modal-next-btn" onclick="saveSettingsAndClose()">TALLENNA</button>
-            </div>
-        </div>
-    </div>
 
     <!-- LOSE MODAL (KONKURSSI) -->
     <div id="lose-modal" class="modal hidden">
@@ -1256,7 +1257,7 @@
                                 MALLI <span class="sort-arrows">⇅</span>
                             </th>
                             <th class="sortable" onclick="sortFleetTable('registration')">
-                                ILMOITUSNUMERO <span class="sort-arrows">⇅</span>
+                                REKISTERITUNNUS <span class="sort-arrows">⇅</span>
                             </th>
                             <th class="sortable" onclick="sortFleetTable('nickname')">
                                 LEMPINIMI <span class="sort-arrows">⇅</span>
