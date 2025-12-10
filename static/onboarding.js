@@ -204,29 +204,7 @@ async function selectGameAndLoad(gameId) {
     }
 }
 
-function showSettings() {
-    console.log('showSettings called from onboarding.js');
-    const modal = document.getElementById('settings-modal');
-    if (!modal) {
-        console.error('Could not find settings-modal element');
-        return;
-    }
-    console.log('Found modal:', modal);
-    modal.classList.remove('hidden');
-    console.log('Removed hidden class from modal');
-    
-    // Try to load settings after a short delay
-    setTimeout(() => {
-        try {
-            if (typeof loadSettingsFromStorage === 'function') {
-                loadSettingsFromStorage();
-                console.log('Settings loaded');
-            }
-        } catch (e) {
-            console.error('Error loading settings:', e);
-        }
-    }, 50);
-}
+// showSettings() määritetään app.js:ssä - käytä sitä sieltä
 
 function exitGame() {
     // Palaa aloitusnäyttöön

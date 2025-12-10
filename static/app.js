@@ -44,8 +44,10 @@ function showLoadGameList() {
  */
 function showSettings() {
     const modal = document.getElementById('settings-modal');
+    console.log('showSettings() kutsuttu, modal:', modal);
     if (modal) {
         modal.classList.remove('hidden');
+        console.log('Modal näytetään, classList:', modal.classList);
         loadSettingsFromStorage();
     }
 }
@@ -55,8 +57,10 @@ function showSettings() {
  */
 function closeSettings() {
     const modal = document.getElementById('settings-modal');
+    console.log('closeSettings() kutsuttu, modal:', modal);
     if (modal) {
         modal.classList.add('hidden');
+        console.log('Modal piilotetaan, classList:', modal.classList);
     }
 }
 

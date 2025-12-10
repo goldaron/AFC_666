@@ -512,6 +512,7 @@ body {
     border-bottom: 1px solid rgba(0, 212, 255, 0.2);
     padding: 20px 111px;
     position: relative;
+    z-index: 101;
 }
 
 .game-header::before {
@@ -683,6 +684,8 @@ body {
     display: flex;
     gap: 0;
     align-items: center;
+    position: relative;
+    z-index: 100;
 }
 
 .nav-spacer {
@@ -5933,7 +5936,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: 99999 !important;
+    overflow: hidden;
 }
 
 .modal.hidden {
@@ -5946,15 +5950,18 @@ body {
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(2px);
     cursor: pointer;
+    z-index: 0;
+    pointer-events: auto;
 }
 
 .modal-content {
     position: relative;
-    z-index: 10;
+    z-index: 1;
     background: linear-gradient(135deg, #0a0a0f 0%, #0f1318 100%);
     border: 2px solid rgba(0, 211, 242, 0.4);
     border-radius: 10px;
     box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+    pointer-events: auto;
     overflow: hidden;
     animation: modalSlideIn 0.4s ease-out;
     max-height: 90vh;

@@ -813,6 +813,13 @@ def market_used():
     { "kaytetyt_koneet": [{ "market_id": 1, "model_code": "DC-3", "condition_percent": 85, ... }] }
     """
     try:
+        # Päivitä markkinatarjonta kuten CLI:ssä ennen listan palauttamista
+        try:
+            session = GameSession(save_id=ACTIVE_SAVE_ID)
+            session._refresh_market_aircraft()
+        except Exception:
+            app.logger.exception("Market refresh failed")
+        
         rows = _query_dicts(
             """
             SELECT m.market_id,
@@ -1596,8 +1603,8 @@ def get_map_data():
         # Haetaan kaikki aktiiviset sopimukset (hyväksytyt tai käynnissä)
         cond_sql = """
             SELECT 
-                c.contractId,
-                f.dep_day as start_day,
+                c.contractId AS contract_id,
+                f.dep_day AS start_day,
                 c.deadline_day,
                 c.reward,
                 c.status,
@@ -1649,14 +1656,15 @@ def get_map_data():
             seen_airports.add(dest_id)
             
             # Lasketaan edistymisprosentti
-            start_day = contract.get("pay_day", current_day)
-            end_day = contract.get("arrival_day", contract.get("deadline_day", current_day + 1))
+            start_day = contract.get("start_day") or current_day
+            end_day = contract.get("arrival_day") or contract.get("deadline_day") or (start_day + 1)
             progress_pct = 0
             if end_day > start_day:
                 progress_pct = min(100, max(0, int(100.0 * (current_day - start_day) / (end_day - start_day))))
             
             map_contracts.append({
-                "contractId": contract.get("contract_id"),
+                "contractId": contract.get("contract_id") or contract.get("contractId"),
+                "registration": contract.get("registration"),
                 "aircraft": contract.get("registration"),
                 "originIdent": origin_id,
                 "originLat": float(contract.get("origin_lat", 0)),
@@ -1669,7 +1677,7 @@ def get_map_data():
                 "status": contract.get("status", "IN_PROGRESS"),
                 "startDay": start_day,
                 "currentDay": current_day,
-                "estimatedDay": end_day,
+                "arrivalDay": end_day,
                 "progressPercent": progress_pct,
                 "reward": _decimal_to_string(contract.get("reward")),
             })
